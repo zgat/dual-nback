@@ -3,38 +3,51 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 type Phase = "idle" | "countdown" | "playing" | "paused" | "finished";
-type Channel = "position" | "audio";
+type Channel = "position" | "card";
+
+type PlayingCard = {
+  rank: string;
+  suit: "♠" | "♥" | "♦" | "♣";
+};
 
 type Trial = {
   position: number;
-  letter: string;
+  card: PlayingCard;
 };
 
 type GameSettings = {
   n: number;
   total: number;
   interval: number;
-  sound: boolean;
 };
 
 type Stats = {
   correct: number;
   total: number;
   positionHits: number;
-  audioHits: number;
+  cardHits: number;
   misses: number;
   falseAlarms: number;
   streak: number;
   bestStreak: number;
 };
 
-const LETTERS = ["C", "H", "K", "L", "Q", "R", "S", "T"];
-const DEFAULT_SETTINGS: GameSettings = { n: 2, total: 20, interval: 2400, sound: true };
+const CARDS: PlayingCard[] = [
+  { rank: "A", suit: "♠" },
+  { rank: "K", suit: "♥" },
+  { rank: "Q", suit: "♦" },
+  { rank: "J", suit: "♣" },
+  { rank: "10", suit: "♠" },
+  { rank: "9", suit: "♥" },
+  { rank: "8", suit: "♦" },
+  { rank: "7", suit: "♣" },
+];
+const DEFAULT_SETTINGS: GameSettings = { n: 2, total: 20, interval: 2400 };
 const EMPTY_STATS: Stats = {
   correct: 0,
   total: 0,
   positionHits: 0,
-  audioHits: 0,
+  cardHits: 0,
   misses: 0,
   falseAlarms: 0,
   streak: 0,
@@ -53,27 +66,16 @@ function makeSequence(total: number, n: number): Trial[] {
   for (let index = 0; index < total; index += 1) {
     const canMatch = index >= n;
     const positionMatch = canMatch && Math.random() < 0.3;
-    const audioMatch = canMatch && Math.random() < 0.3;
+    const cardMatch = canMatch && Math.random() < 0.3;
     const previous = sequence[index - n];
 
     sequence.push({
       position: positionMatch ? previous.position : pickDifferent(positions, previous?.position),
-      letter: audioMatch ? previous.letter : pickDifferent(LETTERS, previous?.letter),
+      card: cardMatch ? previous.card : pickDifferent(CARDS, previous?.card),
     });
   }
 
   return sequence;
-}
-
-function speakLetter(letter: string, enabled: boolean) {
-  if (!enabled || typeof window === "undefined" || !("speechSynthesis" in window)) return;
-  window.speechSynthesis.cancel();
-  const utterance = new SpeechSynthesisUtterance(letter);
-  utterance.lang = "en-US";
-  utterance.rate = 0.9;
-  utterance.pitch = 1;
-  utterance.volume = 0.9;
-  window.speechSynthesis.speak(utterance);
 }
 
 function scorePercent(stats: Stats) {
@@ -88,8 +90,8 @@ export default function Home() {
   const [current, setCurrent] = useState<Trial | null>(null);
   const [stimulusVisible, setStimulusVisible] = useState(false);
   const [countdown, setCountdown] = useState(3);
-  const [responses, setResponses] = useState<Record<Channel, boolean>>({ position: false, audio: false });
-  const [feedback, setFeedback] = useState<Record<Channel, "correct" | "wrong" | null>>({ position: null, audio: null });
+  const [responses, setResponses] = useState<Record<Channel, boolean>>({ position: false, card: false });
+  const [feedback, setFeedback] = useState<Record<Channel, "correct" | "wrong" | null>>({ position: null, card: null });
   const [stats, setStats] = useState<Stats>(EMPTY_STATS);
   const [bestScore, setBestScore] = useState(0);
   const [showSettings, setShowSettings] = useState(false);
@@ -98,7 +100,7 @@ export default function Home() {
   const settingsRef = useRef(settings);
   const phaseRef = useRef<Phase>(phase);
   const roundRef = useRef(-1);
-  const responsesRef = useRef<Record<Channel, boolean>>({ position: false, audio: false });
+  const responsesRef = useRef<Record<Channel, boolean>>({ position: false, card: false });
   const statsRef = useRef<Stats>(EMPTY_STATS);
   const trialTimerRef = useRef<number | null>(null);
   const stimulusTimerRef = useRef<number | null>(null);
@@ -119,13 +121,12 @@ export default function Home() {
     if (!trial) return;
 
     roundRef.current = index;
-    responsesRef.current = { position: false, audio: false };
+    responsesRef.current = { position: false, card: false };
     setRound(index);
     setCurrent(trial);
-    setResponses({ position: false, audio: false });
-    setFeedback({ position: null, audio: null });
+    setResponses({ position: false, card: false });
+    setFeedback({ position: null, card: null });
     setStimulusVisible(true);
-    speakLetter(trial.letter, settingsRef.current.sound);
 
     const showFor = Math.min(900, Math.round(settingsRef.current.interval * 0.42));
     stimulusTimerRef.current = window.setTimeout(() => setStimulusVisible(false), showFor);
@@ -137,7 +138,6 @@ export default function Home() {
     phaseRef.current = "finished";
     setPhase("finished");
     setStimulusVisible(false);
-    window.speechSynthesis?.cancel();
 
     const score = scorePercent(finalStats);
     setBestScore((previous) => {
@@ -157,23 +157,23 @@ export default function Home() {
       const trial = sequenceRef.current[index];
       const target = sequenceRef.current[index - n];
       const positionExpected = trial.position === target.position;
-      const audioExpected = trial.letter === target.letter;
+      const cardExpected = trial.card.rank === target.card.rank && trial.card.suit === target.card.suit;
       const positionCorrect = responsesRef.current.position === positionExpected;
-      const audioCorrect = responsesRef.current.audio === audioExpected;
-      const roundCorrect = positionCorrect && audioCorrect;
+      const cardCorrect = responsesRef.current.card === cardExpected;
+      const roundCorrect = positionCorrect && cardCorrect;
       const nextStreak = roundCorrect ? nextStats.streak + 1 : 0;
 
       nextStats = {
-        correct: nextStats.correct + Number(positionCorrect) + Number(audioCorrect),
+        correct: nextStats.correct + Number(positionCorrect) + Number(cardCorrect),
         total: nextStats.total + 2,
         positionHits: nextStats.positionHits + Number(positionExpected && responsesRef.current.position),
-        audioHits: nextStats.audioHits + Number(audioExpected && responsesRef.current.audio),
+        cardHits: nextStats.cardHits + Number(cardExpected && responsesRef.current.card),
         misses: nextStats.misses
           + Number(positionExpected && !responsesRef.current.position)
-          + Number(audioExpected && !responsesRef.current.audio),
+          + Number(cardExpected && !responsesRef.current.card),
         falseAlarms: nextStats.falseAlarms
           + Number(!positionExpected && responsesRef.current.position)
-          + Number(!audioExpected && responsesRef.current.audio),
+          + Number(!cardExpected && responsesRef.current.card),
         streak: nextStreak,
         bestStreak: Math.max(nextStats.bestStreak, nextStreak),
       };
@@ -194,15 +194,15 @@ export default function Home() {
     const nextSequence = makeSequence(settingsRef.current.total, settingsRef.current.n);
     sequenceRef.current = nextSequence;
     statsRef.current = EMPTY_STATS;
-    responsesRef.current = { position: false, audio: false };
+    responsesRef.current = { position: false, card: false };
     roundRef.current = -1;
     phaseRef.current = "countdown";
     setPhase("countdown");
     setRound(-1);
     setCurrent(null);
     setStats(EMPTY_STATS);
-    setFeedback({ position: null, audio: null });
-    setResponses({ position: false, audio: false });
+    setFeedback({ position: null, card: null });
+    setResponses({ position: false, card: false });
     setCountdown(3);
 
     let remaining = 3;
@@ -226,7 +226,6 @@ export default function Home() {
     phaseRef.current = "paused";
     setPhase("paused");
     setStimulusVisible(false);
-    window.speechSynthesis?.cancel();
   }, [clearTimers]);
 
   const togglePause = useCallback(() => {
@@ -249,7 +248,7 @@ export default function Home() {
     const target = sequenceRef.current[index - n];
     const isMatch = channel === "position"
       ? trial.position === target.position
-      : trial.letter === target.letter;
+      : trial.card.rank === target.card.rank && trial.card.suit === target.card.suit;
 
     responsesRef.current = { ...responsesRef.current, [channel]: true };
     setResponses(responsesRef.current);
@@ -299,7 +298,7 @@ export default function Home() {
       if (event.repeat || showSettings) return;
       const key = event.key.toLowerCase();
       if (key === "a" || key === "arrowleft") respond("position");
-      if (key === "l" || key === "arrowright") respond("audio");
+      if (key === "l" || key === "arrowright") respond("card");
       if (key === "p" || key === "escape") togglePause();
     };
 
@@ -309,7 +308,6 @@ export default function Home() {
 
   useEffect(() => () => {
     clearTimers();
-    window.speechSynthesis?.cancel();
   }, [clearTimers]);
 
   const accuracy = scorePercent(stats);
@@ -336,7 +334,7 @@ export default function Home() {
       <section className="game-stage">
         <div className="stage-heading">
           <span className="eyebrow">专注训练 · {settings.n}-BACK</span>
-          <h1>{phase === "finished" ? "训练完成" : "记住位置与声音"}</h1>
+          <h1>{phase === "finished" ? "训练完成" : "记住位置与牌面"}</h1>
           <p>
             {warmup
               ? `先记住前 ${settings.n} 轮，之后开始判断。`
@@ -356,7 +354,7 @@ export default function Home() {
               <h2>{accuracy >= 85 ? "状态很稳，继续挑战。" : accuracy >= 70 ? "节奏不错，再巩固一轮。" : "放慢一点，准确优先。"}</h2>
               <div className="result-metrics">
                 <span><b>{stats.positionHits}</b> 位置命中</span>
-                <span><b>{stats.audioHits}</b> 声音命中</span>
+                <span><b>{stats.cardHits}</b> 牌面命中</span>
                 <span><b>{stats.misses}</b> 漏报</span>
                 <span><b>{stats.falseAlarms}</b> 误报</span>
               </div>
@@ -379,15 +377,25 @@ export default function Home() {
                 />
               ))}
 
-              <div className={`audio-cue ${stimulusVisible ? "is-speaking" : ""}`} aria-live="assertive">
-                <span className="sound-rings" aria-hidden="true">)))</span>
-                <strong>{settings.sound ? "♫" : stimulusVisible ? current?.letter : "·"}</strong>
-                <span className="sr-only">{stimulusVisible ? `声音 ${current?.letter}` : ""}</span>
+              <div
+                className={`card-cue ${stimulusVisible ? "is-visible" : ""} ${current?.card.suit === "♥" || current?.card.suit === "♦" ? "is-red" : ""}`}
+                aria-live="assertive"
+              >
+                <span className="card-corner top" aria-hidden="true">
+                  <b>{stimulusVisible ? current?.card.rank : ""}</b>
+                  <i>{stimulusVisible ? current?.card.suit : ""}</i>
+                </span>
+                <strong aria-hidden="true">{stimulusVisible ? current?.card.suit : "·"}</strong>
+                <span className="card-corner bottom" aria-hidden="true">
+                  <b>{stimulusVisible ? current?.card.rank : ""}</b>
+                  <i>{stimulusVisible ? current?.card.suit : ""}</i>
+                </span>
+                <span className="sr-only">{stimulusVisible ? `牌面 ${current?.card.rank}${current?.card.suit}` : ""}</span>
               </div>
 
               {phase === "countdown" && <div className="board-overlay countdown-number">{countdown}</div>}
               {phase === "paused" && <div className="board-overlay"><span>已暂停</span><small>按 P 或下方按钮继续</small></div>}
-              {phase === "idle" && <div className="board-overlay intro-overlay"><span>双通道训练</span><small>位置 + 声音，同时保持在线</small></div>}
+              {phase === "idle" && <div className="board-overlay intro-overlay"><span>双通道训练</span><small>位置 + 扑克牌，同时保持在线</small></div>}
             </div>
 
             <div className="response-area">
@@ -401,12 +409,12 @@ export default function Home() {
                 <span><b>位置相同</b><small>POSITION MATCH</small></span>
               </button>
               <button
-                className={`match-button sound-match ${responses.audio ? "is-pressed" : ""} ${feedback.audio ? `is-${feedback.audio}` : ""}`}
-                onClick={() => respond("audio")}
+                className={`match-button card-match ${responses.card ? "is-pressed" : ""} ${feedback.card ? `is-${feedback.card}` : ""}`}
+                onClick={() => respond("card")}
                 disabled={responseDisabled}
-                aria-label="声音与 N 轮前相同，快捷键 L"
+                aria-label="牌面与 N 轮前相同，快捷键 L"
               >
-                <span><b>声音相同</b><small>SOUND MATCH</small></span>
+                <span><b>牌面相同</b><small>CARD MATCH</small></span>
                 <span className="keycap">L</span>
               </button>
             </div>
@@ -425,7 +433,7 @@ export default function Home() {
       </section>
 
       <footer className="statusbar">
-        <span><i className={`status-dot ${settings.sound ? "" : "is-off"}`} /> {settings.sound ? "语音已开启" : "字母静音显示"}</span>
+        <span><i className="status-dot" /> 静音视觉训练</span>
         <span>正确率 <b>{stats.total ? `${accuracy}%` : "—"}</b></span>
         <span>连续正确 <b>{stats.streak}</b></span>
         <span>历史最佳 <b>{bestScore ? `${bestScore}%` : "—"}</b></span>
@@ -470,15 +478,9 @@ export default function Home() {
               </div>
             </fieldset>
 
-            <label className="sound-toggle">
-              <span><b>语音字母</b><small>关闭后会在圆形提示中显示字母</small></span>
-              <input type="checkbox" checked={draftSettings.sound} onChange={(event) => setDraftSettings((value) => ({ ...value, sound: event.target.checked }))} />
-              <i aria-hidden="true" />
-            </label>
-
             <div className="how-to">
               <b>操作提示</b>
-              <p>按 <kbd>A</kbd> 判断位置相同，按 <kbd>L</kbd> 判断声音相同；两者可能在同一轮同时出现。按 <kbd>P</kbd> 可暂停。</p>
+              <p>按 <kbd>A</kbd> 判断位置相同，按 <kbd>L</kbd> 判断扑克牌相同；两者可能在同一轮同时出现。按 <kbd>P</kbd> 可暂停。</p>
             </div>
 
             <button className="start-button" onClick={saveSettings}>保存设置</button>

@@ -20,9 +20,9 @@ test("server-renders the Dual N-Back game", async () => {
 
   const html = await response.text();
   assert.match(html, /<title>双重记忆 · Dual N-Back<\/title>/i);
-  assert.match(html, /记住位置与声音/);
+  assert.match(html, /记住位置与牌面/);
   assert.match(html, /开始训练/);
   assert.match(html, /位置相同/);
-  assert.match(html, /声音相同/);
+  assert.match(html, /牌面相同/);
   assert.doesNotMatch(html, /codex-preview|react-loading-skeleton/);
 });

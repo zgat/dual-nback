@@ -188,33 +188,51 @@ h1 {
   to { transform: scale(.96); opacity: 1; }
 }
 
-.audio-cue {
+.card-cue {
   position: absolute;
-  right: -62px;
-  bottom: 24px;
+  right: -72px;
+  bottom: 12px;
   display: grid;
-  width: 74px;
-  aspect-ratio: 1;
+  width: 82px;
+  height: 108px;
   place-items: center;
   border: 1px solid var(--ink);
-  border-radius: 50%;
-  background: var(--paper);
+  border-radius: 9px;
+  background: #fbf8f0;
   box-shadow: 0 8px 20px rgba(37,34,31,.14);
-  transition: transform .2s ease, background .2s ease;
+  color: var(--ink);
+  transform: rotate(3deg);
+  transition: transform .2s ease, opacity .2s ease;
 }
 
-.audio-cue.is-speaking { transform: scale(1.06); background: #faf6ee; }
-.audio-cue strong { font-family: Georgia, serif; font-size: 1.55rem; }
-.sound-rings {
+.card-cue::after {
+  content: "N²";
   position: absolute;
-  right: -13px;
-  color: var(--teal);
-  font-weight: 800;
-  letter-spacing: -5px;
-  opacity: .35;
+  inset: 5px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #d4c7b5;
+  border-radius: 5px;
+  color: #b4a794;
+  font-family: Georgia, serif;
+  font-size: .72rem;
 }
-.audio-cue.is-speaking .sound-rings { opacity: 1; animation: sound-pulse .7s ease-in-out infinite alternate; }
-@keyframes sound-pulse { to { transform: translateX(3px); } }
+
+.card-cue.is-visible { transform: rotate(0) scale(1.05); }
+.card-cue.is-visible::after { display: none; }
+.card-cue.is-red { color: #bb3f32; }
+.card-cue > strong { font-family: Georgia, serif; font-size: 2.25rem; line-height: 1; }
+.card-corner {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: .85;
+}
+.card-corner.top { top: 7px; left: 7px; }
+.card-corner.bottom { right: 7px; bottom: 7px; transform: rotate(180deg); }
+.card-corner b { font-family: Georgia, serif; font-size: .88rem; }
+.card-corner i { margin-top: 3px; font-style: normal; font-size: .72rem; }
 
 .board-overlay {
   position: absolute;
@@ -353,7 +371,7 @@ kbd { min-width: 24px; height: 24px; margin: 0 .12rem; font-size: .66rem; }
 .settings-header h2 { margin: .25rem 0 0; font-family: Georgia, "Songti SC", serif; font-size: 2rem; font-weight: 500; }
 .close-button { width: 36px; height: 36px; font-size: 1.25rem; }
 
-.setting-row, .sound-toggle {
+.setting-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -362,9 +380,9 @@ kbd { min-width: 24px; height: 24px; margin: 0 .12rem; font-size: .66rem; }
   border-top: 1px solid #ded5c8;
 }
 
-.setting-row b, .setting-row small, .sound-toggle b, .sound-toggle small { display: block; }
-.setting-row b, .sound-toggle b { font-size: .86rem; }
-.setting-row small, .sound-toggle small { margin-top: .22rem; color: #837a70; font-size: .67rem; }
+.setting-row b, .setting-row small { display: block; }
+.setting-row b { font-size: .86rem; }
+.setting-row small { margin-top: .22rem; color: #837a70; font-size: .67rem; }
 
 .stepper { display: grid; grid-template-columns: 32px 38px 32px; align-items: center; }
 .stepper button { height: 32px; border: 1px solid #bcb0a0; background: transparent; cursor: pointer; font-size: 1rem; }
@@ -387,14 +405,6 @@ kbd { min-width: 24px; height: 24px; margin: 0 .12rem; font-size: .66rem; }
 }
 .choice-row button small { display: block; margin-top: .2rem; color: #8b8278; font-size: .6rem; font-weight: 400; }
 .choice-row button.is-selected { border-color: var(--orange); background: rgba(233,101,45,.1); color: var(--orange-deep); }
-
-.sound-toggle { position: relative; cursor: pointer; }
-.sound-toggle input { position: absolute; opacity: 0; pointer-events: none; }
-.sound-toggle i { position: relative; flex: 0 0 43px; height: 24px; border-radius: 999px; background: #b7ad9f; transition: background .18s ease; }
-.sound-toggle i::after { content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: white; transition: transform .18s ease; }
-.sound-toggle input:checked + i { background: var(--teal); }
-.sound-toggle input:checked + i::after { transform: translateX(19px); }
-.sound-toggle input:focus-visible + i { outline: 3px solid rgba(31,103,97,.28); outline-offset: 3px; }
 
 .how-to { margin: 0 0 1rem; padding: .8rem .9rem; border-radius: 10px; background: var(--paper-deep); }
 .how-to b { font-size: .72rem; }
@@ -457,7 +467,7 @@ kbd { min-width: 24px; height: 24px; margin: 0 .12rem; font-size: .66rem; }
   .stage-heading { margin-bottom: 1.15rem; }
   .stage-heading p { padding: 0 .5rem; font-size: .8rem; }
   .game-grid { width: min(76vw, 320px); }
-  .audio-cue { right: -12px; bottom: -18px; width: 62px; }
+  .card-cue { right: -6px; bottom: -28px; width: 68px; height: 90px; }
   .response-area { margin-top: 2rem; }
   .match-button { gap: .5rem; min-height: 58px; }
   .match-button b { font-size: .82rem; }
