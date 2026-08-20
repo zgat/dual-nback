@@ -1,18 +1,19 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { CSSProperties } from "react";
 
 type Phase = "idle" | "countdown" | "playing" | "paused" | "finished";
-type Channel = "position" | "card";
+type MatchType = "exact" | "position" | "color" | "different";
 
-type PlayingCard = {
-  rank: string;
-  suit: "♠" | "♥" | "♦" | "♣";
+type ColorToken = {
+  name: string;
+  value: string;
 };
 
 type Trial = {
   position: number;
-  card: PlayingCard;
+  color: ColorToken;
 };
 
 type GameSettings = {
@@ -24,34 +25,37 @@ type GameSettings = {
 type Stats = {
   correct: number;
   total: number;
-  positionHits: number;
-  cardHits: number;
   misses: number;
-  falseAlarms: number;
   streak: number;
   bestStreak: number;
+  categoryHits: Record<MatchType, number>;
 };
 
-const CARDS: PlayingCard[] = [
-  { rank: "A", suit: "♠" },
-  { rank: "K", suit: "♥" },
-  { rank: "Q", suit: "♦" },
-  { rank: "J", suit: "♣" },
-  { rank: "10", suit: "♠" },
-  { rank: "9", suit: "♥" },
-  { rank: "8", suit: "♦" },
-  { rank: "7", suit: "♣" },
+const COLORS: ColorToken[] = [
+  { name: "红", value: "#e65347" },
+  { name: "橙", value: "#ed8936" },
+  { name: "黄", value: "#d6b92f" },
+  { name: "绿", value: "#46a269" },
+  { name: "青", value: "#32a2ad" },
+  { name: "蓝", value: "#4d6fd1" },
+  { name: "紫", value: "#8a5cc4" },
 ];
+
+const OPTIONS: Array<{ id: MatchType; key: string; label: string; detail: string }> = [
+  { id: "exact", key: "1", label: "完全相同", detail: "位置 ✓ · 颜色 ✓" },
+  { id: "position", key: "2", label: "位置相同，颜色不同", detail: "位置 ✓ · 颜色 ×" },
+  { id: "color", key: "3", label: "颜色相同，位置不同", detail: "位置 × · 颜色 ✓" },
+  { id: "different", key: "4", label: "完全不同", detail: "位置 × · 颜色 ×" },
+];
+
 const DEFAULT_SETTINGS: GameSettings = { n: 2, total: 20, interval: 2400 };
 const EMPTY_STATS: Stats = {
   correct: 0,
   total: 0,
-  positionHits: 0,
-  cardHits: 0,
   misses: 0,
-  falseAlarms: 0,
   streak: 0,
   bestStreak: 0,
+  categoryHits: { exact: 0, position: 0, color: 0, different: 0 },
 };
 
 function pickDifferent<T>(values: T[], excluded?: T) {
@@ -64,18 +68,36 @@ function makeSequence(total: number, n: number): Trial[] {
   const positions = Array.from({ length: 9 }, (_, index) => index);
 
   for (let index = 0; index < total; index += 1) {
-    const canMatch = index >= n;
-    const positionMatch = canMatch && Math.random() < 0.3;
-    const cardMatch = canMatch && Math.random() < 0.3;
-    const previous = sequence[index - n];
+    if (index < n) {
+      sequence.push({
+        position: pickDifferent(positions),
+        color: pickDifferent(COLORS),
+      });
+      continue;
+    }
 
+    const target = sequence[index - n];
+    const relation = OPTIONS[Math.floor(Math.random() * OPTIONS.length)].id;
     sequence.push({
-      position: positionMatch ? previous.position : pickDifferent(positions, previous?.position),
-      card: cardMatch ? previous.card : pickDifferent(CARDS, previous?.card),
+      position: relation === "exact" || relation === "position"
+        ? target.position
+        : pickDifferent(positions, target.position),
+      color: relation === "exact" || relation === "color"
+        ? target.color
+        : pickDifferent(COLORS, target.color),
     });
   }
 
   return sequence;
+}
+
+function classify(current: Trial, target: Trial): MatchType {
+  const samePosition = current.position === target.position;
+  const sameColor = current.color === target.color;
+  if (samePosition && sameColor) return "exact";
+  if (samePosition) return "position";
+  if (sameColor) return "color";
+  return "different";
 }
 
 function scorePercent(stats: Stats) {
@@ -90,8 +112,8 @@ export default function Home() {
   const [current, setCurrent] = useState<Trial | null>(null);
   const [stimulusVisible, setStimulusVisible] = useState(false);
   const [countdown, setCountdown] = useState(3);
-  const [responses, setResponses] = useState<Record<Channel, boolean>>({ position: false, card: false });
-  const [feedback, setFeedback] = useState<Record<Channel, "correct" | "wrong" | null>>({ position: null, card: null });
+  const [selected, setSelected] = useState<MatchType | null>(null);
+  const [correctAnswer, setCorrectAnswer] = useState<MatchType | null>(null);
   const [stats, setStats] = useState<Stats>(EMPTY_STATS);
   const [bestScore, setBestScore] = useState(0);
   const [showSettings, setShowSettings] = useState(false);
@@ -100,7 +122,7 @@ export default function Home() {
   const settingsRef = useRef(settings);
   const phaseRef = useRef<Phase>(phase);
   const roundRef = useRef(-1);
-  const responsesRef = useRef<Record<Channel, boolean>>({ position: false, card: false });
+  const responseRef = useRef<MatchType | null>(null);
   const statsRef = useRef<Stats>(EMPTY_STATS);
   const trialTimerRef = useRef<number | null>(null);
   const stimulusTimerRef = useRef<number | null>(null);
@@ -121,14 +143,14 @@ export default function Home() {
     if (!trial) return;
 
     roundRef.current = index;
-    responsesRef.current = { position: false, card: false };
+    responseRef.current = null;
     setRound(index);
     setCurrent(trial);
-    setResponses({ position: false, card: false });
-    setFeedback({ position: null, card: null });
+    setSelected(null);
+    setCorrectAnswer(null);
     setStimulusVisible(true);
 
-    const showFor = Math.min(900, Math.round(settingsRef.current.interval * 0.42));
+    const showFor = Math.min(950, Math.round(settingsRef.current.interval * 0.44));
     stimulusTimerRef.current = window.setTimeout(() => setStimulusVisible(false), showFor);
     trialTimerRef.current = window.setTimeout(() => finalizeRef.current(), settingsRef.current.interval);
   }, []);
@@ -154,28 +176,21 @@ export default function Home() {
     let nextStats = statsRef.current;
 
     if (index >= n) {
-      const trial = sequenceRef.current[index];
-      const target = sequenceRef.current[index - n];
-      const positionExpected = trial.position === target.position;
-      const cardExpected = trial.card.rank === target.card.rank && trial.card.suit === target.card.suit;
-      const positionCorrect = responsesRef.current.position === positionExpected;
-      const cardCorrect = responsesRef.current.card === cardExpected;
-      const roundCorrect = positionCorrect && cardCorrect;
-      const nextStreak = roundCorrect ? nextStats.streak + 1 : 0;
+      const expected = classify(sequenceRef.current[index], sequenceRef.current[index - n]);
+      const answered = responseRef.current;
+      const isCorrect = answered === expected;
+      const nextStreak = isCorrect ? nextStats.streak + 1 : 0;
 
       nextStats = {
-        correct: nextStats.correct + Number(positionCorrect) + Number(cardCorrect),
-        total: nextStats.total + 2,
-        positionHits: nextStats.positionHits + Number(positionExpected && responsesRef.current.position),
-        cardHits: nextStats.cardHits + Number(cardExpected && responsesRef.current.card),
-        misses: nextStats.misses
-          + Number(positionExpected && !responsesRef.current.position)
-          + Number(cardExpected && !responsesRef.current.card),
-        falseAlarms: nextStats.falseAlarms
-          + Number(!positionExpected && responsesRef.current.position)
-          + Number(!cardExpected && responsesRef.current.card),
+        correct: nextStats.correct + Number(isCorrect),
+        total: nextStats.total + 1,
+        misses: nextStats.misses + Number(answered === null),
         streak: nextStreak,
         bestStreak: Math.max(nextStats.bestStreak, nextStreak),
+        categoryHits: {
+          ...nextStats.categoryHits,
+          [expected]: nextStats.categoryHits[expected] + Number(isCorrect),
+        },
       };
 
       statsRef.current = nextStats;
@@ -191,18 +206,17 @@ export default function Home() {
 
   const beginCountdown = useCallback(() => {
     clearTimers();
-    const nextSequence = makeSequence(settingsRef.current.total, settingsRef.current.n);
-    sequenceRef.current = nextSequence;
+    sequenceRef.current = makeSequence(settingsRef.current.total, settingsRef.current.n);
     statsRef.current = EMPTY_STATS;
-    responsesRef.current = { position: false, card: false };
+    responseRef.current = null;
     roundRef.current = -1;
     phaseRef.current = "countdown";
     setPhase("countdown");
     setRound(-1);
     setCurrent(null);
     setStats(EMPTY_STATS);
-    setFeedback({ position: null, card: null });
-    setResponses({ position: false, card: false });
+    setSelected(null);
+    setCorrectAnswer(null);
     setCountdown(3);
 
     let remaining = 3;
@@ -238,22 +252,24 @@ export default function Home() {
     }
   }, [pauseGame, startTrial]);
 
-  const respond = useCallback((channel: Channel) => {
-    if (phaseRef.current !== "playing") return;
+  const respond = useCallback((answer: MatchType) => {
+    if (phaseRef.current !== "playing" || responseRef.current !== null) return;
     const index = roundRef.current;
     const n = settingsRef.current.n;
-    if (index < n || responsesRef.current[channel]) return;
+    if (index < n) return;
 
-    const trial = sequenceRef.current[index];
-    const target = sequenceRef.current[index - n];
-    const isMatch = channel === "position"
-      ? trial.position === target.position
-      : trial.card.rank === target.card.rank && trial.card.suit === target.card.suit;
-
-    responsesRef.current = { ...responsesRef.current, [channel]: true };
-    setResponses(responsesRef.current);
-    setFeedback((previous) => ({ ...previous, [channel]: isMatch ? "correct" : "wrong" }));
+    const expected = classify(sequenceRef.current[index], sequenceRef.current[index - n]);
+    responseRef.current = answer;
+    setSelected(answer);
+    setCorrectAnswer(expected);
   }, []);
+
+  const optionClass = (id: MatchType) => {
+    if (!selected) return "";
+    if (selected === id) return selected === correctAnswer ? "is-correct" : "is-wrong";
+    if (correctAnswer === id) return "is-answer";
+    return "";
+  };
 
   const openSettings = () => {
     if (phaseRef.current === "playing") pauseGame();
@@ -283,9 +299,10 @@ export default function Home() {
       const savedBest = Number(window.localStorage.getItem("dual-nback-best") || 0);
       if (savedSettings) {
         const parsed = { ...DEFAULT_SETTINGS, ...JSON.parse(savedSettings) } as GameSettings;
-        settingsRef.current = parsed;
-        setSettings(parsed);
-        setDraftSettings(parsed);
+        const sanitized = { n: parsed.n, total: parsed.total, interval: parsed.interval };
+        settingsRef.current = sanitized;
+        setSettings(sanitized);
+        setDraftSettings(sanitized);
       }
       setBestScore(savedBest);
     } catch {
@@ -296,9 +313,9 @@ export default function Home() {
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.repeat || showSettings) return;
+      const option = OPTIONS.find((item) => item.key === event.key);
+      if (option) respond(option.id);
       const key = event.key.toLowerCase();
-      if (key === "a" || key === "arrowleft") respond("position");
-      if (key === "l" || key === "arrowright") respond("card");
       if (key === "p" || key === "escape") togglePause();
     };
 
@@ -306,14 +323,13 @@ export default function Home() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [respond, showSettings, togglePause]);
 
-  useEffect(() => () => {
-    clearTimers();
-  }, [clearTimers]);
+  useEffect(() => () => clearTimers(), [clearTimers]);
 
   const accuracy = scorePercent(stats);
   const warmup = phase === "playing" && round < settings.n;
-  const responseDisabled = phase !== "playing" || warmup;
+  const responseDisabled = phase !== "playing" || warmup || selected !== null;
   const progress = round < 0 ? 0 : ((round + 1) / settings.total) * 100;
+  const wrongAnswers = Math.max(0, stats.total - stats.correct - stats.misses);
 
   return (
     <main className="app-shell">
@@ -322,42 +338,44 @@ export default function Home() {
           <span className="brand-mark">N²</span>
           <span>双重记忆</span>
         </button>
-
         <div className="round-pill" aria-live="polite">
           {phase === "idle" ? `${settings.n}-BACK` : `第 ${Math.max(0, round + 1)} / ${settings.total} 轮`}
         </div>
-
         <button className="icon-button" onClick={openSettings} aria-label="打开训练设置">⚙</button>
         <div className="top-progress" style={{ width: `${progress}%` }} />
       </header>
 
       <section className="game-stage">
         <div className="stage-heading">
-          <span className="eyebrow">专注训练 · {settings.n}-BACK</span>
-          <h1>{phase === "finished" ? "训练完成" : "记住位置与牌面"}</h1>
+          <span className="eyebrow">位置 × 颜色 · {settings.n}-BACK</span>
+          <h1>{phase === "finished" ? "训练完成" : "记住位置与颜色"}</h1>
           <p>
             {warmup
-              ? `先记住前 ${settings.n} 轮，之后开始判断。`
+              ? `先记住前 ${settings.n} 轮，之后开始四选一判断。`
               : phase === "paused"
                 ? "训练已暂停，准备好后继续。"
-                : `当现在的刺激与 ${settings.n} 轮前相同时，按下对应按钮。`}
+                : `把当前色块与 ${settings.n} 轮前比较，选择唯一符合的关系。`}
           </p>
+          <div className="color-legend" aria-label="七种训练颜色">
+            {COLORS.map((color) => <i key={color.name} title={color.name} style={{ backgroundColor: color.value }} />)}
+          </div>
         </div>
 
         {phase === "finished" ? (
           <section className="result-panel" aria-label="训练结果">
-            <div className="score-ring" style={{ "--score": `${accuracy * 3.6}deg` } as React.CSSProperties}>
+            <div className="score-ring" style={{ "--score": `${accuracy * 3.6}deg` } as CSSProperties}>
               <div><strong>{accuracy}</strong><span>%</span><small>综合正确率</small></div>
             </div>
             <div className="result-copy">
               <span className="result-kicker">本轮表现</span>
-              <h2>{accuracy >= 85 ? "状态很稳，继续挑战。" : accuracy >= 70 ? "节奏不错，再巩固一轮。" : "放慢一点，准确优先。"}</h2>
+              <h2>{accuracy >= 85 ? "判断稳定，可以继续挑战。" : accuracy >= 70 ? "节奏不错，再巩固一轮。" : "先放慢节奏，辨清两个维度。"}</h2>
               <div className="result-metrics">
-                <span><b>{stats.positionHits}</b> 位置命中</span>
-                <span><b>{stats.cardHits}</b> 牌面命中</span>
-                <span><b>{stats.misses}</b> 漏报</span>
-                <span><b>{stats.falseAlarms}</b> 误报</span>
+                <span><b>{stats.categoryHits.exact}</b> 完全相同</span>
+                <span><b>{stats.categoryHits.position}</b> 仅位置同</span>
+                <span><b>{stats.categoryHits.color}</b> 仅颜色同</span>
+                <span><b>{stats.categoryHits.different}</b> 完全不同</span>
               </div>
+              <p className="result-note">答错 {wrongAnswers} 次 · 未作答 {stats.misses} 次 · 最长连续正确 {stats.bestStreak} 轮</p>
               <div className="result-actions">
                 <button className="secondary-button" onClick={beginCountdown}>再练一轮</button>
                 <button className="primary-button" onClick={levelUp} disabled={settings.n >= 5}>
@@ -372,51 +390,32 @@ export default function Home() {
               {Array.from({ length: 9 }).map((_, index) => (
                 <div
                   className={`grid-cell ${stimulusVisible && current?.position === index ? "is-active" : ""}`}
+                  style={stimulusVisible && current?.position === index ? { "--stimulus-color": current.color.value } as CSSProperties : undefined}
                   key={index}
                   aria-hidden="true"
                 />
               ))}
-
-              <div
-                className={`card-cue ${stimulusVisible ? "is-visible" : ""} ${current?.card.suit === "♥" || current?.card.suit === "♦" ? "is-red" : ""}`}
-                aria-live="assertive"
-              >
-                <span className="card-corner top" aria-hidden="true">
-                  <b>{stimulusVisible ? current?.card.rank : ""}</b>
-                  <i>{stimulusVisible ? current?.card.suit : ""}</i>
-                </span>
-                <strong aria-hidden="true">{stimulusVisible ? current?.card.suit : "·"}</strong>
-                <span className="card-corner bottom" aria-hidden="true">
-                  <b>{stimulusVisible ? current?.card.rank : ""}</b>
-                  <i>{stimulusVisible ? current?.card.suit : ""}</i>
-                </span>
-                <span className="sr-only">{stimulusVisible ? `牌面 ${current?.card.rank}${current?.card.suit}` : ""}</span>
-              </div>
-
+              <span className="sr-only" aria-live="assertive">
+                {stimulusVisible && current ? `${current.color.name}色，位置 ${current.position + 1}` : ""}
+              </span>
               {phase === "countdown" && <div className="board-overlay countdown-number">{countdown}</div>}
               {phase === "paused" && <div className="board-overlay"><span>已暂停</span><small>按 P 或下方按钮继续</small></div>}
-              {phase === "idle" && <div className="board-overlay intro-overlay"><span>双通道训练</span><small>位置 + 扑克牌，同时保持在线</small></div>}
+              {phase === "idle" && <div className="board-overlay intro-overlay"><span>四色关系判断</span><small>9 个位置 · 7 种颜色 · 4 个答案</small></div>}
             </div>
 
-            <div className="response-area">
-              <button
-                className={`match-button position-match ${responses.position ? "is-pressed" : ""} ${feedback.position ? `is-${feedback.position}` : ""}`}
-                onClick={() => respond("position")}
-                disabled={responseDisabled}
-                aria-label="位置与 N 轮前相同，快捷键 A"
-              >
-                <span className="keycap">A</span>
-                <span><b>位置相同</b><small>POSITION MATCH</small></span>
-              </button>
-              <button
-                className={`match-button card-match ${responses.card ? "is-pressed" : ""} ${feedback.card ? `is-${feedback.card}` : ""}`}
-                onClick={() => respond("card")}
-                disabled={responseDisabled}
-                aria-label="牌面与 N 轮前相同，快捷键 L"
-              >
-                <span><b>牌面相同</b><small>CARD MATCH</small></span>
-                <span className="keycap">L</span>
-              </button>
+            <div className="response-area four-options" aria-label="选择与 N 轮前的关系">
+              {OPTIONS.map((option) => (
+                <button
+                  className={`match-button relation-button ${optionClass(option.id)}`}
+                  onClick={() => respond(option.id)}
+                  disabled={responseDisabled}
+                  aria-label={`${option.label}，快捷键 ${option.key}`}
+                  key={option.id}
+                >
+                  <span className="keycap">{option.key}</span>
+                  <span><b>{option.label}</b><small>{option.detail}</small></span>
+                </button>
+              ))}
             </div>
 
             {phase === "idle" ? (
@@ -433,7 +432,7 @@ export default function Home() {
       </section>
 
       <footer className="statusbar">
-        <span><i className="status-dot" /> 静音视觉训练</span>
+        <span><i className="status-dot" /> 9 个位置 · 7 种颜色</span>
         <span>正确率 <b>{stats.total ? `${accuracy}%` : "—"}</b></span>
         <span>连续正确 <b>{stats.streak}</b></span>
         <span>历史最佳 <b>{bestScore ? `${bestScore}%` : "—"}</b></span>
@@ -448,7 +447,7 @@ export default function Home() {
             </div>
 
             <div className="setting-row">
-              <div><b>N-Back 难度</b><small>需要回忆多少轮之前的刺激</small></div>
+              <div><b>N-Back 难度</b><small>需要回忆多少轮之前的位置与颜色</small></div>
               <div className="stepper">
                 <button onClick={() => setDraftSettings((value) => ({ ...value, n: Math.max(1, value.n - 1) }))} aria-label="降低难度">−</button>
                 <strong>{draftSettings.n}</strong>
@@ -479,8 +478,8 @@ export default function Home() {
             </fieldset>
 
             <div className="how-to">
-              <b>操作提示</b>
-              <p>按 <kbd>A</kbd> 判断位置相同，按 <kbd>L</kbd> 判断扑克牌相同；两者可能在同一轮同时出现。按 <kbd>P</kbd> 可暂停。</p>
+              <b>四选一规则</b>
+              <p>比较当前位置和颜色与 N 轮前的关系：<kbd>1</kbd> 完全相同，<kbd>2</kbd> 仅位置相同，<kbd>3</kbd> 仅颜色相同，<kbd>4</kbd> 完全不同。按 <kbd>P</kbd> 暂停。</p>
             </div>
 
             <button className="start-button" onClick={saveSettings}>保存设置</button>

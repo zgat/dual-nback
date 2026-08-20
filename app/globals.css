@@ -152,6 +152,21 @@ h1 {
   font-size: .9rem;
 }
 
+.color-legend {
+  display: flex;
+  justify-content: center;
+  gap: 7px;
+  margin-top: .7rem;
+}
+
+.color-legend i {
+  width: 10px;
+  height: 10px;
+  border: 1px solid rgba(37,34,31,.18);
+  border-radius: 50%;
+  box-shadow: 0 1px 2px rgba(37,34,31,.1);
+}
+
 .game-grid {
   position: relative;
   display: grid;
@@ -177,9 +192,9 @@ h1 {
 .grid-cell.is-active {
   z-index: 1;
   transform: scale(.96);
-  border-color: var(--orange);
-  background: var(--orange);
-  box-shadow: inset 0 0 0 6px rgba(255,255,255,.15), 0 8px 24px rgba(233,101,45,.3);
+  border-color: var(--stimulus-color);
+  background: var(--stimulus-color);
+  box-shadow: inset 0 0 0 6px rgba(255,255,255,.18), 0 8px 24px color-mix(in srgb, var(--stimulus-color) 40%, transparent);
   animation: stimulus-pop .22s ease-out;
 }
 
@@ -187,52 +202,6 @@ h1 {
   from { transform: scale(.78); opacity: .35; }
   to { transform: scale(.96); opacity: 1; }
 }
-
-.card-cue {
-  position: absolute;
-  right: -72px;
-  bottom: 12px;
-  display: grid;
-  width: 82px;
-  height: 108px;
-  place-items: center;
-  border: 1px solid var(--ink);
-  border-radius: 9px;
-  background: #fbf8f0;
-  box-shadow: 0 8px 20px rgba(37,34,31,.14);
-  color: var(--ink);
-  transform: rotate(3deg);
-  transition: transform .2s ease, opacity .2s ease;
-}
-
-.card-cue::after {
-  content: "N²";
-  position: absolute;
-  inset: 5px;
-  display: grid;
-  place-items: center;
-  border: 1px solid #d4c7b5;
-  border-radius: 5px;
-  color: #b4a794;
-  font-family: Georgia, serif;
-  font-size: .72rem;
-}
-
-.card-cue.is-visible { transform: rotate(0) scale(1.05); }
-.card-cue.is-visible::after { display: none; }
-.card-cue.is-red { color: #bb3f32; }
-.card-cue > strong { font-family: Georgia, serif; font-size: 2.25rem; line-height: 1; }
-.card-corner {
-  position: absolute;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  line-height: .85;
-}
-.card-corner.top { top: 7px; left: 7px; }
-.card-corner.bottom { right: 7px; bottom: 7px; transform: rotate(180deg); }
-.card-corner b { font-family: Georgia, serif; font-size: .88rem; }
-.card-corner i { margin-top: 3px; font-style: normal; font-size: .72rem; }
 
 .board-overlay {
   position: absolute;
@@ -261,6 +230,8 @@ h1 {
   margin: 1.35rem 0 .7rem;
 }
 
+.response-area.four-options { gap: 8px; margin-top: 1rem; }
+
 .match-button {
   display: flex;
   align-items: center;
@@ -279,9 +250,15 @@ h1 {
 .match-button.is-pressed { opacity: 1; transform: translateY(1px); }
 .match-button.is-correct { border-color: var(--teal); background: rgba(31,103,97,.11); }
 .match-button.is-wrong { border-color: var(--red); background: rgba(166,61,47,.1); }
+.match-button.is-answer { border-color: var(--teal); box-shadow: inset 0 0 0 1px var(--teal); background: rgba(31,103,97,.07); }
+.match-button.is-correct, .match-button.is-wrong, .match-button.is-answer { opacity: 1; }
 .match-button b, .match-button small { display: block; text-align: left; }
 .match-button b { font-size: .92rem; }
 .match-button small { margin-top: .15rem; color: #8e857a; font-size: .5rem; letter-spacing: .12em; }
+.relation-button { min-height: 54px; justify-content: flex-start; padding: .45rem .75rem; }
+.relation-button .keycap { flex: 0 0 29px; width: 29px; height: 29px; }
+.relation-button b { font-size: .82rem; }
+.relation-button small { letter-spacing: .04em; }
 
 .keycap, kbd {
   display: inline-grid;
@@ -441,6 +418,7 @@ kbd { min-width: 24px; height: 24px; margin: 0 .12rem; font-size: .66rem; }
 .result-copy h2 { margin: .4rem 0 1.2rem; font-family: Georgia, "Songti SC", serif; font-size: 1.75rem; font-weight: 500; line-height: 1.2; }
 .result-metrics { display: grid; grid-template-columns: 1fr 1fr; gap: .65rem; color: #746c62; font-size: .68rem; }
 .result-metrics b { color: var(--ink); font-size: .85rem; }
+.result-note { margin: 1rem 0 0; color: #7b7369; font-size: .65rem; }
 .result-actions { display: flex; gap: .55rem; margin-top: 1.3rem; }
 .primary-button, .secondary-button { min-height: 45px; padding: 0 1rem; }
 .primary-button { border: 0; background: var(--ink); color: white; }
@@ -467,10 +445,12 @@ kbd { min-width: 24px; height: 24px; margin: 0 .12rem; font-size: .66rem; }
   .stage-heading { margin-bottom: 1.15rem; }
   .stage-heading p { padding: 0 .5rem; font-size: .8rem; }
   .game-grid { width: min(76vw, 320px); }
-  .card-cue { right: -6px; bottom: -28px; width: 68px; height: 90px; }
-  .response-area { margin-top: 2rem; }
-  .match-button { gap: .5rem; min-height: 58px; }
+  .response-area { margin-top: 1rem; }
+  .match-button { gap: .5rem; min-height: 54px; }
   .match-button b { font-size: .82rem; }
+  .relation-button { padding-inline: .55rem; }
+  .relation-button b { font-size: .74rem; line-height: 1.2; }
+  .relation-button small { font-size: .46rem; }
   .statusbar { gap: 1rem; justify-content: space-between; }
   .statusbar span:first-child, .statusbar span:nth-child(3) { display: none; }
   .result-panel { grid-template-columns: 1fr; gap: 1.5rem; padding: 1.4rem; text-align: center; }

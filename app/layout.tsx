@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "双重记忆 · Dual N-Back",
-  description: "同时训练空间位置与扑克牌工作记忆的双重 N-Back 前端游戏。",
+  description: "用 9 个位置与 7 种颜色进行四选一关系判断的双重 N-Back 前端游戏。",
   icons: {
     icon: "/favicon.svg",
     shortcut: "/favicon.svg",
