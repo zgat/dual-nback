@@ -44,7 +44,11 @@ button:disabled { cursor: not-allowed; }
   min-height: 100svh;
   display: grid;
   grid-template-rows: auto 1fr auto;
-  padding: 0 3.5rem;
+  padding:
+    env(safe-area-inset-top)
+    max(3.5rem, env(safe-area-inset-right))
+    env(safe-area-inset-bottom)
+    max(3.5rem, env(safe-area-inset-left));
   overflow-x: hidden;
 }
 
@@ -535,7 +539,13 @@ kbd { min-width: 24px; height: 24px; margin: 0 .12rem; font-size: .66rem; }
 }
 
 @media (max-width: 700px) {
-  .app-shell { padding: 0 1rem; }
+  .app-shell {
+    padding:
+      env(safe-area-inset-top)
+      max(1rem, env(safe-area-inset-right))
+      env(safe-area-inset-bottom)
+      max(1rem, env(safe-area-inset-left));
+  }
   .topbar { min-height: 66px; }
   .brand > span:last-child { display: none; }
   .round-pill { min-width: 96px; padding-inline: .7rem; font-size: .64rem; }
