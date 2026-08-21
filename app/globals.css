@@ -322,22 +322,8 @@ h1 {
 .match-button b { font-size: .92rem; }
 .match-button small { margin-top: .15rem; color: #8e857a; font-size: .5rem; letter-spacing: .12em; }
 .relation-button { min-height: 54px; justify-content: flex-start; padding: .45rem .75rem; }
-.relation-button .keycap { flex: 0 0 29px; width: 29px; height: 29px; }
 .relation-button b { font-size: .82rem; }
 .relation-button small { letter-spacing: .04em; }
-
-.keycap, kbd {
-  display: inline-grid;
-  place-items: center;
-  border: 1px solid #9e9283;
-  border-bottom-width: 3px;
-  border-radius: 6px;
-  background: #fbf7ef;
-  font-weight: 800;
-}
-
-.keycap { width: 31px; height: 31px; font-size: .72rem; }
-kbd { min-width: 24px; height: 24px; margin: 0 .12rem; font-size: .66rem; }
 
 .start-button, .primary-button, .secondary-button {
   border-radius: 12px;

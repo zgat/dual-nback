@@ -556,10 +556,9 @@ export default function Home() {
                     className={`match-button relation-button ${optionClass(option.id)}`}
                     onClick={() => respond(option.id)}
                     disabled={responseDisabled}
-                    aria-label={`${option.label}，快捷键 ${option.key}`}
+                    aria-label={option.label}
                     key={option.id}
                   >
-                    <span className="keycap">{option.key}</span>
                     <span><b>{option.label}</b><small>{option.detail}</small></span>
                   </button>
                 ))}
@@ -684,7 +683,7 @@ export default function Home() {
 
             <div className="how-to">
               <b>四选一规则</b>
-              <p>比较当前位置和颜色与 N 轮前的关系：<kbd>1</kbd> 完全相同，<kbd>2</kbd> 仅位置相同，<kbd>3</kbd> 仅颜色相同，<kbd>4</kbd> 完全不同。计时模式在作答后换轮，挑战模式会自动换轮。</p>
+              <p>比较当前位置和颜色与 N 轮前的关系，然后选择完全相同、仅位置相同、仅颜色相同或完全不同。计时模式在作答后换轮，挑战模式会自动换轮。</p>
             </div>
 
             <button className="start-button" onClick={saveSettings}>保存设置</button>
