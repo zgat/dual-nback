@@ -490,6 +490,10 @@ export default function Home() {
             <div className="result-copy">
               <span className="result-kicker">本轮表现</span>
               <h2>{accuracy >= 85 ? "判断稳定，可以继续挑战。" : accuracy >= 70 ? "节奏不错，再巩固一轮。" : "先放慢节奏，辨清两个维度。"}</h2>
+              <div className="result-config" aria-label="本轮训练设置">
+                <span><b>{settings.cellCount}</b> 个格子</span>
+                <span><b>{settings.colorCount}</b> 种颜色</span>
+              </div>
               {settings.mode === "self-paced" && (
                 <div className="result-time">
                   <small>总用时</small>

@@ -508,7 +508,10 @@ kbd { min-width: 24px; height: 24px; margin: 0 .12rem; font-size: .66rem; }
 .score-ring small { display: block; margin-top: -.3rem; color: #847b71; font-size: .63rem; }
 .result-kicker { color: var(--teal); font-size: .67rem; font-weight: 800; letter-spacing: .14em; }
 .result-copy h2 { margin: .4rem 0 1.2rem; font-family: Georgia, "Songti SC", serif; font-size: 1.75rem; font-weight: 500; line-height: 1.2; }
-.result-time { display: flex; align-items: baseline; justify-content: space-between; margin: -.35rem 0 1rem; padding: .65rem .8rem; border-radius: 9px; background: var(--paper-deep); }
+.result-config { display: grid; grid-template-columns: 1fr 1fr; gap: .55rem; margin: -.35rem 0 1rem; }
+.result-config span { padding: .65rem .8rem; border-radius: 9px; background: var(--paper-deep); color: #7e756b; font-size: .68rem; }
+.result-config b { margin-right: .2rem; color: var(--ink); font-family: Georgia, serif; font-size: 1.05rem; font-weight: 500; }
+.result-time { display: flex; align-items: baseline; justify-content: space-between; margin: 0 0 1rem; padding: .65rem .8rem; border-radius: 9px; background: var(--paper-deep); }
 .result-time small { color: #7e756b; font-size: .64rem; }
 .result-time strong { font-family: Georgia, serif; font-size: 1.2rem; font-weight: 500; }
 .result-metrics { display: grid; grid-template-columns: 1fr 1fr; gap: .65rem; color: #746c62; font-size: .68rem; }
