@@ -559,7 +559,7 @@ export default function Home() {
                     aria-label={option.label}
                     key={option.id}
                   >
-                    <span><b>{option.label}</b><small>{option.detail}</small></span>
+                    <b>{option.detail}</b>
                   </button>
                 ))}
               </div>
