@@ -167,10 +167,33 @@ h1 {
   box-shadow: 0 1px 2px rgba(37,34,31,.1);
 }
 
+.mode-switch {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  width: min(100%, 420px);
+  margin: .7rem auto 0;
+  padding: 3px;
+  border: 1px solid #cfc3b3;
+  border-radius: 10px;
+  background: rgba(255,255,255,.28);
+}
+.mode-switch button {
+  min-height: 40px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  cursor: pointer;
+  font-size: .72rem;
+  font-weight: 800;
+}
+.mode-switch button small { display: block; margin-top: .12rem; color: #8a8177; font-size: .54rem; font-weight: 400; }
+.mode-switch button.is-selected { background: var(--ink); color: white; box-shadow: 0 4px 12px rgba(37,34,31,.18); }
+.mode-switch button.is-selected small { color: #d9d1c6; }
+
 .game-grid {
   position: relative;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(var(--grid-columns, 3), 1fr);
   gap: 9px;
   width: min(48vw, 350px);
   margin: 0 auto;
@@ -231,6 +254,19 @@ h1 {
 }
 
 .response-area.four-options { gap: 8px; margin-top: 1rem; }
+
+.warmup-next {
+  width: 100%;
+  min-height: 116px;
+  margin: 1rem 0 .7rem;
+  border: 1px solid #b8ad9e;
+  border-radius: 12px;
+  background: rgba(255,255,255,.42);
+  cursor: pointer;
+  font-weight: 800;
+}
+.warmup-next span { display: block; margin-top: .35rem; color: #81786e; font-size: .6rem; font-weight: 500; }
+.warmup-next:hover { border-color: var(--teal); background: rgba(31,103,97,.07); }
 
 .match-button {
   display: flex;
@@ -383,6 +419,9 @@ kbd { min-width: 24px; height: 24px; margin: 0 .12rem; font-size: .66rem; }
 }
 .choice-row button small { display: block; margin-top: .2rem; color: #8b8278; font-size: .6rem; font-weight: 400; }
 .choice-row button.is-selected { border-color: var(--orange); background: rgba(233,101,45,.1); color: var(--orange-deep); }
+.mode-setting { border-top: 0; padding-top: .4rem; }
+.mode-options button { min-height: 68px; }
+.mode-options button small { padding: 0 .25rem; line-height: 1.35; }
 
 .custom-pace-row {
   display: grid;
@@ -443,6 +482,9 @@ kbd { min-width: 24px; height: 24px; margin: 0 .12rem; font-size: .66rem; }
 .score-ring small { display: block; margin-top: -.3rem; color: #847b71; font-size: .63rem; }
 .result-kicker { color: var(--teal); font-size: .67rem; font-weight: 800; letter-spacing: .14em; }
 .result-copy h2 { margin: .4rem 0 1.2rem; font-family: Georgia, "Songti SC", serif; font-size: 1.75rem; font-weight: 500; line-height: 1.2; }
+.result-time { display: flex; align-items: baseline; justify-content: space-between; margin: -.35rem 0 1rem; padding: .65rem .8rem; border-radius: 9px; background: var(--paper-deep); }
+.result-time small { color: #7e756b; font-size: .64rem; }
+.result-time strong { font-family: Georgia, serif; font-size: 1.2rem; font-weight: 500; }
 .result-metrics { display: grid; grid-template-columns: 1fr 1fr; gap: .65rem; color: #746c62; font-size: .68rem; }
 .result-metrics b { color: var(--ink); font-size: .85rem; }
 .result-note { margin: 1rem 0 0; color: #7b7369; font-size: .65rem; }
@@ -471,6 +513,8 @@ kbd { min-width: 24px; height: 24px; margin: 0 .12rem; font-size: .66rem; }
   .game-stage { padding: 1.7rem 0 1.25rem; }
   .stage-heading { margin-bottom: 1.15rem; }
   .stage-heading p { padding: 0 .5rem; font-size: .8rem; }
+  .mode-switch { width: 100%; }
+  .mode-switch button { font-size: .68rem; }
   .game-grid { width: min(76vw, 320px); }
   .response-area { margin-top: 1rem; }
   .match-button { gap: .5rem; min-height: 54px; }
@@ -479,6 +523,7 @@ kbd { min-width: 24px; height: 24px; margin: 0 .12rem; font-size: .66rem; }
   .relation-button b { font-size: .74rem; line-height: 1.2; }
   .relation-button small { font-size: .46rem; }
   .choice-row.pace-options { grid-template-columns: repeat(2, 1fr); }
+  .warmup-next { min-height: 116px; }
   .statusbar { gap: 1rem; justify-content: space-between; }
   .statusbar span:first-child, .statusbar span:nth-child(3) { display: none; }
   .result-panel { grid-template-columns: 1fr; gap: 1.5rem; padding: 1.4rem; text-align: center; }

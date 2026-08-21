@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "双重记忆 · Dual N-Back",
-  description: "用 9 个位置与 7 种颜色进行四选一关系判断的双重 N-Back 前端游戏。",
+  description: "可自定义位置与颜色数量，支持计时模式和挑战模式的双重 N-Back 前端游戏。",
   icons: {
     icon: "/favicon.svg",
     shortcut: "/favicon.svg",
