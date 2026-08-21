@@ -103,6 +103,32 @@ button:disabled { cursor: not-allowed; }
   letter-spacing: .08em;
 }
 
+.top-actions {
+  justify-self: end;
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+}
+
+.restart-button {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  gap: .4rem;
+  padding: 0 .8rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(255,255,255,.28);
+  color: var(--ink);
+  cursor: pointer;
+  font-size: .68rem;
+  font-weight: 800;
+  transition: background .18s ease, transform .18s ease;
+}
+
+.restart-button span { font-size: 1rem; }
+.restart-button:hover { transform: translateY(-1px); background: rgba(255,255,255,.65); }
+
 .icon-button, .close-button {
   display: grid;
   place-items: center;
@@ -510,6 +536,8 @@ kbd { min-width: 24px; height: 24px; margin: 0 .12rem; font-size: .66rem; }
   .topbar { min-height: 66px; }
   .brand > span:last-child { display: none; }
   .round-pill { min-width: 96px; padding-inline: .7rem; font-size: .64rem; }
+  .restart-button { width: 40px; padding: 0; justify-content: center; }
+  .restart-button b { display: none; }
   .game-stage { padding: 1.7rem 0 1.25rem; }
   .stage-heading { margin-bottom: 1.15rem; }
   .stage-heading p { padding: 0 .5rem; font-size: .8rem; }

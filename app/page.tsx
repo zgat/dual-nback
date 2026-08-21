@@ -442,7 +442,15 @@ export default function Home() {
         <div className="round-pill" aria-live="polite">
           {phase === "idle" ? `${settings.n}-BACK` : `第 ${Math.max(0, round + 1)} / ${settings.total} 轮`}
         </div>
-        <button className="icon-button" onClick={openSettings} aria-label="打开训练设置">⚙</button>
+        <div className="top-actions">
+          {(phase === "countdown" || phase === "playing" || phase === "paused") && (
+            <button className="restart-button" onClick={beginCountdown} aria-label="重新开始本轮训练">
+              <span aria-hidden="true">↻</span>
+              <b>重新开始</b>
+            </button>
+          )}
+          <button className="icon-button" onClick={openSettings} aria-label="打开训练设置">⚙</button>
+        </div>
         <div className="top-progress" style={{ width: `${progress}%` }} />
       </header>
 
