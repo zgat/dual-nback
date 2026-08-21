@@ -49,6 +49,7 @@ const OPTIONS: Array<{ id: MatchType; key: string; label: string; detail: string
 ];
 
 const DEFAULT_SETTINGS: GameSettings = { n: 2, total: 20, interval: 2400 };
+const PRESET_INTERVALS = [3000, 2400, 1800];
 const EMPTY_STATS: Stats = {
   correct: 0,
   total: 0,
@@ -104,6 +105,11 @@ function scorePercent(stats: Stats) {
   return stats.total === 0 ? 0 : Math.round((stats.correct / stats.total) * 100);
 }
 
+function clampInterval(value: number) {
+  if (!Number.isFinite(value)) return DEFAULT_SETTINGS.interval;
+  return Math.round(Math.min(20000, Math.max(1500, value)) / 100) * 100;
+}
+
 export default function Home() {
   const [settings, setSettings] = useState<GameSettings>(DEFAULT_SETTINGS);
   const [draftSettings, setDraftSettings] = useState<GameSettings>(DEFAULT_SETTINGS);
@@ -150,7 +156,7 @@ export default function Home() {
     setCorrectAnswer(null);
     setStimulusVisible(true);
 
-    const showFor = Math.min(950, Math.round(settingsRef.current.interval * 0.44));
+    const showFor = Math.min(2400, Math.round(settingsRef.current.interval * 0.42));
     stimulusTimerRef.current = window.setTimeout(() => setStimulusVisible(false), showFor);
     trialTimerRef.current = window.setTimeout(() => finalizeRef.current(), settingsRef.current.interval);
   }, []);
@@ -278,9 +284,11 @@ export default function Home() {
   };
 
   const saveSettings = () => {
-    settingsRef.current = draftSettings;
-    setSettings(draftSettings);
-    window.localStorage.setItem("dual-nback-settings", JSON.stringify(draftSettings));
+    const normalized = { ...draftSettings, interval: clampInterval(draftSettings.interval) };
+    settingsRef.current = normalized;
+    setSettings(normalized);
+    setDraftSettings(normalized);
+    window.localStorage.setItem("dual-nback-settings", JSON.stringify(normalized));
     setShowSettings(false);
   };
 
@@ -299,7 +307,7 @@ export default function Home() {
       const savedBest = Number(window.localStorage.getItem("dual-nback-best") || 0);
       if (savedSettings) {
         const parsed = { ...DEFAULT_SETTINGS, ...JSON.parse(savedSettings) } as GameSettings;
-        const sanitized = { n: parsed.n, total: parsed.total, interval: parsed.interval };
+        const sanitized = { n: parsed.n, total: parsed.total, interval: clampInterval(parsed.interval) };
         settingsRef.current = sanitized;
         setSettings(sanitized);
         setDraftSettings(sanitized);
@@ -330,6 +338,7 @@ export default function Home() {
   const responseDisabled = phase !== "playing" || warmup || selected !== null;
   const progress = round < 0 ? 0 : ((round + 1) / settings.total) * 100;
   const wrongAnswers = Math.max(0, stats.total - stats.correct - stats.misses);
+  const customPace = !PRESET_INTERVALS.includes(draftSettings.interval);
 
   return (
     <main className="app-shell">
@@ -457,13 +466,38 @@ export default function Home() {
 
             <fieldset className="setting-group">
               <legend>每轮节奏</legend>
-              <div className="choice-row">
+              <div className="choice-row pace-options">
                 {[{ label: "舒缓", value: 3000 }, { label: "标准", value: 2400 }, { label: "快速", value: 1800 }].map((option) => (
                   <button className={draftSettings.interval === option.value ? "is-selected" : ""} onClick={() => setDraftSettings((value) => ({ ...value, interval: option.value }))} key={option.value}>
                     {option.label}<small>{option.value / 1000} 秒</small>
                   </button>
                 ))}
+                <button
+                  className={customPace ? "is-selected" : ""}
+                  onClick={() => setDraftSettings((value) => ({ ...value, interval: PRESET_INTERVALS.includes(value.interval) ? 5000 : value.interval }))}
+                >
+                  自定义<small>{customPace ? `${(draftSettings.interval / 1000).toFixed(1)} 秒` : "1.5–20 秒"}</small>
+                </button>
               </div>
+              {customPace && (
+                <div className="custom-pace-row">
+                  <label htmlFor="custom-pace">每轮时长</label>
+                  <div className="duration-input">
+                    <input
+                      id="custom-pace"
+                      type="number"
+                      min="1.5"
+                      max="20"
+                      step="0.5"
+                      value={draftSettings.interval / 1000}
+                      onChange={(event) => setDraftSettings((value) => ({ ...value, interval: Number(event.target.value) * 1000 }))}
+                      aria-describedby="custom-pace-help"
+                    />
+                    <span>秒</span>
+                  </div>
+                  <small id="custom-pace-help">色块显示时间也会随节奏适当延长</small>
+                </div>
+              )}
             </fieldset>
 
             <fieldset className="setting-group">
