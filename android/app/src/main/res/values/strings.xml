@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">双重 N-Back</string>
+    <string name="title_activity_main">双重 N-Back</string>
+    <string name="package_name">com.zga.dualnback</string>
+    <string name="custom_url_scheme">com.zga.dualnback</string>
+</resources>
