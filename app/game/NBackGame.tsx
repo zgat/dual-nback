@@ -219,7 +219,7 @@ export function NBackGame({
 
           {warmup && settings.mode === "self-paced" ? (
             <button className="warmup-next" onClick={advanceWarmup}>
-              记住了，下一轮 <span>Enter ↵</span>
+              记住了，下一轮
             </button>
           ) : (
             <div className="response-area four-options" aria-label="选择与 N 轮前的关系">

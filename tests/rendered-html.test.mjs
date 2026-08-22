@@ -48,7 +48,10 @@ test("server-renders the Dual N-Back game", async () => {
 });
 
 test("keeps game screens inside the dynamic viewport", async () => {
-  const css = await readFile(new URL("../app/globals.css", import.meta.url), "utf8");
+  const [css, nback] = await Promise.all([
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
+    readFile(new URL("../app/game/NBackGame.tsx", import.meta.url), "utf8"),
+  ]);
 
   assert.match(css, /html, body, #root\s*{[^}]*overflow:\s*hidden/s);
   assert.match(css, /\.app-shell\s*{[^}]*height:\s*100dvh[^}]*grid-template-rows:\s*auto minmax\(0, 1fr\)/s);
@@ -63,6 +66,9 @@ test("keeps game screens inside the dynamic viewport", async () => {
   assert.match(css, /\.nback-game\.phase-finished,\s*\.flip-game\.flip-phase-finished\s*{[^}]*align-content:\s*center[^}]*overflow-y:\s*auto/s);
   assert.doesNotMatch(css, /translateY\(clamp\(-6rem, -10dvh, -2\.5rem\)\)/);
   assert.match(css, /@media \(max-height: 600px\) and \(min-aspect-ratio: 4 \/ 3\)/);
+  assert.match(css, /\.warmup-next\s*{[^}]*display:\s*grid[^}]*place-items:\s*center[^}]*text-align:\s*center/s);
+  assert.match(nback, />\s*记住了，下一轮\s*<\/button>/);
+  assert.doesNotMatch(nback, /Enter ↵/);
 });
 
 test("removes flip-memory instructions once play begins", async () => {

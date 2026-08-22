@@ -1047,16 +1047,18 @@ h1 {
 .response-area.four-options { gap: 8px; margin-top: 1rem; }
 
 .warmup-next {
+  display: grid;
   width: 100%;
   min-height: 116px;
   margin: 1rem 0 .7rem;
+  place-items: center;
   border: 1px solid #b8ad9e;
   border-radius: 12px;
   background: rgba(255,255,255,.42);
   cursor: pointer;
   font-weight: 800;
+  text-align: center;
 }
-.warmup-next span { display: block; margin-top: .35rem; color: #81786e; font-size: .6rem; font-weight: 500; }
 .match-button {
   display: flex;
   align-items: center;
