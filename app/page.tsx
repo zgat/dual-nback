@@ -8,6 +8,7 @@ type MatchType = "exact" | "position" | "color" | "different";
 type GameMode = "self-paced" | "challenge";
 type TrainingType = "grid" | "cards" | "flip";
 type FlipDifficulty = "classic" | "moving";
+type FlipCardCount = 6 | 8 | 9 | 12 | 16;
 type FlipPhase = "idle" | "preview" | "shuffling" | "selecting" | "round-complete" | "finished";
 
 type ColorToken = {
@@ -54,6 +55,7 @@ type GameSettings = {
   mode: GameMode;
   trainingType: TrainingType;
   flipDifficulty: FlipDifficulty;
+  flipCardCount: FlipCardCount;
   flipRounds: number;
 };
 
@@ -98,6 +100,16 @@ const OPTIONS: Array<{ id: MatchType; key: string }> = [
   { id: "different", key: "4" },
 ];
 
+const FLIP_CARD_COUNTS: FlipCardCount[] = [6, 8, 9, 12, 16];
+const FLIP_CONFIG: Record<FlipCardCount, { columns: number; targets: number; previewSeconds: number; boardWidth: number; layout: string }> = {
+  6: { columns: 3, targets: 2, previewSeconds: 5, boardWidth: 430, layout: "3 × 2" },
+  8: { columns: 4, targets: 3, previewSeconds: 6, boardWidth: 520, layout: "4 × 2" },
+  9: { columns: 3, targets: 3, previewSeconds: 7, boardWidth: 430, layout: "3 × 3" },
+  12: { columns: 4, targets: 4, previewSeconds: 9, boardWidth: 500, layout: "4 × 3" },
+  16: { columns: 4, targets: 5, previewSeconds: 12, boardWidth: 500, layout: "4 × 4" },
+};
+const FLIP_CARD_GAP = 8;
+
 const DEFAULT_SETTINGS: GameSettings = {
   n: 2,
   total: 20,
@@ -107,6 +119,7 @@ const DEFAULT_SETTINGS: GameSettings = {
   mode: "self-paced",
   trainingType: "grid",
   flipDifficulty: "classic",
+  flipCardCount: 6,
   flipRounds: 5,
 };
 const PRESET_INTERVALS = [3000, 2400, 1800];
@@ -131,6 +144,14 @@ function shuffle<T>(values: T[]) {
     [result[index], result[swapWith]] = [result[swapWith], result[index]];
   }
   return result;
+}
+
+function shuffleForMovement<T extends { id: string }>(values: T[]) {
+  for (let attempt = 0; attempt < 12; attempt += 1) {
+    const candidate = shuffle(values);
+    if (candidate.every((item, index) => item.id !== values[index].id)) return candidate;
+  }
+  return [...values.slice(1), values[0]];
 }
 
 function makeFlipCards(cardCount: number, targetCount: number): FlipCard[] {
@@ -211,6 +232,7 @@ function clampInterval(value: number) {
 
 function normalizeSettings(value: Partial<GameSettings>): GameSettings {
   const trainingType = value.trainingType === "cards" || value.trainingType === "flip" ? value.trainingType : "grid";
+  const flipCardCount = FLIP_CARD_COUNTS.includes(value.flipCardCount as FlipCardCount) ? value.flipCardCount as FlipCardCount : DEFAULT_SETTINGS.flipCardCount;
   return {
     n: trainingType === "cards" ? 2 : Math.min(5, Math.max(1, Math.round(value.n ?? DEFAULT_SETTINGS.n))),
     total: value.total === 30 ? 30 : 20,
@@ -220,6 +242,7 @@ function normalizeSettings(value: Partial<GameSettings>): GameSettings {
     mode: value.mode === "challenge" ? "challenge" : "self-paced",
     trainingType,
     flipDifficulty: value.flipDifficulty === "moving" ? "moving" : "classic",
+    flipCardCount,
     flipRounds: value.flipRounds === 8 ? 8 : 5,
   };
 }
@@ -253,9 +276,9 @@ function formatDuration(milliseconds: number) {
   return `${minutes} 分 ${Math.floor(seconds % 60).toString().padStart(2, "0")} 秒`;
 }
 
-function FlipCardFace({ card, compact = false }: { card: FlipCard; compact?: boolean }) {
+function FlipCardFace({ card }: { card: FlipCard }) {
   return (
-    <span className={`flip-card-face ${card.suit.color === "red" ? "is-red" : ""} ${compact ? "is-compact" : ""}`}>
+    <span className={`flip-card-face ${card.suit.color === "red" ? "is-red" : ""}`}>
       <span className="flip-card-rank">{card.rank.name}</span>
       <span className="flip-card-suit">{card.suit.symbol}</span>
     </span>
@@ -266,27 +289,31 @@ function FlipMemoryGame({
   settings,
   onSelectTrainingType,
   onOpenSettings,
+  onSessionActiveChange,
 }: {
   settings: GameSettings;
   onSelectTrainingType: (trainingType: TrainingType) => void;
   onOpenSettings: () => void;
+  onSessionActiveChange: (active: boolean) => void;
 }) {
+  const moving = settings.flipDifficulty === "moving";
+  const cardCount = settings.flipCardCount;
+  const flipConfig = FLIP_CONFIG[cardCount];
+  const targetCount = flipConfig.targets;
+  const previewMs = (flipConfig.previewSeconds + (moving ? 2 : 0)) * 1000;
+  const bestStorageKey = `flip-memory-best-${settings.flipDifficulty}-${cardCount}`;
   const [flipPhase, setFlipPhase] = useState<FlipPhase>("idle");
   const [round, setRound] = useState(0);
-  const [cards, setCards] = useState<FlipCard[]>([]);
+  const [cards, setCards] = useState<FlipCard[]>(() => makeFlipCards(cardCount, targetCount));
   const [moveTargets, setMoveTargets] = useState<Record<string, number>>({});
   const [foundIds, setFoundIds] = useState<string[]>([]);
   const [mistakeIds, setMistakeIds] = useState<string[]>([]);
   const [stats, setStats] = useState({ found: 0, mistakes: 0 });
   const [elapsedMs, setElapsedMs] = useState(0);
-  const [bestScore, setBestScore] = useState(() => typeof window === "undefined" ? 0 : Number(window.localStorage.getItem("flip-memory-best") || 0));
+  const [bestScore, setBestScore] = useState(() => typeof window === "undefined" ? 0 : Number(window.localStorage.getItem(bestStorageKey) || 0));
   const timerRef = useRef<number | null>(null);
   const startedAtRef = useRef(0);
-
-  const moving = settings.flipDifficulty === "moving";
-  const cardCount = moving ? 8 : 6;
-  const targetCount = moving ? 3 : 2;
-  const previewMs = moving ? 6000 : 5000;
+  const cardsRef = useRef(cards);
   const score = stats.found === 0 ? 0 : Math.round((stats.found / (stats.found + stats.mistakes)) * 100);
 
   const clearFlipTimer = useCallback(() => {
@@ -294,33 +321,36 @@ function FlipMemoryGame({
     timerRef.current = null;
   }, []);
 
+  const finishPreview = useCallback(() => {
+    clearFlipTimer();
+    if (moving) {
+      const movedCards = shuffleForMovement(cardsRef.current);
+      setMoveTargets(Object.fromEntries(movedCards.map((card, index) => [card.id, index])));
+      setFlipPhase("shuffling");
+      timerRef.current = window.setTimeout(() => {
+        cardsRef.current = movedCards;
+        setCards(movedCards);
+        setMoveTargets({});
+        setFlipPhase("selecting");
+        timerRef.current = null;
+      }, 1800);
+    } else {
+      setFlipPhase("selecting");
+    }
+  }, [clearFlipTimer, moving]);
+
   const dealRound = useCallback((roundIndex: number) => {
     clearFlipTimer();
     const nextCards = makeFlipCards(cardCount, targetCount);
+    cardsRef.current = nextCards;
     setRound(roundIndex);
     setCards(nextCards);
     setMoveTargets({});
     setFoundIds([]);
     setMistakeIds([]);
     setFlipPhase("preview");
-
-    timerRef.current = window.setTimeout(() => {
-      if (moving) {
-        const movedCards = shuffle(nextCards);
-        setMoveTargets(Object.fromEntries(movedCards.map((card, index) => [card.id, index])));
-        setFlipPhase("shuffling");
-        timerRef.current = window.setTimeout(() => {
-          setCards(movedCards);
-          setMoveTargets({});
-          setFlipPhase("selecting");
-          timerRef.current = null;
-        }, 1800);
-      } else {
-        setFlipPhase("selecting");
-        timerRef.current = null;
-      }
-    }, previewMs);
-  }, [cardCount, clearFlipTimer, moving, previewMs, targetCount]);
+    timerRef.current = window.setTimeout(finishPreview, previewMs);
+  }, [cardCount, clearFlipTimer, finishPreview, previewMs, targetCount]);
 
   const beginGame = useCallback(() => {
     setStats({ found: 0, mistakes: 0 });
@@ -336,10 +366,10 @@ function FlipMemoryGame({
     setFlipPhase("finished");
     setBestScore((previous) => {
       const next = Math.max(previous, score);
-      window.localStorage.setItem("flip-memory-best", String(next));
+      window.localStorage.setItem(bestStorageKey, String(next));
       return next;
     });
-  }, [clearFlipTimer, score]);
+  }, [bestStorageKey, clearFlipTimer, score]);
 
   const advanceRound = () => {
     if (round + 1 >= settings.flipRounds) finishGame();
@@ -363,6 +393,12 @@ function FlipMemoryGame({
     return clearFlipTimer;
   }, [clearFlipTimer]);
 
+  useEffect(() => {
+    onSessionActiveChange(flipPhase !== "idle" && flipPhase !== "finished");
+  }, [flipPhase, onSessionActiveChange]);
+
+  useEffect(() => () => onSessionActiveChange(false), [onSessionActiveChange]);
+
   const showAllFaces = flipPhase === "preview" || flipPhase === "round-complete";
   const targets = cards.filter((card) => card.isTarget);
   const targetPromptVisible = flipPhase === "selecting" || flipPhase === "round-complete";
@@ -371,7 +407,7 @@ function FlipMemoryGame({
     return (
       <>
         <div className="stage-heading flip-heading">
-          <span className="eyebrow">翻牌记忆 · {moving ? "移动进阶" : "经典模式"}</span>
+          <span className="eyebrow">翻牌记忆 · {cardCount} 张 · {moving ? "移动进阶" : "经典模式"}</span>
           <h1>训练完成</h1>
           <p>记忆牌面和位置，找到每轮指定的目标牌。</p>
         </div>
@@ -381,7 +417,7 @@ function FlipMemoryGame({
           </div>
           <div className="result-copy">
             <span className="result-kicker">翻牌记忆</span>
-            <h2>{score >= 90 ? "位置记得很稳。" : score >= 75 ? "表现不错，再巩固一轮。" : "先用经典模式熟悉牌位。"}</h2>
+            <h2>{score >= 90 ? "位置记得很稳。" : score >= 75 ? "表现不错，再巩固一轮。" : "可以降低牌数或先用经典模式。"}</h2>
             <div className="result-config">
               <span><b>{settings.flipRounds}</b> 轮训练</span>
               <span><b>{cardCount}</b> 张牌 / 轮</span>
@@ -401,11 +437,11 @@ function FlipMemoryGame({
   return (
     <>
       <div className="stage-heading flip-heading">
-        <span className="eyebrow">翻牌记忆 · {moving ? "移动进阶" : "经典模式"}</span>
+        <span className="eyebrow">翻牌记忆 · {cardCount} 张 · {moving ? "移动进阶" : "经典模式"}</span>
         <h1>{flipPhase === "idle" ? "看清每一张牌" : flipPhase === "preview" ? "记住全部牌位" : flipPhase === "shuffling" ? "牌位正在移动" : "找出目标牌"}</h1>
         <p>
           {flipPhase === "idle"
-            ? moving ? "牌盖住后会重新排列，再按记忆找出目标。" : "先看完整牌阵，盖牌后按原位置找出目标。"
+            ? moving ? `${cardCount} 张牌盖住后会重新排列，再按记忆找出目标。` : `先记住 ${cardCount} 张牌，盖牌后按原位置找出目标。`
             : flipPhase === "preview"
               ? `${previewMs / 1000} 秒后盖牌，目标会在盖牌后公布。`
               : flipPhase === "shuffling"
@@ -427,7 +463,7 @@ function FlipMemoryGame({
 
       {targetPromptVisible && (
         <div className="target-prompt" aria-label="本轮目标牌">
-          <span>目标</span>
+          <span>目标 · 剩余 {Math.max(0, targetCount - foundIds.length)}</span>
           {targets.map((card) => (
             <span className={card.suit.color === "red" ? "is-red" : ""} key={card.id}>
               {card.rank.name}{card.suit.symbol}
@@ -437,13 +473,17 @@ function FlipMemoryGame({
         </div>
       )}
 
-      <div className={`flip-board ${moving ? "is-advanced" : ""} ${flipPhase === "shuffling" ? "is-shuffling" : ""}`} aria-label={`${cardCount}张扑克牌记忆区`}>
-        {(cards.length ? cards : makeFlipCards(cardCount, targetCount)).map((card, index) => {
+      <div
+        className={`flip-board ${cardCount >= 12 ? "is-dense" : ""} ${flipPhase === "shuffling" ? "is-shuffling" : ""}`}
+        style={{ "--flip-columns": flipConfig.columns, "--flip-board-width": `${flipConfig.boardWidth}px` } as CSSProperties}
+        aria-label={`${cardCount}张扑克牌记忆区`}
+      >
+        {cards.map((card, index) => {
           const found = foundIds.includes(card.id);
           const mistake = mistakeIds.includes(card.id);
           const faceUp = showAllFaces || found || mistake;
           const destination = moveTargets[card.id] ?? index;
-          const columnCount = moving ? 4 : 3;
+          const columnCount = flipConfig.columns;
           const columnDelta = (destination % columnCount) - (index % columnCount);
           const rowDelta = Math.floor(destination / columnCount) - Math.floor(index / columnCount);
           return (
@@ -453,8 +493,8 @@ function FlipMemoryGame({
               disabled={flipPhase !== "selecting" || found || mistake}
               aria-label={faceUp ? `${card.suit.name}${card.rank.name}${found ? "，目标牌" : mistake ? "，不是目标" : ""}` : "盖住的扑克牌"}
               style={flipPhase === "shuffling" ? {
-                "--move-x": `calc(${columnDelta * 100}% + ${columnDelta * 10}px)`,
-                "--move-y": `calc(${rowDelta * 100}% + ${rowDelta * 10}px)`,
+                "--move-x": `calc(${columnDelta * 100}% + ${columnDelta * FLIP_CARD_GAP}px)`,
+                "--move-y": `calc(${rowDelta * 100}% + ${rowDelta * FLIP_CARD_GAP}px)`,
               } as CSSProperties : undefined}
               key={card.id}
             >
@@ -465,10 +505,14 @@ function FlipMemoryGame({
         {flipPhase === "shuffling" && <div className="shuffle-overlay">移动牌位中…</div>}
       </div>
 
-      {flipPhase === "preview" && <div className="preview-timer" style={{ "--preview-duration": `${previewMs}ms` } as CSSProperties}><i /></div>}
+      {flipPhase === "preview" && (
+        <div className="preview-timer" style={{ "--preview-duration": `${previewMs}ms`, "--flip-board-width": `${flipConfig.boardWidth}px` } as CSSProperties}><i /></div>
+      )}
 
       {flipPhase === "idle" ? (
         <button className="start-button" onClick={beginGame}>开始翻牌记忆 <span>→</span></button>
+      ) : flipPhase === "preview" ? (
+        <button className="start-button" onClick={finishPreview}>记住了，盖牌 <span>→</span></button>
       ) : flipPhase === "round-complete" ? (
         <button className="start-button" onClick={advanceRound}>{round + 1 >= settings.flipRounds ? "查看结果" : "下一轮"} <span>→</span></button>
       ) : (
@@ -492,6 +536,8 @@ export default function Home() {
   const [bestScore, setBestScore] = useState(0);
   const [elapsedMs, setElapsedMs] = useState(0);
   const [showSettings, setShowSettings] = useState(false);
+  const [flipSessionActive, setFlipSessionActive] = useState(false);
+  const [flipSessionKey, setFlipSessionKey] = useState(0);
 
   const sequenceRef = useRef<Trial[]>([]);
   const settingsRef = useRef(settings);
@@ -553,7 +599,7 @@ export default function Home() {
     });
   }, [clearTimers]);
 
-  finalizeRef.current = () => {
+  const finalizeTrial = useCallback(() => {
     if (phaseRef.current !== "playing") return;
     const index = roundRef.current;
     const n = settingsRef.current.n;
@@ -586,7 +632,11 @@ export default function Home() {
     } else {
       startTrial(index + 1);
     }
-  };
+  }, [finishSession, startTrial]);
+
+  useEffect(() => {
+    finalizeRef.current = finalizeTrial;
+  }, [finalizeTrial]);
 
   const beginCountdown = useCallback(() => {
     clearTimers();
@@ -681,6 +731,10 @@ export default function Home() {
 
   const openSettings = () => {
     if (phaseRef.current === "playing") pauseGame();
+    if (settingsRef.current.trainingType === "flip" && flipSessionActive) {
+      setFlipSessionKey((value) => value + 1);
+      setFlipSessionActive(false);
+    }
     setDraftSettings(settingsRef.current);
     setShowSettings(true);
   };
@@ -692,7 +746,7 @@ export default function Home() {
     setDraftSettings(normalized);
     window.localStorage.setItem("dual-nback-settings", JSON.stringify(normalized));
     setShowSettings(false);
-    if (phaseRef.current === "paused") {
+    if (phaseRef.current !== "idle") {
       clearTimers();
       phaseRef.current = "idle";
       setPhase("idle");
@@ -731,25 +785,32 @@ export default function Home() {
   };
 
   useEffect(() => {
-    try {
-      const savedSettings = window.localStorage.getItem("dual-nback-settings");
-      const savedBest = Number(window.localStorage.getItem("dual-nback-best") || 0);
-      if (savedSettings) {
-        const parsed = { ...DEFAULT_SETTINGS, ...JSON.parse(savedSettings) } as GameSettings;
-        const sanitized = normalizeSettings(parsed);
-        settingsRef.current = sanitized;
-        setSettings(sanitized);
-        setDraftSettings(sanitized);
+    const hydrateTimer = window.setTimeout(() => {
+      try {
+        const savedSettings = window.localStorage.getItem("dual-nback-settings");
+        const savedBest = Number(window.localStorage.getItem("dual-nback-best") || 0);
+        if (savedSettings) {
+          const parsed = { ...DEFAULT_SETTINGS, ...JSON.parse(savedSettings) } as GameSettings;
+          const sanitized = normalizeSettings(parsed);
+          settingsRef.current = sanitized;
+          setSettings(sanitized);
+          setDraftSettings(sanitized);
+        }
+        setBestScore(savedBest);
+      } catch {
+        // The game remains fully playable when storage is unavailable.
       }
-      setBestScore(savedBest);
-    } catch {
-      // The game remains fully playable when storage is unavailable.
-    }
+    }, 0);
+    return () => window.clearTimeout(hydrateTimer);
   }, []);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.repeat || showSettings) return;
+      if (event.repeat) return;
+      if (showSettings) {
+        if (event.key === "Escape") setShowSettings(false);
+        return;
+      }
       const option = OPTIONS.find((item) => item.key === event.key);
       if (option) respond(option.id);
       const key = event.key.toLowerCase();
@@ -782,6 +843,7 @@ export default function Home() {
   const memoryDimensions = isCardMode ? "点数与花色" : "位置与颜色";
   const currentCard = current?.type === "cards" ? current : null;
   const currentGrid = current?.type === "grid" ? current : null;
+  const activeFlipConfig = FLIP_CONFIG[settings.flipCardCount];
 
   return (
     <main className="app-shell">
@@ -800,7 +862,7 @@ export default function Home() {
               <b>重新开始</b>
             </button>
           )}
-          <button className="icon-button" onClick={openSettings} aria-label="打开训练设置">⚙</button>
+          <button className="icon-button" onClick={openSettings} aria-label={isFlipMode && flipSessionActive ? "结束当前训练并打开设置" : "打开训练设置"}>⚙</button>
         </div>
         <div className="top-progress" style={{ width: `${isFlipMode ? 0 : progress}%` }} />
       </header>
@@ -808,10 +870,11 @@ export default function Home() {
       <section className="game-stage">
         {isFlipMode ? (
           <FlipMemoryGame
-            key={`${settings.flipDifficulty}-${settings.flipRounds}`}
+            key={`${settings.flipDifficulty}-${settings.flipCardCount}-${settings.flipRounds}-${flipSessionKey}`}
             settings={settings}
             onSelectTrainingType={selectTrainingType}
             onOpenSettings={openSettings}
+            onSessionActiveChange={setFlipSessionActive}
           />
         ) : (
           <>
@@ -999,7 +1062,7 @@ export default function Home() {
       <footer className="statusbar">
         <span>
           <i className="status-dot" />
-          {isFlipMode ? `${settings.flipDifficulty === "moving" ? 8 : 6} 张牌 · ${settings.flipDifficulty === "moving" ? 3 : 2} 张目标` : isCardMode ? "13 个点数 · 4 种花色" : `${settings.cellCount} 个位置 · ${settings.colorCount} 种颜色`}
+          {isFlipMode ? `${settings.flipCardCount} 张牌 · ${activeFlipConfig.targets} 张目标` : isCardMode ? "13 个点数 · 4 种花色" : `${settings.cellCount} 个位置 · ${settings.colorCount} 种颜色`}
         </span>
         <span>{isFlipMode ? "流程" : "正确率"} <b>{isFlipMode ? "先看后找" : stats.total ? `${accuracy}%` : "—"}</b></span>
         <span>{isFlipMode ? "难度" : "节奏"} <b>{isFlipMode ? settings.flipDifficulty === "moving" ? "移动进阶" : "经典模式" : modeLabel}</b></span>
@@ -1007,8 +1070,9 @@ export default function Home() {
       </footer>
 
       {showSettings && (
-        <div className="modal-backdrop" onMouseDown={() => setShowSettings(false)}>
-          <section className="settings-panel" role="dialog" aria-modal="true" aria-labelledby="settings-title" onMouseDown={(event) => event.stopPropagation()}>
+        <div className="modal-backdrop">
+          <button className="modal-dismiss" onClick={() => setShowSettings(false)} aria-label="关闭训练设置" tabIndex={-1} />
+          <section className="settings-panel" role="dialog" aria-modal="true" aria-labelledby="settings-title">
             <div className="settings-header">
               <div><span className="eyebrow">TRAINING SETUP</span><h2 id="settings-title">训练设置</h2></div>
               <button className="close-button" onClick={() => setShowSettings(false)} aria-label="关闭设置">×</button>
@@ -1041,13 +1105,27 @@ export default function Home() {
             {draftIsFlipMode ? (
               <>
                 <fieldset className="setting-group mode-setting">
+                  <legend>牌阵数量</legend>
+                  <div className="choice-row flip-count-options">
+                    {FLIP_CARD_COUNTS.map((flipCardCount) => (
+                      <button
+                        className={draftSettings.flipCardCount === flipCardCount ? "is-selected" : ""}
+                        onClick={() => setDraftSettings((value) => ({ ...value, flipCardCount }))}
+                        key={flipCardCount}
+                      >
+                        {flipCardCount} 张<small>{FLIP_CONFIG[flipCardCount].layout}</small>
+                      </button>
+                    ))}
+                  </div>
+                </fieldset>
+                <fieldset className="setting-group">
                   <legend>翻牌难度</legend>
                   <div className="choice-row two-columns mode-options">
                     <button className={draftSettings.flipDifficulty === "classic" ? "is-selected" : ""} onClick={() => setDraftSettings((value) => ({ ...value, flipDifficulty: "classic" }))}>
-                      经典模式<small>6 张牌 · 2 张目标 · 盖牌后位置不变</small>
+                      经典模式<small>盖牌后位置保持不变</small>
                     </button>
                     <button className={draftSettings.flipDifficulty === "moving" ? "is-selected" : ""} onClick={() => setDraftSettings((value) => ({ ...value, flipDifficulty: "moving" }))}>
-                      移动进阶<small>8 张牌 · 3 张目标 · 盖牌后重新排列</small>
+                      移动进阶<small>盖牌后所有牌重新排列</small>
                     </button>
                   </div>
                 </fieldset>

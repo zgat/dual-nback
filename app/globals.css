@@ -358,6 +358,7 @@ h1 {
   min-height: 45px;
   align-items: center;
   justify-content: center;
+  flex-wrap: wrap;
   gap: .45rem;
   margin: 0 auto .7rem;
 }
@@ -379,6 +380,7 @@ h1 {
   color: #7d756b;
   font-family: Arial, "PingFang SC", sans-serif;
   font-size: .65rem;
+  white-space: nowrap;
 }
 .target-prompt > span.is-red { color: #b32d32; }
 .target-prompt i { margin-left: .28rem; color: var(--teal); font-family: Arial, sans-serif; font-size: .7rem; font-style: normal; }
@@ -386,9 +388,9 @@ h1 {
 .flip-board {
   position: relative;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-  width: min(100%, 430px);
+  grid-template-columns: repeat(var(--flip-columns, 3), 1fr);
+  gap: 8px;
+  width: min(100%, var(--flip-board-width, 430px));
   margin: 0 auto;
   padding: 13px;
   border: 1px solid #bcb09f;
@@ -396,7 +398,7 @@ h1 {
   background: rgba(255,255,255,.34);
   box-shadow: 0 28px 70px rgba(78,56,36,.12);
 }
-.flip-board.is-advanced { grid-template-columns: repeat(4, 1fr); width: min(100%, 560px); }
+.flip-board.is-dense { padding: 10px; }
 
 .memory-card {
   position: relative;
@@ -477,7 +479,7 @@ h1 {
   white-space: nowrap;
   pointer-events: none;
 }
-.preview-timer { width: min(100%, 430px); height: 4px; margin: .65rem auto; overflow: hidden; border-radius: 99px; background: #ddd3c5; }
+.preview-timer { width: min(100%, var(--flip-board-width, 430px)); height: 4px; margin: .65rem auto; overflow: hidden; border-radius: 99px; background: #ddd3c5; }
 .preview-timer i { display: block; width: 100%; height: 100%; transform-origin: left; background: var(--orange); animation: preview-countdown var(--preview-duration) linear forwards; }
 .flip-restart { margin-top: .75rem; background: #393531; }
 
@@ -618,9 +620,22 @@ h1 {
   animation: fade-in .18s ease-out;
 }
 
+.modal-dismiss {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: default;
+}
+
 @keyframes fade-in { from { opacity: 0; } }
 
 .settings-panel {
+  position: relative;
+  z-index: 1;
   width: min(100%, 530px);
   max-height: calc(100svh - 2rem);
   overflow-y: auto;
@@ -666,6 +681,8 @@ h1 {
 .choice-row.pace-options { grid-template-columns: repeat(4, 1fr); }
 .choice-row.two-columns { grid-template-columns: repeat(2, 1fr); }
 .choice-row.three-columns { grid-template-columns: repeat(3, 1fr); }
+.choice-row.flip-count-options { grid-template-columns: repeat(5, 1fr); }
+.flip-count-options button { min-height: 52px; padding-inline: .25rem; }
 .choice-row button {
   min-height: 56px;
   border: 1px solid #c8bdad;
@@ -801,7 +818,6 @@ h1 {
   .card-board { width: 300px; min-height: 300px; }
   .playing-card { width: 170px; }
   .flip-board { width: 370px; }
-  .flip-board.is-advanced { width: 470px; }
   .grid-cell { border-radius: 8px; }
   .statusbar { min-height: 48px; }
 }
@@ -832,7 +848,7 @@ h1 {
   .relation-button { padding-inline: .55rem; }
   .relation-button b { font-size: .74rem; line-height: 1.2; }
   .relation-button small { font-size: .46rem; }
-  .flip-board, .flip-board.is-advanced { width: 100%; gap: 7px; padding: 9px; border-radius: 14px; }
+  .flip-board { width: 100%; gap: 8px; padding: 9px; border-radius: 14px; }
   .memory-card, .flip-card-face, .memory-card-back { border-radius: 8px; }
   .flip-card-rank { left: 7px; top: 6px; font-size: 1rem; }
   .flip-card-suit { font-size: clamp(2rem, 11vw, 3.4rem); }
@@ -840,6 +856,7 @@ h1 {
   .target-prompt > span { min-width: 41px; padding: .42rem .45rem; }
   .preview-timer { width: 100%; }
   .choice-row.pace-options { grid-template-columns: repeat(2, 1fr); }
+  .choice-row.flip-count-options { grid-template-columns: repeat(3, 1fr); }
   .training-options.three-columns { grid-template-columns: 1fr; }
   .warmup-next { min-height: 116px; }
   .statusbar { gap: 1rem; justify-content: space-between; }
