@@ -147,7 +147,7 @@ test("uses the requested compact home-setting layouts", async () => {
   assert.match(css, /\.settings-disclosure-line i\s*{[^}]*background:\s*currentColor/s);
   assert.match(css, /\.home-intro\s*{[^}]*grid-template-rows:\s*1\.4rem 1\.25rem/s);
   assert.match(css, /\.nback-game\.phase-idle,\s*\.flip-game\.flip-phase-idle\s*{[^}]*align-content:\s*start/s);
-  assert.match(css, /\.game-home\s*{[^}]*padding-top:\s*clamp\(4\.5rem, 15dvh, 9rem\)/s);
+  assert.match(css, /\.game-home\s*{[^}]*padding-top:\s*clamp\(2\.25rem, 7\.5dvh, 4\.5rem\)/s);
   assert.match(css, /\.nback-game\.phase-countdown,[\s\S]*grid-template-rows:\s*auto auto auto/s);
 });
 

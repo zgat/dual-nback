@@ -57,7 +57,7 @@ export function SettingsModal({ soundEnabled, onToggleSound, onClose }: Settings
         ref={dialogRef}
       >
         <div className="settings-header">
-          <div><span className="eyebrow">VERSION 2.0.2</span><h2 id="settings-title">偏好设置</h2></div>
+          <div><span className="eyebrow">VERSION 2.0.3</span><h2 id="settings-title">偏好设置</h2></div>
           <button className="close-button" onClick={onClose} aria-label="关闭设置" ref={closeButtonRef}>×</button>
         </div>
 
