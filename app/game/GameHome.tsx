@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import type { ReactNode, TransitionEvent } from "react";
 import type { GameSettings, TrainingType } from "./core";
 import { IdleSettings } from "./IdleSettings";
@@ -19,6 +19,10 @@ export function GameHome({
   onSelectTrainingType,
   soundEnabled,
   onToggleSound,
+  settingsOpen,
+  settingsHeight,
+  onSettingsOpenChange,
+  onSettingsHeightChange,
 }: {
   eyebrow: string;
   title: string;
@@ -31,22 +35,58 @@ export function GameHome({
   onSelectTrainingType: (trainingType: TrainingType) => void;
   soundEnabled: boolean;
   onToggleSound: () => void;
+  settingsOpen: boolean;
+  settingsHeight: number;
+  onSettingsOpenChange: (open: boolean) => void;
+  onSettingsHeightChange: (height: number) => void;
 }) {
   const settingsId = useId();
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const [revealReady, setRevealReady] = useState(false);
+  const settingsContentRef = useRef<HTMLDivElement>(null);
+  const [revealedHeight, setRevealedHeight] = useState<number | null>(null);
+  const revealReady = settingsOpen && settingsHeight > 0 && revealedHeight === settingsHeight;
+
+  useEffect(() => {
+    const content = settingsContentRef.current;
+    if (!content) return;
+
+    let frame = 0;
+    const measure = () => {
+      window.cancelAnimationFrame(frame);
+      frame = window.requestAnimationFrame(() => onSettingsHeightChange(content.scrollHeight));
+    };
+    const observer = new ResizeObserver(measure);
+    observer.observe(content);
+    measure();
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+      observer.disconnect();
+    };
+  }, [onSettingsHeightChange, settings.trainingType]);
+
+  useEffect(() => {
+    if (!settingsOpen) return;
+    const timer = window.setTimeout(() => setRevealedHeight(settingsHeight), 240);
+    return () => window.clearTimeout(timer);
+  }, [settingsHeight, settingsOpen, settings.trainingType]);
 
   const toggleSettings = () => {
     if (settingsOpen) {
-      setRevealReady(false);
-      setSettingsOpen(false);
+      setRevealedHeight(null);
+      onSettingsOpenChange(false);
     } else {
-      setSettingsOpen(true);
+      onSettingsOpenChange(true);
     }
   };
 
   const finishReveal = (event: TransitionEvent<HTMLDivElement>) => {
-    if (event.propertyName === "grid-template-rows" && settingsOpen) setRevealReady(true);
+    if (event.propertyName === "height" && settingsOpen) setRevealedHeight(settingsHeight);
+  };
+
+  const startGame = () => {
+    setRevealedHeight(null);
+    onSettingsOpenChange(false);
+    onStart();
   };
 
   return (
@@ -69,9 +109,10 @@ export function GameHome({
           id={settingsId}
           aria-hidden={!settingsOpen}
           inert={!settingsOpen}
+          style={{ height: settingsOpen ? `${settingsHeight}px` : 0 }}
           onTransitionEnd={finishReveal}
         >
-          <div className="settings-reveal-inner">
+          <div className="settings-reveal-inner" ref={settingsContentRef}>
             <IdleSettings settings={settings} onChange={onUpdateSettings} />
           </div>
         </div>
@@ -88,7 +129,7 @@ export function GameHome({
       </div>
 
       <div className="idle-launch">
-        <button className="start-button" onClick={onStart}>{startLabel} <span>→</span></button>
+        <button className="start-button" onClick={startGame}>{startLabel} <span>→</span></button>
         <SoundToggle enabled={soundEnabled} onToggle={onToggleSound} />
       </div>
     </div>

@@ -33,6 +33,10 @@ type FlipMemoryGameProps = {
   soundEnabled: boolean;
   onToggleSound: () => void;
   paused: boolean;
+  homeSettingsOpen: boolean;
+  homeSettingsHeight: number;
+  onHomeSettingsOpenChange: (open: boolean) => void;
+  onHomeSettingsHeightChange: (height: number) => void;
 };
 
 export function FlipMemoryGame({
@@ -44,6 +48,10 @@ export function FlipMemoryGame({
   soundEnabled,
   onToggleSound,
   paused,
+  homeSettingsOpen,
+  homeSettingsHeight,
+  onHomeSettingsOpenChange,
+  onHomeSettingsHeightChange,
 }: FlipMemoryGameProps) {
   const moving = settings.flipDifficulty === "moving";
   const cardCount = settings.flipCardCount;
@@ -215,7 +223,6 @@ export function FlipMemoryGame({
     <div className={`flip-game flip-phase-${flipPhase} flip-count-${cardCount}`}>
       {flipPhase === "idle" ? (
         <GameHome
-          key="flip"
           eyebrow={`翻牌记忆 · ${cardCount} 张 · ${moving ? "移动进阶" : "经典模式"}`}
           title="看清每一张牌"
           description="记住牌面与位置，盖牌后找出目标牌。"
@@ -226,6 +233,10 @@ export function FlipMemoryGame({
           onSelectTrainingType={onSelectTrainingType}
           soundEnabled={soundEnabled}
           onToggleSound={onToggleSound}
+          settingsOpen={homeSettingsOpen}
+          settingsHeight={homeSettingsHeight}
+          onSettingsOpenChange={onHomeSettingsOpenChange}
+          onSettingsHeightChange={onHomeSettingsHeightChange}
         />
       ) : (
         <>

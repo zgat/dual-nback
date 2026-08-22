@@ -428,44 +428,38 @@ h1 {
 }
 
 .settings-reveal {
-  display: grid;
-  grid-template-rows: 0fr;
+  height: 0;
+  overflow: hidden;
   opacity: 0;
+  will-change: height, opacity;
   transition:
-    grid-template-rows .3s cubic-bezier(.4, 0, .2, 1),
-    opacity .16s ease-out;
+    height .22s cubic-bezier(.22, 1, .36, 1),
+    opacity .12s ease-out;
 }
 
 .settings-disclosure.is-open .settings-reveal {
-  grid-template-rows: 1fr;
   opacity: 1;
 }
 
 .settings-reveal-inner {
   min-height: 0;
-  overflow: hidden;
-  padding: 0 .4rem;
-  transition: padding .3s cubic-bezier(.4, 0, .2, 1);
-}
-
-.settings-disclosure.is-open .settings-reveal-inner {
   padding: .35rem .4rem .55rem;
 }
 
-.settings-disclosure.is-reveal-ready .settings-reveal-inner {
+.settings-disclosure.is-reveal-ready .settings-reveal {
   overflow: visible;
 }
 
 .settings-disclosure-toggle {
   display: grid;
   width: 100%;
-  min-height: 38px;
+  min-height: 30px;
   place-items: center;
-  gap: 2px;
-  padding: .2rem 0 .35rem;
+  gap: 1px;
+  padding: .1rem 0 .18rem;
   border: 0;
   background: transparent;
-  color: #8b8379;
+  color: #aaa092;
   cursor: pointer;
 }
 
@@ -483,7 +477,7 @@ h1 {
 
 .settings-disclosure-line i {
   height: 1px;
-  background: #c8bdad;
+  background: currentColor;
 }
 
 .settings-disclosure-line b {
@@ -498,7 +492,7 @@ h1 {
   border-right: 1.5px solid currentColor;
   border-bottom: 1.5px solid currentColor;
   transform: rotate(45deg);
-  transition: transform .24s ease;
+  transition: transform .22s cubic-bezier(.22, 1, .36, 1);
 }
 
 .settings-disclosure.is-open .settings-disclosure-chevron {

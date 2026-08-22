@@ -9,6 +9,8 @@ import { usePreferences } from "./game/usePreferences";
 
 export default function Home() {
   const [showSettings, setShowSettings] = useState(false);
+  const [homeSettingsOpen, setHomeSettingsOpen] = useState(false);
+  const [homeSettingsHeight, setHomeSettingsHeight] = useState(0);
   const [flipSessionActive, setFlipSessionActive] = useState(false);
   const [flipSessionKey, setFlipSessionKey] = useState(0);
   const preferences = usePreferences();
@@ -45,6 +47,9 @@ export default function Home() {
   };
 
   const closeSettings = useCallback(() => setShowSettings(false), []);
+  const updateHomeSettingsHeight = useCallback((height: number) => {
+    setHomeSettingsHeight((current) => current === height ? current : height);
+  }, []);
 
   const goHome = () => {
     resetNBack();
@@ -92,6 +97,10 @@ export default function Home() {
             soundEnabled={soundEnabled}
             onToggleSound={toggleSound}
             paused={showSettings}
+            homeSettingsOpen={homeSettingsOpen}
+            homeSettingsHeight={homeSettingsHeight}
+            onHomeSettingsOpenChange={setHomeSettingsOpen}
+            onHomeSettingsHeightChange={updateHomeSettingsHeight}
           />
         ) : (
           <NBackGame
@@ -116,6 +125,10 @@ export default function Home() {
             selectTrainingType={selectTrainingType}
             soundEnabled={soundEnabled}
             onToggleSound={toggleSound}
+            homeSettingsOpen={homeSettingsOpen}
+            homeSettingsHeight={homeSettingsHeight}
+            onHomeSettingsOpenChange={setHomeSettingsOpen}
+            onHomeSettingsHeightChange={updateHomeSettingsHeight}
           />
         )}
       </section>

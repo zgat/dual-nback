@@ -36,6 +36,10 @@ type NBackGameProps = {
   selectTrainingType: (trainingType: TrainingType) => void;
   soundEnabled: boolean;
   onToggleSound: () => void;
+  homeSettingsOpen: boolean;
+  homeSettingsHeight: number;
+  onHomeSettingsOpenChange: (open: boolean) => void;
+  onHomeSettingsHeightChange: (height: number) => void;
 };
 
 export function NBackGame({
@@ -60,6 +64,10 @@ export function NBackGame({
   selectTrainingType,
   soundEnabled,
   onToggleSound,
+  homeSettingsOpen,
+  homeSettingsHeight,
+  onHomeSettingsOpenChange,
+  onHomeSettingsHeightChange,
 }: NBackGameProps) {
   const accuracy = scorePercent(stats);
   const warmup = phase === "playing" && round < settings.n;
@@ -87,7 +95,6 @@ export function NBackGame({
     <div className={`nback-game phase-${phase} ${isCardMode ? "is-card-mode" : "is-grid-mode"}`}>
       {phase === "idle" ? (
         <GameHome
-          key={settings.trainingType}
           eyebrow={`${trainingLabel} · ${modeLabel} · ${settings.n}-BACK`}
           title={`记住${memoryDimensions}`}
           description={settings.mode === "self-paced"
@@ -111,6 +118,10 @@ export function NBackGame({
           onSelectTrainingType={selectTrainingType}
           soundEnabled={soundEnabled}
           onToggleSound={onToggleSound}
+          settingsOpen={homeSettingsOpen}
+          settingsHeight={homeSettingsHeight}
+          onSettingsOpenChange={onHomeSettingsOpenChange}
+          onSettingsHeightChange={onHomeSettingsHeightChange}
         />
       ) : phase === "finished" && (
         <div className="stage-heading">

@@ -93,7 +93,8 @@ test("keeps result screens compact and free of evaluation copy", async () => {
 });
 
 test("uses the requested compact home-setting layouts", async () => {
-  const [gameHome, idleSettings, settingsModal, selectMenu, core, css] = await Promise.all([
+  const [page, gameHome, idleSettings, settingsModal, selectMenu, core, css] = await Promise.all([
+    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/game/GameHome.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/game/IdleSettings.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/game/SettingsModal.tsx", import.meta.url), "utf8"),
@@ -102,7 +103,12 @@ test("uses the requested compact home-setting layouts", async () => {
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
   ]);
 
-  assert.match(gameHome, /useState\(false\)/);
+  assert.match(page, /const \[homeSettingsOpen, setHomeSettingsOpen\] = useState\(false\)/);
+  assert.match(page, /const \[homeSettingsHeight, setHomeSettingsHeight\] = useState\(0\)/);
+  assert.equal((page.match(/homeSettingsOpen={homeSettingsOpen}/g) ?? []).length, 2);
+  assert.doesNotMatch(gameHome, /const \[settingsOpen[^\n]*useState/);
+  assert.match(gameHome, /new ResizeObserver\(measure\)/);
+  assert.match(gameHome, /style=\{\{ height: settingsOpen \? `\$\{settingsHeight\}px` : 0 \}\}/);
   assert.match(gameHome, /aria-expanded={settingsOpen}/);
   assert.match(gameHome, /aria-controls={settingsId}/);
   assert.match(gameHome, /inert={!settingsOpen}/);
@@ -128,9 +134,11 @@ test("uses the requested compact home-setting layouts", async () => {
   assert.doesNotMatch(settingsModal, /音效默认关闭，选择会保存在当前设备/);
   assert.doesNotMatch(settingsModal, /训练内容|牌阵数量|N-Back 难度|训练长度|保存设置|四选一规则/);
   assert.doesNotMatch(core, /trainingType === "cards" \? 2/);
-  assert.match(css, /\.settings-reveal\s*{[^}]*grid-template-rows:\s*0fr/s);
-  assert.match(css, /\.settings-disclosure\.is-open \.settings-reveal\s*{[^}]*grid-template-rows:\s*1fr/s);
+  assert.match(css, /\.settings-reveal\s*{[^}]*height:\s*0[^}]*overflow:\s*hidden[^}]*height \.22s cubic-bezier\(\.22, 1, \.36, 1\)/s);
+  assert.doesNotMatch(css, /\.settings-reveal\s*{[^}]*grid-template-rows/s);
   assert.match(css, /\.settings-disclosure\.is-open \.settings-disclosure-chevron\s*{[^}]*rotate\(225deg\)/s);
+  assert.match(css, /\.settings-disclosure-toggle\s*{[^}]*gap:\s*1px[^}]*color:\s*#aaa092/s);
+  assert.match(css, /\.settings-disclosure-line i\s*{[^}]*background:\s*currentColor/s);
   assert.match(css, /\.home-intro\s*{[^}]*grid-template-rows:\s*1\.4rem 1\.25rem/s);
 });
 
