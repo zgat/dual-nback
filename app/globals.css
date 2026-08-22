@@ -426,6 +426,9 @@ h1 {
   text-align: center;
 }
 
+.quick-stepper strong,
+.stepper strong { background: #fff; }
+
 .quick-select,
 .setting-select {
   width: 100%;
