@@ -340,7 +340,7 @@ h1 {
   display: grid;
   align-content: center;
   justify-items: center;
-  gap: .55rem;
+  gap: 1rem;
   min-height: clamp(110px, 20svh, 190px);
 }
 
@@ -1014,7 +1014,7 @@ h1 {
 .preference-copy b { font-size: .88rem; }
 .preference-copy p { margin: .3rem 0 0; color: #756d63; font-size: .69rem; line-height: 1.55; }
 .sound-toggle-panel { min-width: 76px; padding-left: .55rem; }
-.settings-note { margin: .75rem 0 1rem; color: #81786e; font-size: .65rem; line-height: 1.5; }
+.preference-card + .start-button { margin-top: 1rem; }
 
 .setting-row {
   display: flex;

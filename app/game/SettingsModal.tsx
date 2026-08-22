@@ -26,7 +26,6 @@ export function SettingsModal({ soundEnabled, onToggleSound, onClose }: Settings
           <SoundToggle enabled={soundEnabled} onToggle={onToggleSound} variant="panel" />
         </div>
 
-        <p className="settings-note">音效默认关闭，选择会保存在当前设备。</p>
         <button className="start-button" onClick={onClose}>完成</button>
       </section>
     </div>

@@ -96,6 +96,7 @@ test("uses the requested compact home-setting layouts", async () => {
   assert.match(settingsModal, /VERSION 2\.0/);
   assert.match(settingsModal, /偏好设置/);
   assert.match(settingsModal, /作答音效/);
+  assert.doesNotMatch(settingsModal, /音效默认关闭，选择会保存在当前设备/);
   assert.doesNotMatch(settingsModal, /训练内容|牌阵数量|N-Back 难度|训练长度|保存设置|四选一规则/);
   assert.doesNotMatch(core, /trainingType === "cards" \? 2/);
 });
