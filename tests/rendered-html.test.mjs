@@ -128,7 +128,7 @@ test("uses the requested compact home-setting layouts", async () => {
   assert.match(selectMenu, /ArrowDown|ArrowUp/);
   assert.doesNotMatch(idleSettings, /训练牌组|13 个点数|4 种花色|quick-fixed-value/);
   assert.doesNotMatch(settingsModal, /固定 2-Back|扑克牌玩法固定|card-pool-setting/);
-  assert.match(settingsModal, /VERSION 2\.0/);
+  assert.match(settingsModal, /VERSION 2\.0\.1/);
   assert.match(settingsModal, /偏好设置/);
   assert.match(settingsModal, /作答音效/);
   assert.doesNotMatch(settingsModal, /音效默认关闭，选择会保存在当前设备/);
@@ -158,4 +158,24 @@ test("persists optional feedback sounds and uses distinct correct and wrong tone
   assert.match(sound, /\[659\.25, 880\]/);
   assert.match(sound, /playWrongTone/);
   assert.match(sound, /exponentialRampToValueAtTime\(72/);
+});
+
+test("packages the supplied Android launcher icon with an updated app version", async () => {
+  const [gradle, adaptiveIcon, packageJson, launcher, foreground] = await Promise.all([
+    readFile(new URL("../android/app/build.gradle", import.meta.url), "utf8"),
+    readFile(new URL("../android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml", import.meta.url), "utf8"),
+    readFile(new URL("../package.json", import.meta.url), "utf8"),
+    readFile(new URL("../android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png", import.meta.url)),
+    readFile(new URL("../android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_foreground.png", import.meta.url)),
+  ]);
+
+  assert.match(gradle, /versionCode 13/);
+  assert.match(gradle, /versionName "2\.0\.1"/);
+  assert.equal(JSON.parse(packageJson).version, "2.0.1");
+  assert.match(adaptiveIcon, /@mipmap\/ic_launcher_foreground/);
+  assert.equal(launcher.subarray(1, 4).toString(), "PNG");
+  assert.equal(launcher.readUInt32BE(16), 192);
+  assert.equal(launcher.readUInt32BE(20), 192);
+  assert.equal(foreground.readUInt32BE(16), 432);
+  assert.equal(foreground.readUInt32BE(20), 432);
 });
