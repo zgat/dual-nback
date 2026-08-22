@@ -463,8 +463,10 @@ h1 {
   cursor: pointer;
 }
 
-.settings-disclosure-toggle:hover {
-  color: #625b54;
+@media (hover: hover) and (pointer: fine) {
+  .settings-disclosure-toggle:hover {
+    color: #625b54;
+  }
 }
 
 .settings-disclosure-line {

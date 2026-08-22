@@ -138,6 +138,7 @@ test("uses the requested compact home-setting layouts", async () => {
   assert.doesNotMatch(css, /\.settings-reveal\s*{[^}]*grid-template-rows/s);
   assert.match(css, /\.settings-disclosure\.is-open \.settings-disclosure-chevron\s*{[^}]*rotate\(225deg\)/s);
   assert.match(css, /\.settings-disclosure-toggle\s*{[^}]*gap:\s*1px[^}]*color:\s*#aaa092/s);
+  assert.match(css, /@media \(hover: hover\) and \(pointer: fine\)\s*{\s*\.settings-disclosure-toggle:hover/s);
   assert.match(css, /\.settings-disclosure-line i\s*{[^}]*background:\s*currentColor/s);
   assert.match(css, /\.home-intro\s*{[^}]*grid-template-rows:\s*1\.4rem 1\.25rem/s);
 });
