@@ -162,7 +162,7 @@ export function FlipMemoryGame({
 
   if (flipPhase === "finished") {
     return (
-      <>
+      <div className={`flip-game flip-phase-${flipPhase} flip-count-${cardCount}`}>
         <div className="stage-heading flip-heading">
           <span className="eyebrow">翻牌记忆 · {cardCount} 张 · {moving ? "移动进阶" : "经典模式"}</span>
           <h1>训练完成</h1>
@@ -187,12 +187,12 @@ export function FlipMemoryGame({
             </div>
           </div>
         </section>
-      </>
+      </div>
     );
   }
 
   return (
-    <>
+    <div className={`flip-game flip-phase-${flipPhase} flip-count-${cardCount}`}>
       <div className="stage-heading flip-heading">
         <span className="eyebrow">翻牌记忆 · {cardCount} 张 · {moving ? "移动进阶" : "经典模式"}</span>
         <h1>{flipPhase === "idle" ? "看清每一张牌" : flipPhase === "preview" ? "记住全部牌位" : flipPhase === "shuffling" ? "牌位正在移动" : "找出目标牌"}</h1>
@@ -284,6 +284,6 @@ export function FlipMemoryGame({
       ) : (
         <button className="start-button pause-button flip-restart" onClick={beginGame}><span aria-hidden="true">↻</span> 重新开始</button>
       )}
-    </>
+    </div>
   );
 }

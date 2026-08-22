@@ -12,7 +12,11 @@
 }
 
 * { box-sizing: border-box; }
-html, body { min-height: 100%; }
+html, body, #root {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
 
 body {
   margin: 0;
@@ -41,11 +45,13 @@ button:disabled { cursor: not-allowed; }
 }
 
 .app-shell {
-  min-height: 100svh;
+  width: 100%;
+  height: 100dvh;
+  min-height: 0;
   display: grid;
-  grid-template-rows: auto 1fr auto;
+  grid-template-rows: auto minmax(0, 1fr) auto;
   padding: 0 3.5rem;
-  overflow-x: hidden;
+  overflow: hidden;
 }
 
 .topbar {
@@ -158,9 +164,95 @@ button:disabled { cursor: not-allowed; }
 
 .game-stage {
   width: min(100%, 720px);
-  margin: auto;
-  padding: 2.1rem 0 1.8rem;
+  height: 100%;
+  min-height: 0;
+  margin: 0 auto;
+  padding: clamp(.6rem, 2dvh, 2.1rem) 0;
+  overflow: hidden;
   text-align: center;
+}
+
+.nback-game,
+.flip-game {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+.nback-game {
+  display: grid;
+  align-content: center;
+}
+
+.nback-game.phase-countdown,
+.nback-game.phase-playing,
+.nback-game.phase-paused {
+  grid-template-rows: minmax(0, 1fr) auto auto;
+  gap: clamp(.4rem, 1.25dvh, .75rem);
+}
+
+.nback-game.phase-countdown > .game-grid,
+.nback-game.phase-playing > .game-grid,
+.nback-game.phase-paused > .game-grid,
+.nback-game.phase-countdown > .card-board,
+.nback-game.phase-playing > .card-board,
+.nback-game.phase-paused > .card-board {
+  align-self: center;
+  width: min(48vw, 350px, calc(100dvh - 22rem));
+}
+
+.nback-game.phase-countdown > .card-board,
+.nback-game.phase-playing > .card-board,
+.nback-game.phase-paused > .card-board {
+  min-height: min(48vw, 350px, calc(100dvh - 22rem));
+}
+
+.nback-game.phase-countdown > .response-area,
+.nback-game.phase-playing > .response-area,
+.nback-game.phase-paused > .response-area,
+.nback-game.phase-countdown > .warmup-next,
+.nback-game.phase-playing > .warmup-next,
+.nback-game.phase-paused > .warmup-next {
+  margin: 0;
+}
+
+.flip-game {
+  display: grid;
+  align-content: center;
+  gap: clamp(.35rem, 1dvh, .7rem);
+}
+
+.flip-game > .stage-heading,
+.flip-game > .target-prompt,
+.flip-game > .flip-board,
+.flip-game > .preview-timer,
+.flip-game > .start-button {
+  margin-block: 0;
+}
+
+.flip-game > .flip-board {
+  align-self: center;
+}
+
+.flip-game.flip-count-6 > .flip-board {
+  width: min(100%, var(--flip-board-width, 430px), calc(100dvh - 22.3rem));
+}
+
+.flip-game.flip-count-8 > .flip-board {
+  width: min(100%, var(--flip-board-width, 520px), calc(100dvh - 19rem));
+}
+
+.flip-game.flip-count-9 > .flip-board,
+.flip-game.flip-count-16 > .flip-board {
+  width: min(100%, var(--flip-board-width, 500px), calc(70dvh - 16.4rem));
+}
+
+.flip-game.flip-count-12 > .flip-board {
+  width: min(100%, var(--flip-board-width, 500px), calc(95dvh - 22.2rem));
+}
+
+.flip-game > .preview-timer {
+  width: min(100%, var(--flip-board-width, 430px));
 }
 
 .stage-heading { margin-bottom: 1.35rem; }
@@ -673,6 +765,7 @@ h1 {
   border-top: 1px solid var(--line);
   color: #777067;
   font-size: .68rem;
+  overflow: hidden;
 }
 
 .statusbar b { color: var(--ink); margin-left: .22rem; }
@@ -856,15 +949,26 @@ h1 {
 
 @media (max-height: 780px) and (min-width: 701px) {
   .topbar { min-height: 68px; }
-  .game-stage { padding: 1rem 0; }
+  .game-stage { padding: .6rem 0; }
   .stage-heading { margin-bottom: .8rem; }
   h1 { font-size: 2.35rem; }
-  .game-grid { width: 300px; }
-  .card-board { width: 300px; min-height: 300px; }
+  .nback-game.phase-countdown > .game-grid,
+  .nback-game.phase-playing > .game-grid,
+  .nback-game.phase-paused > .game-grid,
+  .nback-game.phase-countdown > .card-board,
+  .nback-game.phase-playing > .card-board,
+  .nback-game.phase-paused > .card-board {
+    width: min(300px, calc(100dvh - 20rem));
+  }
+  .nback-game.phase-countdown > .card-board,
+  .nback-game.phase-playing > .card-board,
+  .nback-game.phase-paused > .card-board { min-height: min(300px, calc(100dvh - 20rem)); }
   .playing-card { width: 170px; }
-  .flip-board { width: 370px; }
   .grid-cell { border-radius: 8px; }
   .statusbar { min-height: 48px; }
+  .match-button { min-height: 48px; }
+  .warmup-next { min-height: 104px; }
+  .start-button { min-height: 44px; }
 }
 
 @media (max-width: 700px) {
@@ -874,14 +978,26 @@ h1 {
   .round-pill { min-width: 96px; padding-inline: .7rem; font-size: .64rem; }
   .restart-button { width: 40px; padding: 0; justify-content: center; }
   .restart-button b { display: none; }
-  .game-stage { padding: 1.7rem 0 1.25rem; }
+  .game-stage { padding: clamp(.4rem, 1.4dvh, .8rem) 0; }
   .stage-heading { margin-bottom: 1.15rem; }
   .stage-heading p { padding: 0 .5rem; font-size: .8rem; }
   .idle-switches { width: 100%; }
   .training-switch button, .mode-switch button { font-size: .68rem; }
   .training-switch.three-options button { padding-inline: .15rem; font-size: .6rem; }
-  .game-grid { width: min(76vw, 320px); }
-  .card-board { width: min(76vw, 320px); min-height: min(76vw, 320px); padding: 16px; }
+  .nback-game.phase-countdown > .game-grid,
+  .nback-game.phase-playing > .game-grid,
+  .nback-game.phase-paused > .game-grid,
+  .nback-game.phase-countdown > .card-board,
+  .nback-game.phase-playing > .card-board,
+  .nback-game.phase-paused > .card-board {
+    width: min(74vw, 320px, calc(100dvh - 20rem));
+  }
+  .nback-game.phase-countdown > .card-board,
+  .nback-game.phase-playing > .card-board,
+  .nback-game.phase-paused > .card-board {
+    min-height: min(74vw, 320px, calc(100dvh - 20rem));
+    padding: 16px;
+  }
   .playing-card { width: min(46vw, 184px); }
   .playing-card-face, .playing-card-back-face { border-radius: 13px; }
   .card-corner { left: 11px; top: 9px; }
@@ -921,6 +1037,104 @@ h1 {
   .settings-panel { padding: 1.25rem; }
   .card-pool-setting { grid-template-columns: 1fr; }
   .setting-suits { justify-content: center; }
+}
+
+@media (max-height: 700px) {
+  html { font-size: clamp(12px, 2.15dvh, 16px); }
+  .topbar { min-height: 54px; }
+  .brand-mark { width: 32px; }
+  .icon-button, .restart-button { width: 36px; height: 36px; min-height: 36px; }
+  .round-pill { padding-block: .38rem; }
+  .stage-heading { margin-bottom: .55rem; }
+  h1 { margin-block: .28rem; font-size: clamp(1.65rem, 6dvh, 2.1rem); }
+  .stage-heading p { font-size: .72rem; }
+  .idle-launch { min-height: clamp(64px, 12dvh, 92px); }
+  .training-switch button { min-height: 30px; }
+  .mode-switch button { min-height: 36px; }
+  .nback-game.phase-countdown > .game-grid,
+  .nback-game.phase-playing > .game-grid,
+  .nback-game.phase-paused > .game-grid,
+  .nback-game.phase-countdown > .card-board,
+  .nback-game.phase-playing > .card-board,
+  .nback-game.phase-paused > .card-board {
+    width: min(72vw, 280px, calc(100dvh - 19rem));
+  }
+  .nback-game.phase-countdown > .card-board,
+  .nback-game.phase-playing > .card-board,
+  .nback-game.phase-paused > .card-board { min-height: min(72vw, 280px, calc(100dvh - 19rem)); }
+  .match-button { min-height: 44px; }
+  .warmup-next { min-height: 96px; }
+  .start-button { min-height: 42px; }
+  .statusbar { min-height: 60px; padding-block: .4rem; }
+  .flip-heading h1 { font-size: 1.75rem; }
+  .flip-round-indicator { margin-top: .35rem; }
+  .target-prompt { min-height: 38px; }
+  .target-prompt > span { min-width: 38px; padding: .34rem .4rem; }
+  .result-panel { gap: .8rem; min-height: 0; padding: .9rem; }
+  .result-copy h2 { margin: .25rem 0 .6rem; font-size: 1.2rem; }
+  .result-config, .result-time { margin-bottom: .55rem; }
+  .result-note { margin-top: .55rem; }
+  .result-actions { margin-top: .65rem; }
+}
+
+@media (max-width: 700px) and (max-height: 700px) {
+  .result-panel {
+    grid-template-columns: 92px minmax(0, 1fr);
+    text-align: left;
+  }
+  .score-ring { width: 92px; margin: 0; }
+  .score-ring::before { width: 74px; }
+  .score-ring strong { font-size: 2rem; }
+  .result-metrics { gap: .35rem; }
+  .result-actions { justify-content: flex-start; }
+  .primary-button, .secondary-button { min-height: 38px; padding-inline: .65rem; }
+}
+
+@media (max-height: 600px) and (min-aspect-ratio: 4 / 3) {
+  .nback-game.phase-countdown,
+  .nback-game.phase-playing,
+  .nback-game.phase-paused {
+    grid-template-columns: minmax(0, 1fr) minmax(260px, 1fr);
+    grid-template-rows: minmax(0, 1fr) auto;
+    column-gap: 1rem;
+  }
+  .nback-game.phase-countdown > .game-grid,
+  .nback-game.phase-playing > .game-grid,
+  .nback-game.phase-paused > .game-grid,
+  .nback-game.phase-countdown > .card-board,
+  .nback-game.phase-playing > .card-board,
+  .nback-game.phase-paused > .card-board {
+    grid-row: 1 / 3;
+    width: min(42vw, calc(100dvh - 8rem));
+  }
+  .nback-game.phase-countdown > .card-board,
+  .nback-game.phase-playing > .card-board,
+  .nback-game.phase-paused > .card-board { min-height: min(42vw, calc(100dvh - 8rem)); }
+  .nback-game.phase-countdown > .response-area,
+  .nback-game.phase-playing > .response-area,
+  .nback-game.phase-paused > .response-area,
+  .nback-game.phase-countdown > .warmup-next,
+  .nback-game.phase-playing > .warmup-next,
+  .nback-game.phase-paused > .warmup-next { grid-column: 2; grid-row: 1; align-self: end; }
+  .nback-game.phase-countdown > .start-button,
+  .nback-game.phase-playing > .start-button,
+  .nback-game.phase-paused > .start-button { grid-column: 2; grid-row: 2; }
+
+  .flip-game:not(.flip-phase-idle):not(.flip-phase-finished) {
+    grid-template-columns: minmax(220px, .8fr) minmax(0, 1.2fr);
+    grid-template-rows: auto auto minmax(0, 1fr) auto;
+    column-gap: 1rem;
+  }
+  .flip-game:not(.flip-phase-idle):not(.flip-phase-finished) > .stage-heading { grid-column: 1; grid-row: 1; }
+  .flip-game:not(.flip-phase-idle):not(.flip-phase-finished) > .target-prompt { grid-column: 1; grid-row: 2; }
+  .flip-game:not(.flip-phase-idle):not(.flip-phase-finished) > .preview-timer { grid-column: 1; grid-row: 3; align-self: start; }
+  .flip-game:not(.flip-phase-idle):not(.flip-phase-finished) > .start-button { grid-column: 1; grid-row: 4; }
+  .flip-game:not(.flip-phase-idle):not(.flip-phase-finished) > .flip-board { grid-column: 2; grid-row: 1 / 5; }
+  .flip-game.flip-count-6 > .flip-board { width: min(100%, 430px, calc(100dvh - 8rem)); }
+  .flip-game.flip-count-8 > .flip-board { width: min(100%, 520px, calc(100dvh - 6rem)); }
+  .flip-game.flip-count-9 > .flip-board,
+  .flip-game.flip-count-16 > .flip-board { width: min(100%, 500px, calc(70dvh - 5.6rem)); }
+  .flip-game.flip-count-12 > .flip-board { width: min(100%, 500px, calc(95dvh - 7.6rem)); }
 }
 
 @media (prefers-reduced-motion: reduce) {

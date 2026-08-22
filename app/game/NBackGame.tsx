@@ -81,7 +81,7 @@ export function NBackGame({
   ) : null;
 
   return (
-    <>
+    <div className={`nback-game phase-${phase} ${isCardMode ? "is-card-mode" : "is-grid-mode"}`}>
       {(phase === "idle" || phase === "finished") && (
         <div className="stage-heading">
           <span className="eyebrow">{trainingLabel} · {modeLabel} · {settings.n}-BACK</span>
@@ -256,6 +256,6 @@ export function NBackGame({
           )}
         </>
       )}
-    </>
+    </div>
   );
 }

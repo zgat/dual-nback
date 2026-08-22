@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 async function render() {
@@ -34,4 +35,13 @@ test("server-renders the Dual N-Back game", async () => {
   assert.doesNotMatch(html, /位置 × · 颜色 ×/);
   assert.match(html, /包含彩色方格 N-Back、扑克牌 2-Back 和翻牌记忆训练/);
   assert.doesNotMatch(html, /四色关系判断|codex-preview|react-loading-skeleton/);
+});
+
+test("keeps game screens inside the dynamic viewport", async () => {
+  const css = await readFile(new URL("../app/globals.css", import.meta.url), "utf8");
+
+  assert.match(css, /html, body, #root\s*{[^}]*overflow:\s*hidden/s);
+  assert.match(css, /\.app-shell\s*{[^}]*height:\s*100dvh[^}]*grid-template-rows:\s*auto minmax\(0, 1fr\) auto/s);
+  assert.match(css, /\.game-stage\s*{[^}]*height:\s*100%[^}]*overflow:\s*hidden/s);
+  assert.match(css, /@media \(max-height: 600px\) and \(min-aspect-ratio: 4 \/ 3\)/);
 });
