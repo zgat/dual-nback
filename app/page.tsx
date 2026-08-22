@@ -14,8 +14,8 @@ export default function Home() {
   const [flipSessionActive, setFlipSessionActive] = useState(false);
   const [flipSessionKey, setFlipSessionKey] = useState(0);
   const preferences = usePreferences();
-  const { settings, soundEnabled, updateSettings, selectTrainingType, toggleSound } = preferences;
-  const game = useGameController(settings, soundEnabled, showSettings);
+  const { settings, soundEnabled, shortcutKeys, updateSettings, selectTrainingType, toggleSound, updateShortcutKeys } = preferences;
+  const game = useGameController(settings, soundEnabled, shortcutKeys, showSettings);
   const {
     phase,
     round,
@@ -141,7 +141,10 @@ export default function Home() {
       {showSettings && (
         <SettingsModal
           soundEnabled={soundEnabled}
+          shortcutKeys={shortcutKeys}
+          trainingType={settings.trainingType}
           onToggleSound={toggleSound}
+          onUpdateShortcutKeys={updateShortcutKeys}
           onClose={closeSettings}
         />
       )}

@@ -1,17 +1,32 @@
 "use client";
 
+import { Capacitor } from "@capacitor/core";
 import { useEffect, useRef } from "react";
+import type { TrainingType } from "./core";
+import { ShortcutSettings } from "./ShortcutSettings";
+import type { ShortcutKeys } from "./shortcuts";
 import { SoundToggle } from "./SoundToggle";
 
 type SettingsModalProps = {
   soundEnabled: boolean;
+  shortcutKeys: ShortcutKeys;
+  trainingType: TrainingType;
   onToggleSound: () => void;
+  onUpdateShortcutKeys: (keys: ShortcutKeys) => void;
   onClose: () => void;
 };
 
-export function SettingsModal({ soundEnabled, onToggleSound, onClose }: SettingsModalProps) {
+export function SettingsModal({
+  soundEnabled,
+  shortcutKeys,
+  trainingType,
+  onToggleSound,
+  onUpdateShortcutKeys,
+  onClose,
+}: SettingsModalProps) {
   const dialogRef = useRef<HTMLElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const showKeyboardShortcuts = !Capacitor.isNativePlatform();
 
   useEffect(() => {
     const previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
@@ -68,6 +83,14 @@ export function SettingsModal({ soundEnabled, onToggleSound, onClose }: Settings
           </div>
           <SoundToggle enabled={soundEnabled} onToggle={onToggleSound} variant="panel" />
         </div>
+
+        {showKeyboardShortcuts && (
+          <ShortcutSettings
+            keys={shortcutKeys}
+            trainingType={trainingType}
+            onChange={onUpdateShortcutKeys}
+          />
+        )}
 
         <button className="start-button" onClick={onClose}>完成</button>
       </section>

@@ -1157,7 +1157,7 @@ h1 {
 
 .preferences-panel {
   width: min(100%, 430px);
-  overflow: hidden;
+  overflow-y: auto;
 }
 
 .settings-header {
@@ -1185,7 +1185,72 @@ h1 {
 .preference-copy b { font-size: .88rem; }
 .preference-copy p { margin: .3rem 0 0; color: #756d63; font-size: .69rem; line-height: 1.55; }
 .sound-toggle-panel { min-width: 76px; padding-left: .55rem; }
-.preference-card + .start-button { margin-top: 1rem; }
+.preferences-panel > .start-button { margin-top: 1rem; }
+
+.shortcut-card {
+  margin-top: .7rem;
+  padding: .8rem;
+  border: 1px solid #ded5c8;
+  border-radius: 13px;
+  background: rgba(255,255,255,.38);
+}
+
+.shortcut-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: .75rem;
+  margin-bottom: .65rem;
+}
+
+.shortcut-heading b { font-size: .82rem; }
+.shortcut-heading p { margin: .2rem 0 0; color: #756d63; font-size: .6rem; line-height: 1.45; }
+.shortcut-heading > button {
+  flex: 0 0 auto;
+  padding: .3rem .45rem;
+  border: 1px solid #cfc3b3;
+  border-radius: 7px;
+  background: rgba(255,255,255,.55);
+  cursor: pointer;
+  font-size: .58rem;
+  font-weight: 800;
+}
+
+.shortcut-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .4rem;
+}
+
+.shortcut-binding {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 54px;
+  align-items: center;
+  gap: .35rem;
+  min-height: 38px;
+  padding: .35rem .4rem;
+  border-radius: 8px;
+  background: rgba(232,223,208,.5);
+}
+
+.shortcut-binding.is-advance { grid-column: 1 / -1; }
+.shortcut-binding > span { color: #625b53; font-size: .59rem; font-weight: 700; white-space: nowrap; }
+.shortcut-binding > button {
+  min-height: 28px;
+  padding: 0 .3rem;
+  border: 1px solid #c8bbaa;
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+  font-size: .62rem;
+  font-weight: 800;
+}
+
+.shortcut-binding > button.is-recording {
+  border-color: var(--orange-deep);
+  background: rgba(233,101,45,.1);
+  color: var(--orange-deep);
+}
 
 .result-panel {
   display: grid;

@@ -11,6 +11,12 @@ import {
   makeVisibleShuffleSteps,
   recordTrialResult,
 } from "../app/game/core.ts";
+import {
+  DEFAULT_SHORTCUT_KEYS,
+  assignShortcutKey,
+  normalizeShortcutKey,
+  normalizeShortcutKeys,
+} from "../app/game/shortcuts.ts";
 
 function seededRandom(seed = 1) {
   let value = seed >>> 0;
@@ -60,6 +66,19 @@ test("records per-category attempts as well as correct answers", () => {
   assert.equal(stats.categoryTotals.exact, 1);
   assert.equal(stats.categoryTotals.color, 1);
   assert.equal(stats.categoryTotals.different, 1);
+});
+
+test("normalizes keyboard shortcuts and swaps duplicate assignments", () => {
+  assert.equal(normalizeShortcutKey("A"), "a");
+  assert.equal(normalizeShortcutKey("Spacebar"), " ");
+  assert.equal(normalizeShortcutKey("Enter"), "Enter");
+  assert.equal(normalizeShortcutKey("Escape"), null);
+
+  const swapped = assignShortcutKey(DEFAULT_SHORTCUT_KEYS, "exact", "2");
+  assert.equal(swapped.exact, "2");
+  assert.equal(swapped.position, "1");
+  assert.deepEqual(normalizeShortcutKeys(swapped), swapped);
+  assert.deepEqual(normalizeShortcutKeys({ ...swapped, color: "2" }), DEFAULT_SHORTCUT_KEYS);
 });
 
 test("creates unique flip cards, exact target counts, and visible shuffle steps", () => {

@@ -91,11 +91,11 @@ export const CARD_RANKS: CardRank[] = [
   { name: "K", value: 13 },
 ];
 
-export const OPTIONS: Array<{ id: MatchType; key: string }> = [
-  { id: "exact", key: "1" },
-  { id: "position", key: "2" },
-  { id: "color", key: "3" },
-  { id: "different", key: "4" },
+export const OPTIONS: Array<{ id: MatchType }> = [
+  { id: "exact" },
+  { id: "position" },
+  { id: "color" },
+  { id: "different" },
 ];
 
 export const FLIP_CARD_COUNTS: FlipCardCount[] = [6, 8, 9, 12, 16];

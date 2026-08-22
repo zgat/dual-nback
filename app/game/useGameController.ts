@@ -10,12 +10,14 @@ import {
   recordTrialResult,
 } from "./core";
 import type { GameSettings, MatchType, Phase, Stats, Trial } from "./core";
+import { normalizeShortcutKey } from "./shortcuts";
+import type { ShortcutKeys } from "./shortcuts";
 import { playFeedbackSound } from "./sound";
 import { usePausableTimers } from "./usePausableTimers";
 
 type RunningPhase = "countdown" | "playing";
 
-export function useGameController(settings: GameSettings, soundEnabled: boolean, inputBlocked = false) {
+export function useGameController(settings: GameSettings, soundEnabled: boolean, shortcutKeys: ShortcutKeys, inputBlocked = false) {
   const [phase, setPhase] = useState<Phase>("idle");
   const [round, setRound] = useState(-1);
   const [current, setCurrent] = useState<Trial | null>(null);
@@ -29,6 +31,7 @@ export function useGameController(settings: GameSettings, soundEnabled: boolean,
 
   const settingsRef = useRef(settings);
   const soundEnabledRef = useRef(soundEnabled);
+  const shortcutKeysRef = useRef(shortcutKeys);
   const sequenceRef = useRef<Trial[]>([]);
   const phaseRef = useRef<Phase>(phase);
   const phaseBeforePauseRef = useRef<RunningPhase>("playing");
@@ -52,6 +55,10 @@ export function useGameController(settings: GameSettings, soundEnabled: boolean,
   useEffect(() => {
     soundEnabledRef.current = soundEnabled;
   }, [soundEnabled]);
+
+  useEffect(() => {
+    shortcutKeysRef.current = shortcutKeys;
+  }, [shortcutKeys]);
 
   const setVisible = useCallback((visible: boolean) => {
     stimulusVisibleRef.current = visible;
@@ -245,12 +252,19 @@ export function useGameController(settings: GameSettings, soundEnabled: boolean,
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.repeat || inputBlocked) return;
-      const option = OPTIONS.find((item) => item.key === event.key);
-      if (option) respond(option.id);
+      const pressedKey = normalizeShortcutKey(event.key);
+      if (!pressedKey) return;
+      const option = OPTIONS.find((item) => shortcutKeysRef.current[item.id] === pressedKey);
+      if (option) {
+        event.preventDefault();
+        respond(option.id);
+        return;
+      }
       const key = event.key.toLowerCase();
-      if ((key === "enter" || key === " ") && settingsRef.current.mode === "self-paced") {
+      if (pressedKey === shortcutKeysRef.current.advance && settingsRef.current.mode === "self-paced") {
         event.preventDefault();
         advanceWarmup();
+        return;
       }
       if (key === "p" || key === "escape") togglePause();
     };

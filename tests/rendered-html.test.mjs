@@ -185,6 +185,31 @@ test("balances three game sounds and avoids sticky touch hover feedback", async 
   assert.match(css, /@media \(hover: hover\) and \(pointer: fine\)\s*{\s*\.warmup-next:hover\s*{[^}]*}\s*\.match-button:not\(:disabled\):hover/s);
 });
 
+test("supports persistent web-only custom N-Back keyboard mappings", async () => {
+  const [page, controller, preferences, settingsModal, shortcutSettings, shortcuts, storage] = await Promise.all([
+    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/game/useGameController.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/game/usePreferences.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/game/SettingsModal.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/game/ShortcutSettings.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/game/shortcuts.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/game/storage.ts", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(shortcuts, /exact:\s*"1"[\s\S]*position:\s*"2"[\s\S]*color:\s*"3"[\s\S]*different:\s*"4"[\s\S]*advance:\s*"Enter"/);
+  assert.match(shortcuts, /assignShortcutKey/);
+  assert.match(storage, /dual-nback-shortcut-keys/);
+  assert.match(preferences, /readShortcutKeys\(\)/);
+  assert.match(preferences, /writeShortcutKeys\(next\)/);
+  assert.match(controller, /shortcutKeysRef\.current\[item\.id\] === pressedKey/);
+  assert.match(controller, /pressedKey === shortcutKeysRef\.current\.advance/);
+  assert.match(settingsModal, /!Capacitor\.isNativePlatform\(\)/);
+  assert.match(settingsModal, /showKeyboardShortcuts &&/);
+  assert.match(shortcutSettings, /点击键位后按下新按键/);
+  assert.match(shortcutSettings, /恢复默认/);
+  assert.match(page, /useGameController\(settings, soundEnabled, shortcutKeys, showSettings\)/);
+});
+
 test("keeps the visible app version synchronized and auto-bumps APK builds", async () => {
   const [gradle, adaptiveIcon, packageJsonText, packageLockText, settingsModal, launcher, foreground] = await Promise.all([
     readFile(new URL("../android/app/build.gradle", import.meta.url), "utf8"),
