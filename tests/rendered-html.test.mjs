@@ -139,6 +139,7 @@ test("uses the requested compact home-setting layouts", async () => {
   assert.doesNotMatch(settingsModal, /音效默认关闭，选择会保存在当前设备/);
   assert.doesNotMatch(settingsModal, /训练内容|牌阵数量|N-Back 难度|训练长度|保存设置|四选一规则/);
   assert.doesNotMatch(core, /trainingType === "cards" \? 2/);
+  assert.match(css, /\.quick-stepper strong\s*{[^}]*font-family:\s*inherit[^}]*font-size:\s*\.65rem[^}]*font-weight:\s*800/s);
   assert.match(css, /\.settings-reveal\s*{[^}]*height:\s*0[^}]*overflow:\s*hidden[^}]*height \.22s cubic-bezier\(\.22, 1, \.36, 1\)/s);
   assert.doesNotMatch(css, /\.settings-reveal\s*{[^}]*grid-template-rows/s);
   assert.match(css, /\.settings-disclosure\.is-open \.settings-disclosure-chevron\s*{[^}]*rotate\(225deg\)/s);

@@ -581,9 +581,9 @@ h1 {
   place-items: center;
   border-radius: 7px;
   background: var(--paper-deep);
-  font-family: Georgia, "Songti SC", serif;
-  font-size: .8rem;
-  font-weight: 500;
+  font-family: inherit;
+  font-size: .65rem;
+  font-weight: 800;
   text-align: center;
 }
 
