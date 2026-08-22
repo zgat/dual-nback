@@ -43,6 +43,7 @@ export default function Home() {
   const progress = round < 0 ? 0 : ((round + 1) / settings.total) * 100;
   const isCardMode = settings.trainingType === "cards";
   const isFlipMode = settings.trainingType === "flip";
+  const showHomeButton = isFlipMode ? flipSessionActive : phase !== "idle";
   const modeLabel = settings.mode === "self-paced" ? "计时模式" : "挑战模式";
   const activeFlipConfig = FLIP_CONFIG[settings.flipCardCount];
 
@@ -53,9 +54,13 @@ export default function Home() {
           <span className="brand-mark">N²</span>
           <span>双重记忆</span>
         </button>
-        <div className="round-pill" aria-live="polite">
-          {isFlipMode ? "翻牌记忆" : phase === "idle" ? `${isCardMode ? "扑克 · " : ""}${settings.n}-BACK` : `第 ${Math.max(0, round + 1)} / ${settings.total} 轮`}
-        </div>
+        {showHomeButton ? (
+          <button className="round-pill round-home" onClick={goHome} aria-label="结束当前游戏并回到首页">← 回到首页</button>
+        ) : (
+          <div className="round-pill" aria-live="polite">
+            {isFlipMode ? "翻牌记忆" : `${isCardMode ? "扑克 · " : ""}${settings.n}-BACK`}
+          </div>
+        )}
         <div className="top-actions">
           {!isFlipMode && (phase === "countdown" || phase === "playing" || phase === "paused") && (
             <button className="restart-button" onClick={beginCountdown} aria-label="重新开始本轮训练">

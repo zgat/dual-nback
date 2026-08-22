@@ -272,13 +272,19 @@ export function useGameController() {
   };
 
   const goHome = () => {
-    if (phaseRef.current === "playing") return;
     clearTimers();
+    statsRef.current = EMPTY_STATS;
+    responseRef.current = null;
+    roundRef.current = -1;
     phaseRef.current = "idle";
     setPhase("idle");
     setRound(-1);
     setCurrent(null);
     setStimulusVisible(false);
+    setSelected(null);
+    setCorrectAnswer(null);
+    setStats(EMPTY_STATS);
+    setElapsedMs(0);
     if (flipSessionActive) {
       setFlipSessionKey((value) => value + 1);
       setFlipSessionActive(false);

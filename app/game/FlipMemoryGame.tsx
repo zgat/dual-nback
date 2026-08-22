@@ -151,7 +151,7 @@ export function FlipMemoryGame({
   useEffect(() => clearFlipTimer, [clearFlipTimer]);
 
   useEffect(() => {
-    onSessionActiveChange(flipPhase !== "idle" && flipPhase !== "finished");
+    onSessionActiveChange(flipPhase !== "idle");
   }, [flipPhase, onSessionActiveChange]);
 
   useEffect(() => () => onSessionActiveChange(false), [onSessionActiveChange]);

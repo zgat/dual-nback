@@ -103,6 +103,14 @@ button:disabled { cursor: not-allowed; }
   letter-spacing: .08em;
 }
 
+.round-home {
+  background: rgba(255,255,255,.42);
+  cursor: pointer;
+  letter-spacing: .02em;
+  transition: background .15s ease, transform .15s ease;
+}
+.round-home:hover { transform: translateY(-1px); background: rgba(255,255,255,.72); }
+
 .top-actions {
   justify-self: end;
   display: flex;
@@ -518,8 +526,13 @@ h1 {
 .board-overlay span { font-family: Georgia, "Songti SC", serif; font-size: 1.65rem; }
 .board-overlay small { color: #81796f; font-size: .69rem; }
 .intro-overlay span { font-size: 1.4rem; }
-.countdown-number { color: var(--orange-deep); font-family: Georgia, serif; font-size: 5rem; animation: count-in .6s ease-out; }
-@keyframes count-in { from { transform: scale(.65); opacity: 0; } }
+.countdown-number {
+  background: var(--paper);
+  color: var(--orange-deep);
+  font-family: Georgia, serif;
+  font-size: 5rem;
+  backdrop-filter: none;
+}
 
 .response-area {
   display: grid;
