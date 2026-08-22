@@ -20,6 +20,7 @@ export function useGameController() {
   const [current, setCurrent] = useState<Trial | null>(null);
   const [stimulusVisible, setStimulusVisible] = useState(false);
   const [countdown, setCountdown] = useState(3);
+  const [countdownExiting, setCountdownExiting] = useState(false);
   const [selected, setSelected] = useState<MatchType | null>(null);
   const [correctAnswer, setCorrectAnswer] = useState<MatchType | null>(null);
   const [stats, setStats] = useState<Stats>(EMPTY_STATS);
@@ -38,6 +39,7 @@ export function useGameController() {
   const trialTimerRef = useRef<number | null>(null);
   const stimulusTimerRef = useRef<number | null>(null);
   const countdownTimerRef = useRef<number | null>(null);
+  const countdownExitTimerRef = useRef<number | null>(null);
   const finalizeRef = useRef<() => void>(() => undefined);
   const sessionStartedAtRef = useRef(0);
   const sessionEndedAtRef = useRef(0);
@@ -48,9 +50,11 @@ export function useGameController() {
     if (trialTimerRef.current !== null) window.clearTimeout(trialTimerRef.current);
     if (stimulusTimerRef.current !== null) window.clearTimeout(stimulusTimerRef.current);
     if (countdownTimerRef.current !== null) window.clearInterval(countdownTimerRef.current);
+    if (countdownExitTimerRef.current !== null) window.clearTimeout(countdownExitTimerRef.current);
     trialTimerRef.current = null;
     stimulusTimerRef.current = null;
     countdownTimerRef.current = null;
+    countdownExitTimerRef.current = null;
   }, []);
 
   const startTrial = useCallback((index: number) => {
@@ -140,6 +144,7 @@ export function useGameController() {
     setSelected(null);
     setCorrectAnswer(null);
     setCountdown(3);
+    setCountdownExiting(false);
 
     let remaining = 3;
     countdownTimerRef.current = window.setInterval(() => {
@@ -147,13 +152,18 @@ export function useGameController() {
       if (remaining <= 0) {
         if (countdownTimerRef.current !== null) window.clearInterval(countdownTimerRef.current);
         countdownTimerRef.current = null;
-        phaseRef.current = "playing";
-        setPhase("playing");
-        sessionStartedAtRef.current = Date.now();
-        sessionEndedAtRef.current = 0;
-        pausedDurationRef.current = 0;
-        pauseStartedAtRef.current = 0;
-        startTrial(0);
+        setCountdownExiting(true);
+        countdownExitTimerRef.current = window.setTimeout(() => {
+          countdownExitTimerRef.current = null;
+          setCountdownExiting(false);
+          phaseRef.current = "playing";
+          setPhase("playing");
+          sessionStartedAtRef.current = Date.now();
+          sessionEndedAtRef.current = 0;
+          pausedDurationRef.current = 0;
+          pauseStartedAtRef.current = 0;
+          startTrial(0);
+        }, 400);
       } else {
         setCountdown(remaining);
       }
@@ -285,6 +295,7 @@ export function useGameController() {
     setCorrectAnswer(null);
     setStats(EMPTY_STATS);
     setElapsedMs(0);
+    setCountdownExiting(false);
     if (flipSessionActive) {
       setFlipSessionKey((value) => value + 1);
       setFlipSessionActive(false);
@@ -343,6 +354,7 @@ export function useGameController() {
     current,
     stimulusVisible,
     countdown,
+    countdownExiting,
     selected,
     stats,
     bestScore,

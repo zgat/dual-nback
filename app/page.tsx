@@ -17,6 +17,7 @@ export default function Home() {
     current,
     stimulusVisible,
     countdown,
+    countdownExiting,
     selected,
     stats,
     bestScore,
@@ -90,6 +91,7 @@ export default function Home() {
             current={current}
             stimulusVisible={stimulusVisible}
             countdown={countdown}
+            countdownExiting={countdownExiting}
             selected={selected}
             stats={stats}
             elapsedMs={elapsedMs}

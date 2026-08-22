@@ -5,7 +5,6 @@ import {
   CARD_SUITS,
   FLIP_CARD_COUNTS,
   FLIP_CONFIG,
-  PRESET_INTERVALS,
   normalizeSettings,
 } from "./core";
 import type { GameSettings } from "./core";
@@ -20,7 +19,6 @@ type SettingsModalProps = {
 export function SettingsModal({ draftSettings, setDraftSettings, onClose, onSave }: SettingsModalProps) {
   const draftIsCardMode = draftSettings.trainingType === "cards";
   const draftIsFlipMode = draftSettings.trainingType === "flip";
-  const customPace = !PRESET_INTERVALS.includes(draftSettings.interval);
 
   return (
     <div className="modal-backdrop">
@@ -149,23 +147,10 @@ export function SettingsModal({ draftSettings, setDraftSettings, onClose, onSave
               <fieldset className="setting-group">
                 <legend>每轮节奏</legend>
                 <div className="choice-row pace-options">
-                  {[{ label: "舒缓", value: 3000 }, { label: "标准", value: 2400 }, { label: "快速", value: 1800 }].map((option) => (
+                  {[{ label: "舒缓", value: 3000 }, { label: "标准", value: 2400 }, { label: "快速", value: 1800 }, { label: "极快", value: 1200 }].map((option) => (
                     <button className={draftSettings.interval === option.value ? "is-selected" : ""} onClick={() => setDraftSettings((value) => ({ ...value, interval: option.value }))} key={option.value}>{option.label}<small>{option.value / 1000} 秒</small></button>
                   ))}
-                  <button className={customPace ? "is-selected" : ""} onClick={() => setDraftSettings((value) => ({ ...value, interval: PRESET_INTERVALS.includes(value.interval) ? 5000 : value.interval }))}>
-                    自定义<small>{customPace ? `${(draftSettings.interval / 1000).toFixed(1)} 秒` : "1.5–20 秒"}</small>
-                  </button>
                 </div>
-                {customPace && (
-                  <div className="custom-pace-row">
-                    <label htmlFor="custom-pace">每轮时长</label>
-                    <div className="duration-input">
-                      <input id="custom-pace" type="number" min="1.5" max="20" step="0.5" value={draftSettings.interval / 1000} onChange={(event) => setDraftSettings((value) => ({ ...value, interval: Number(event.target.value) * 1000 }))} aria-describedby="custom-pace-help" />
-                      <span>秒</span>
-                    </div>
-                    <small id="custom-pace-help">{draftIsCardMode ? "牌面" : "色块"}显示时间也会随节奏适当延长</small>
-                  </div>
-                )}
               </fieldset>
             )}
 

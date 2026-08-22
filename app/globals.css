@@ -295,20 +295,40 @@ h1 {
 
 .playing-card {
   position: relative;
-  display: grid;
   width: min(29vw, 205px);
   aspect-ratio: 5 / 7;
-  place-items: center;
-  overflow: hidden;
-  border: 1px solid #b9afa2;
-  border-radius: 15px;
-  background: #fffdf8;
+  border: 0;
+  background: transparent;
   color: #292623;
-  box-shadow: 0 15px 35px rgba(50,39,29,.2), inset 0 0 0 4px rgba(255,255,255,.85);
+  perspective: 900px;
   animation: card-in .2s ease-out;
 }
-.playing-card.is-red { color: #b32d32; }
-.playing-card.is-back {
+.playing-card-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transition: transform .24s cubic-bezier(.4,0,.2,1);
+}
+.playing-card.is-back .playing-card-inner { transform: rotateY(180deg); }
+.playing-card-face, .playing-card-back-face {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 15px;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+.playing-card-face {
+  border: 1px solid #b9afa2;
+  background: #fffdf8;
+  box-shadow: 0 15px 35px rgba(50,39,29,.2), inset 0 0 0 4px rgba(255,255,255,.85);
+}
+.playing-card.is-red .playing-card-face { color: #b32d32; }
+.playing-card-back-face {
+  transform: rotateY(180deg);
   border: 5px solid #fffdf8;
   background:
     linear-gradient(45deg, rgba(255,255,255,.1) 25%, transparent 25%, transparent 75%, rgba(255,255,255,.1) 75%),
@@ -437,9 +457,8 @@ h1 {
   border: 1px solid #b9afa2;
   border-radius: 11px;
   backface-visibility: hidden;
-  animation: memory-flip .26s ease-out;
 }
-.flip-card-face { background: #fffdf8; color: #292623; box-shadow: inset 0 0 0 3px rgba(255,255,255,.9), 0 8px 18px rgba(50,39,29,.14); }
+.flip-card-face { background: #fffdf8; color: #292623; box-shadow: inset 0 0 0 3px rgba(255,255,255,.9), 0 8px 18px rgba(50,39,29,.14); animation: memory-flip .26s ease-out; }
 .flip-card-face.is-red { color: #b32d32; }
 .memory-card.is-found .flip-card-face { border: 2px solid var(--teal); box-shadow: inset 0 0 0 3px rgba(31,103,97,.08); }
 .memory-card.is-mistake .flip-card-face { border: 2px solid var(--red); box-shadow: inset 0 0 0 3px rgba(166,61,47,.07); }
@@ -533,6 +552,8 @@ h1 {
   font-size: 5rem;
   backdrop-filter: none;
 }
+.countdown-number.is-exiting { animation: countdown-cover-out .4s cubic-bezier(.55,.06,.68,.19) forwards; }
+@keyframes countdown-cover-out { to { clip-path: inset(50% 0 50% 0 round 10px); } }
 
 .response-area {
   display: grid;
@@ -749,32 +770,6 @@ h1 {
 .setting-suits { display: flex; align-items: center; gap: .55rem; padding: 0 .25rem; font-family: Georgia, serif; font-size: 1.25rem; }
 .card-pool-setting > small { grid-column: 1 / -1; color: #837a70; font-size: .64rem; }
 
-.custom-pace-row {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  align-items: center;
-  gap: .35rem 1rem;
-  margin-top: .7rem;
-  padding: .8rem .9rem;
-  border: 1px solid #d3c8b9;
-  border-radius: 9px;
-  background: rgba(255,255,255,.34);
-}
-.custom-pace-row label { font-size: .75rem; font-weight: 800; }
-.custom-pace-row > small { grid-column: 1 / -1; color: #847b70; font-size: .62rem; }
-.duration-input { display: flex; align-items: center; gap: .4rem; color: #6f675e; font-size: .72rem; }
-.duration-input input {
-  width: 76px;
-  height: 36px;
-  padding: 0 .55rem;
-  border: 1px solid #b9ad9d;
-  border-radius: 7px;
-  background: #fffaf2;
-  color: var(--ink);
-  text-align: right;
-  font-weight: 800;
-}
-
 .how-to { margin: 0 0 1rem; padding: .8rem .9rem; border-radius: 10px; background: var(--paper-deep); }
 .how-to b { font-size: .72rem; }
 .how-to p { margin: .35rem 0 0; color: #71695f; font-size: .67rem; line-height: 1.7; }
@@ -852,7 +847,8 @@ h1 {
   .training-switch.three-options button { padding-inline: .15rem; font-size: .6rem; }
   .game-grid { width: min(76vw, 320px); }
   .card-board { width: min(76vw, 320px); min-height: min(76vw, 320px); padding: 16px; }
-  .playing-card { width: min(46vw, 184px); border-radius: 13px; }
+  .playing-card { width: min(46vw, 184px); }
+  .playing-card-face, .playing-card-back-face { border-radius: 13px; }
   .card-corner { left: 11px; top: 9px; }
   .card-corner.is-bottom { inset: auto 11px 9px auto; }
   .card-corner b { font-size: 1.5rem; }

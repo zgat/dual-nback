@@ -118,7 +118,7 @@ export const DEFAULT_SETTINGS: GameSettings = {
   flipRounds: 5,
 };
 
-export const PRESET_INTERVALS = [3000, 2400, 1800];
+export const PRESET_INTERVALS = [3000, 2400, 1800, 1200];
 export const EMPTY_STATS: Stats = {
   correct: 0,
   total: 0,
@@ -229,9 +229,11 @@ export function scorePercent(stats: Stats) {
   return stats.total === 0 ? 0 : Math.round((stats.correct / stats.total) * 100);
 }
 
-function clampInterval(value: number) {
+function normalizeInterval(value: number) {
   if (!Number.isFinite(value)) return DEFAULT_SETTINGS.interval;
-  return Math.round(Math.min(20000, Math.max(1500, value)) / 100) * 100;
+  return PRESET_INTERVALS.reduce((closest, interval) => (
+    Math.abs(interval - value) < Math.abs(closest - value) ? interval : closest
+  ));
 }
 
 export function normalizeSettings(value: Partial<GameSettings>): GameSettings {
@@ -240,7 +242,7 @@ export function normalizeSettings(value: Partial<GameSettings>): GameSettings {
   return {
     n: trainingType === "cards" ? 2 : Math.min(5, Math.max(1, Math.round(value.n ?? DEFAULT_SETTINGS.n))),
     total: value.total === 30 ? 30 : 20,
-    interval: clampInterval(value.interval ?? DEFAULT_SETTINGS.interval),
+    interval: normalizeInterval(value.interval ?? DEFAULT_SETTINGS.interval),
     cellCount: Math.min(16, Math.max(4, Math.round(value.cellCount ?? DEFAULT_SETTINGS.cellCount))),
     colorCount: Math.min(7, Math.max(2, Math.round(value.colorCount ?? DEFAULT_SETTINGS.colorCount))),
     mode: value.mode === "challenge" ? "challenge" : "self-paced",

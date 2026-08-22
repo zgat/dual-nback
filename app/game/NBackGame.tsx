@@ -19,6 +19,7 @@ type NBackGameProps = {
   current: Trial | null;
   stimulusVisible: boolean;
   countdown: number;
+  countdownExiting: boolean;
   selected: MatchType | null;
   stats: Stats;
   elapsedMs: number;
@@ -40,6 +41,7 @@ export function NBackGame({
   current,
   stimulusVisible,
   countdown,
+  countdownExiting,
   selected,
   stats,
   elapsedMs,
@@ -161,20 +163,19 @@ export function NBackGame({
           {isCardMode ? (
             <div className="card-board" aria-label="扑克牌训练区">
               <div className={`playing-card ${currentCard?.suit.color === "red" ? "is-red" : ""} ${!stimulusVisible || !currentCard ? "is-back" : ""}`} aria-hidden="true">
-                {stimulusVisible && currentCard ? (
-                  <>
-                    <span className="card-corner is-top"><b>{currentCard.rank.name}</b><i>{currentCard.suit.symbol}</i></span>
-                    <span className="card-suit-center">{currentCard.suit.symbol}</span>
-                    <span className="card-corner is-bottom"><b>{currentCard.rank.name}</b><i>{currentCard.suit.symbol}</i></span>
-                  </>
-                ) : (
-                  <span className="card-back-mark">N²</span>
-                )}
+                <div className="playing-card-inner">
+                  <div className="playing-card-face">
+                    <span className="card-corner is-top"><b>{currentCard?.rank.name}</b><i>{currentCard?.suit.symbol}</i></span>
+                    <span className="card-suit-center">{currentCard?.suit.symbol}</span>
+                    <span className="card-corner is-bottom"><b>{currentCard?.rank.name}</b><i>{currentCard?.suit.symbol}</i></span>
+                  </div>
+                  <div className="playing-card-back-face"><span className="card-back-mark">N²</span></div>
+                </div>
               </div>
               <span className="sr-only" aria-live="assertive">
                 {stimulusVisible && currentCard ? `${currentCard.suit.name}${currentCard.rank.name}` : ""}
               </span>
-              {phase === "countdown" && <div className="board-overlay countdown-number">{countdown}</div>}
+              {phase === "countdown" && <div className={`board-overlay countdown-number ${countdownExiting ? "is-exiting" : ""}`}>{countdown}</div>}
               {phase === "paused" && <div className="board-overlay"><span>已暂停</span><small>按 P 或下方按钮继续</small></div>}
               {phase === "idle" && (
                 <div className="board-overlay intro-overlay">
@@ -200,7 +201,7 @@ export function NBackGame({
               <span className="sr-only" aria-live="assertive">
                 {stimulusVisible && currentGrid ? `${currentGrid.color.name}色，位置 ${currentGrid.position + 1}` : ""}
               </span>
-              {phase === "countdown" && <div className="board-overlay countdown-number">{countdown}</div>}
+              {phase === "countdown" && <div className={`board-overlay countdown-number ${countdownExiting ? "is-exiting" : ""}`}>{countdown}</div>}
               {phase === "paused" && <div className="board-overlay"><span>已暂停</span><small>按 P 或下方按钮继续</small></div>}
               {phase === "idle" && (
                 <div className="board-overlay intro-overlay">
