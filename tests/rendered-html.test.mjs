@@ -84,6 +84,8 @@ test("uses the requested compact home-setting layouts", async () => {
   assert.match(idleSettings, /card-inline-settings/);
   assert.match(idleSettings, /id="quick-flip-count"/);
   assert.match(idleSettings, /quick-setting is-full[\s\S]*训练长度/);
+  assert.match(idleSettings, /value={settings\.mode === "challenge" \? settings\.interval : ""}/);
+  assert.match(idleSettings, /onChange\(\{ mode: "challenge", interval: Number\(event\.target\.value\) \}\)/);
   assert.doesNotMatch(idleSettings, /训练牌组|13 个点数|4 种花色|quick-fixed-value/);
   assert.doesNotMatch(settingsModal, /固定 2-Back|扑克牌玩法固定|card-pool-setting/);
   assert.doesNotMatch(core, /trainingType === "cards" \? 2/);

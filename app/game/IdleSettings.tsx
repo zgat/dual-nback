@@ -29,9 +29,8 @@ function QuickStepper({ label, value, min, max, onChange }: StepperProps) {
   );
 }
 
-function QuickModeSetting({ settings, isCardMode, onChange }: {
+function QuickModeSetting({ settings, onChange }: {
   settings: GameSettings;
-  isCardMode: boolean;
   onChange: IdleSettingsProps["onChange"];
 }) {
   return (
@@ -39,20 +38,18 @@ function QuickModeSetting({ settings, isCardMode, onChange }: {
       <span className="quick-setting-label">模式</span>
       <div className="quick-options two-options">
         <button className={settings.mode === "self-paced" ? "is-selected" : ""} onClick={() => onChange({ mode: "self-paced" })}>计时</button>
-        <button className={settings.mode === "challenge" ? "is-selected" : ""} onClick={() => onChange({ mode: "challenge" })}>挑战</button>
-      </div>
-      {settings.mode === "challenge" && (
         <select
-          className="quick-select"
-          value={settings.interval}
-          onChange={(event) => onChange({ interval: Number(event.target.value) })}
-          aria-label={isCardMode ? "牌面可见时间" : "每轮节奏"}
+          className={`quick-select quick-challenge-select ${settings.mode === "challenge" ? "is-selected" : ""}`}
+          value={settings.mode === "challenge" ? settings.interval : ""}
+          onChange={(event) => onChange({ mode: "challenge", interval: Number(event.target.value) })}
+          aria-label="选择挑战模式间隔"
         >
+          <option value="" disabled>挑战</option>
           {PRESET_INTERVALS.map((interval) => (
-            <option value={interval} key={interval}>{isCardMode ? "牌面" : "节奏"} {(interval / 1000).toFixed(1)} 秒</option>
+            <option value={interval} key={interval}>{(interval / 1000).toFixed(1)} 秒</option>
           ))}
         </select>
-      )}
+      </div>
     </div>
   );
 }
@@ -98,7 +95,7 @@ export function IdleSettings({ settings, onChange }: IdleSettingsProps) {
 
   return (
     <section className={`inline-settings ${isCardMode ? "card-inline-settings" : "grid-inline-settings"}`} aria-label={`${isCardMode ? "扑克牌" : "彩色方格"}训练设置`}>
-      <QuickModeSetting settings={settings} isCardMode={isCardMode} onChange={onChange} />
+      <QuickModeSetting settings={settings} onChange={onChange} />
       <QuickStepper label="N-Back" value={settings.n} min={1} max={5} onChange={(n) => onChange({ n })} />
 
       {!isCardMode && (
