@@ -193,19 +193,11 @@ export function FlipMemoryGame({
 
   return (
     <div className={`flip-game flip-phase-${flipPhase} flip-count-${cardCount}`}>
-      <div className="stage-heading flip-heading">
-        <span className="eyebrow">翻牌记忆 · {cardCount} 张 · {moving ? "移动进阶" : "经典模式"}</span>
-        <h1>{flipPhase === "idle" ? "看清每一张牌" : flipPhase === "preview" ? "记住全部牌位" : flipPhase === "shuffling" ? "牌位正在移动" : "找出目标牌"}</h1>
-        <p>
-          {flipPhase === "idle"
-            ? moving ? `${cardCount} 张牌盖住后会逐步换位，再按记忆找出目标。` : `先记住 ${cardCount} 张牌，盖牌后按原位置找出目标。`
-            : flipPhase === "preview"
-              ? `${previewMs / 1000} 秒后盖牌，目标会在盖牌后公布。`
-              : flipPhase === "shuffling"
-                ? "不要移开视线，记住每张牌移动后的位置。"
-                : `请依次点出 ${targetCount} 张目标牌。`}
-        </p>
-        {flipPhase === "idle" ? (
+      {flipPhase === "idle" && (
+        <div className="stage-heading flip-heading">
+          <span className="eyebrow">翻牌记忆 · {cardCount} 张 · {moving ? "移动进阶" : "经典模式"}</span>
+          <h1>看清每一张牌</h1>
+          <p>{moving ? `${cardCount} 张牌盖住后会逐步换位，再按记忆找出目标。` : `先记住 ${cardCount} 张牌，盖牌后按原位置找出目标。`}</p>
           <div className="idle-switches">
             <div className="training-switch three-options" aria-label="选择训练内容">
               <button onClick={() => onSelectTrainingType("grid")}><span aria-hidden="true">▦</span> 彩色方格</button>
@@ -213,14 +205,12 @@ export function FlipMemoryGame({
               <button className="is-selected" onClick={() => onSelectTrainingType("flip")}><span aria-hidden="true">▤</span> 翻牌记忆</button>
             </div>
           </div>
-        ) : (
-          <div className="flip-round-indicator">第 <b>{round + 1}</b> / {settings.flipRounds} 轮</div>
-        )}
-      </div>
+        </div>
+      )}
 
       {targetPromptVisible && (
         <div className="target-prompt" aria-label="本轮目标牌">
-          <span>目标 · 剩余 {Math.max(0, targetCount - foundIds.length)}</span>
+          <span>第 {round + 1} / {settings.flipRounds} 轮 · 剩余 {Math.max(0, targetCount - foundIds.length)}</span>
           {targets.map((card) => (
             <span className={card.suit.color === "red" ? "is-red" : ""} key={card.id}>
               {card.rank.name}{card.suit.symbol}

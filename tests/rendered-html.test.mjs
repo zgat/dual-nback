@@ -45,3 +45,10 @@ test("keeps game screens inside the dynamic viewport", async () => {
   assert.match(css, /\.game-stage\s*{[^}]*height:\s*100%[^}]*overflow:\s*hidden/s);
   assert.match(css, /@media \(max-height: 600px\) and \(min-aspect-ratio: 4 \/ 3\)/);
 });
+
+test("removes flip-memory instructions once play begins", async () => {
+  const source = await readFile(new URL("../app/game/FlipMemoryGame.tsx", import.meta.url), "utf8");
+
+  assert.doesNotMatch(source, /找出目标牌|请依次点出|牌位正在移动|记住全部牌位/);
+  assert.match(source, /flipPhase === "idle" &&/);
+});
