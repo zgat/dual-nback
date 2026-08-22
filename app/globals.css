@@ -546,14 +546,36 @@ h1 {
 .board-overlay small { color: #81796f; font-size: .69rem; }
 .intro-overlay span { font-size: 1.4rem; }
 .countdown-number {
+  isolation: isolate;
+  overflow: hidden;
+  background: transparent;
+  backdrop-filter: none;
+}
+.countdown-number::before,
+.countdown-number::after {
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: 0;
+  height: calc(50% + 1px);
   background: var(--paper);
+  content: "";
+}
+.countdown-number::before { top: 0; }
+.countdown-number::after { bottom: 0; }
+.countdown-number .countdown-value {
+  position: relative;
+  z-index: 1;
   color: var(--orange-deep);
   font-family: Georgia, serif;
   font-size: 5rem;
-  backdrop-filter: none;
 }
-.countdown-number.is-exiting { animation: countdown-cover-out .4s cubic-bezier(.55,.06,.68,.19) forwards; }
-@keyframes countdown-cover-out { to { clip-path: inset(50% 0 50% 0 round 10px); } }
+.countdown-number.is-exiting::before { animation: countdown-panel-up .4s cubic-bezier(.55,.06,.68,.19) forwards; }
+.countdown-number.is-exiting::after { animation: countdown-panel-down .4s cubic-bezier(.55,.06,.68,.19) forwards; }
+.countdown-number.is-exiting .countdown-value { animation: countdown-value-out .4s ease-in forwards; }
+@keyframes countdown-panel-up { to { transform: translateY(-102%); } }
+@keyframes countdown-panel-down { to { transform: translateY(102%); } }
+@keyframes countdown-value-out { to { transform: scale(.82); opacity: 0; } }
 
 .response-area {
   display: grid;

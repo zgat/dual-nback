@@ -129,6 +129,20 @@ export function useGameController() {
     finalizeRef.current = finalizeTrial;
   }, [finalizeTrial]);
 
+  const completeCountdown = useCallback(() => {
+    if (phaseRef.current !== "countdown") return;
+    if (countdownExitTimerRef.current !== null) window.clearTimeout(countdownExitTimerRef.current);
+    countdownExitTimerRef.current = null;
+    setCountdownExiting(false);
+    phaseRef.current = "playing";
+    setPhase("playing");
+    sessionStartedAtRef.current = Date.now();
+    sessionEndedAtRef.current = 0;
+    pausedDurationRef.current = 0;
+    pauseStartedAtRef.current = 0;
+    startTrial(0);
+  }, [startTrial]);
+
   const beginCountdown = useCallback(() => {
     clearTimers();
     sequenceRef.current = makeSequence(settingsRef.current);
@@ -153,22 +167,13 @@ export function useGameController() {
         if (countdownTimerRef.current !== null) window.clearInterval(countdownTimerRef.current);
         countdownTimerRef.current = null;
         setCountdownExiting(true);
-        countdownExitTimerRef.current = window.setTimeout(() => {
-          countdownExitTimerRef.current = null;
-          setCountdownExiting(false);
-          phaseRef.current = "playing";
-          setPhase("playing");
-          sessionStartedAtRef.current = Date.now();
-          sessionEndedAtRef.current = 0;
-          pausedDurationRef.current = 0;
-          pauseStartedAtRef.current = 0;
-          startTrial(0);
-        }, 400);
+        // Fallback keeps the game moving if a browser suppresses animation events.
+        countdownExitTimerRef.current = window.setTimeout(completeCountdown, 500);
       } else {
         setCountdown(remaining);
       }
     }, 700);
-  }, [clearTimers, startTrial]);
+  }, [clearTimers, completeCountdown]);
 
   const pauseGame = useCallback(() => {
     if (phaseRef.current !== "playing") return;
@@ -365,6 +370,7 @@ export function useGameController() {
     setFlipSessionActive,
     flipSessionKey,
     beginCountdown,
+    completeCountdown,
     togglePause,
     respond,
     advanceWarmup,

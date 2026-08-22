@@ -20,6 +20,7 @@ type NBackGameProps = {
   stimulusVisible: boolean;
   countdown: number;
   countdownExiting: boolean;
+  onCountdownExitComplete: () => void;
   selected: MatchType | null;
   stats: Stats;
   elapsedMs: number;
@@ -42,6 +43,7 @@ export function NBackGame({
   stimulusVisible,
   countdown,
   countdownExiting,
+  onCountdownExitComplete,
   selected,
   stats,
   elapsedMs,
@@ -66,6 +68,16 @@ export function NBackGame({
   const memoryDimensions = isCardMode ? "点数与花色" : "位置与颜色";
   const currentCard = current?.type === "cards" ? current : null;
   const currentGrid = current?.type === "grid" ? current : null;
+  const countdownOverlay = phase === "countdown" ? (
+    <div className={`board-overlay countdown-number ${countdownExiting ? "is-exiting" : ""}`}>
+      <span
+        className="countdown-value"
+        onAnimationEnd={countdownExiting ? onCountdownExitComplete : undefined}
+      >
+        {countdown}
+      </span>
+    </div>
+  ) : null;
 
   return (
     <>
@@ -175,7 +187,7 @@ export function NBackGame({
               <span className="sr-only" aria-live="assertive">
                 {stimulusVisible && currentCard ? `${currentCard.suit.name}${currentCard.rank.name}` : ""}
               </span>
-              {phase === "countdown" && <div className={`board-overlay countdown-number ${countdownExiting ? "is-exiting" : ""}`}>{countdown}</div>}
+              {countdownOverlay}
               {phase === "paused" && <div className="board-overlay"><span>已暂停</span><small>按 P 或下方按钮继续</small></div>}
               {phase === "idle" && (
                 <div className="board-overlay intro-overlay">
@@ -201,7 +213,7 @@ export function NBackGame({
               <span className="sr-only" aria-live="assertive">
                 {stimulusVisible && currentGrid ? `${currentGrid.color.name}色，位置 ${currentGrid.position + 1}` : ""}
               </span>
-              {phase === "countdown" && <div className={`board-overlay countdown-number ${countdownExiting ? "is-exiting" : ""}`}>{countdown}</div>}
+              {countdownOverlay}
               {phase === "paused" && <div className="board-overlay"><span>已暂停</span><small>按 P 或下方按钮继续</small></div>}
               {phase === "idle" && (
                 <div className="board-overlay intro-overlay">

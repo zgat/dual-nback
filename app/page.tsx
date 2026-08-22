@@ -28,6 +28,7 @@ export default function Home() {
     setFlipSessionActive,
     flipSessionKey,
     beginCountdown,
+    completeCountdown,
     togglePause,
     respond,
     advanceWarmup,
@@ -92,6 +93,7 @@ export default function Home() {
             stimulusVisible={stimulusVisible}
             countdown={countdown}
             countdownExiting={countdownExiting}
+            onCountdownExitComplete={completeCountdown}
             selected={selected}
             stats={stats}
             elapsedMs={elapsedMs}
