@@ -11,10 +11,11 @@ import {
   normalizeSettings,
 } from "./core";
 import type { GameSettings, MatchType, Phase, Stats, TrainingType, Trial } from "./core";
+import { playFeedbackSound } from "./sound";
 
 export function useGameController() {
   const [settings, setSettings] = useState<GameSettings>(DEFAULT_SETTINGS);
-  const [draftSettings, setDraftSettings] = useState<GameSettings>(DEFAULT_SETTINGS);
+  const [soundEnabled, setSoundEnabled] = useState(false);
   const [phase, setPhase] = useState<Phase>("idle");
   const [round, setRound] = useState(-1);
   const [current, setCurrent] = useState<Trial | null>(null);
@@ -31,6 +32,7 @@ export function useGameController() {
 
   const sequenceRef = useRef<Trial[]>([]);
   const settingsRef = useRef(settings);
+  const soundEnabledRef = useRef(false);
   const phaseRef = useRef<Phase>(phase);
   const roundRef = useRef(-1);
   const responseRef = useRef<MatchType | null>(null);
@@ -210,6 +212,7 @@ export function useGameController() {
     responseRef.current = answer;
     setSelected(answer);
     setCorrectAnswer(expected);
+    if (soundEnabledRef.current) playFeedbackSound(answer === expected ? "correct" : "wrong");
     if (settingsRef.current.mode === "self-paced") {
       if (index >= settingsRef.current.total - 1) sessionEndedAtRef.current = Date.now();
       trialTimerRef.current = window.setTimeout(() => finalizeRef.current(), 450);
@@ -235,28 +238,17 @@ export function useGameController() {
 
   const openSettings = () => {
     if (phaseRef.current === "playing") pauseGame();
-    if (settingsRef.current.trainingType === "flip" && flipSessionActive) {
-      setFlipSessionKey((value) => value + 1);
-      setFlipSessionActive(false);
-    }
-    setDraftSettings(settingsRef.current);
     setShowSettings(true);
   };
 
-  const saveSettings = () => {
-    const normalized = normalizeSettings(draftSettings);
-    settingsRef.current = normalized;
-    setSettings(normalized);
-    setDraftSettings(normalized);
-    window.localStorage.setItem("dual-nback-settings", JSON.stringify(normalized));
-    setShowSettings(false);
-    if (phaseRef.current !== "idle") {
-      clearTimers();
-      phaseRef.current = "idle";
-      setPhase("idle");
-      setRound(-1);
-      setCurrent(null);
-      setStimulusVisible(false);
+  const toggleSound = () => {
+    const next = !soundEnabledRef.current;
+    soundEnabledRef.current = next;
+    setSoundEnabled(next);
+    try {
+      window.localStorage.setItem("dual-nback-sound-enabled", next ? "1" : "0");
+    } catch {
+      // Keep the current-session preference when storage is unavailable.
     }
   };
 
@@ -265,7 +257,6 @@ export function useGameController() {
     const next = normalizeSettings({ ...settingsRef.current, ...patch });
     settingsRef.current = next;
     setSettings(next);
-    setDraftSettings(next);
     window.localStorage.setItem("dual-nback-settings", JSON.stringify(next));
   };
 
@@ -298,15 +289,15 @@ export function useGameController() {
     const hydrateTimer = window.setTimeout(() => {
       try {
         const savedSettings = window.localStorage.getItem("dual-nback-settings");
-        const savedBest = Number(window.localStorage.getItem("dual-nback-best") || 0);
+        const savedSoundEnabled = window.localStorage.getItem("dual-nback-sound-enabled") === "1";
         if (savedSettings) {
           const parsed = { ...DEFAULT_SETTINGS, ...JSON.parse(savedSettings) } as GameSettings;
           const sanitized = normalizeSettings(parsed);
           settingsRef.current = sanitized;
           setSettings(sanitized);
-          setDraftSettings(sanitized);
         }
-        setBestScore(savedBest);
+        soundEnabledRef.current = savedSoundEnabled;
+        setSoundEnabled(savedSoundEnabled);
       } catch {
         // The game remains fully playable when storage is unavailable.
       }
@@ -339,8 +330,7 @@ export function useGameController() {
 
   return {
     settings,
-    draftSettings,
-    setDraftSettings,
+    soundEnabled,
     phase,
     round,
     current,
@@ -362,7 +352,7 @@ export function useGameController() {
     advanceWarmup,
     optionClass,
     openSettings,
-    saveSettings,
+    toggleSound,
     updateSettings,
     selectTrainingType,
     goHome,

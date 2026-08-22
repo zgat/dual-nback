@@ -11,6 +11,8 @@ import {
 } from "./core";
 import type { FlipCard, FlipPhase, GameSettings, TrainingType } from "./core";
 import { IdleSettings } from "./IdleSettings";
+import { SoundToggle } from "./SoundToggle";
+import { playFeedbackSound } from "./sound";
 
 function FlipCardFace({ card }: { card: FlipCard }) {
   return (
@@ -25,16 +27,20 @@ type FlipMemoryGameProps = {
   settings: GameSettings;
   onSelectTrainingType: (trainingType: TrainingType) => void;
   onUpdateSettings: (patch: Partial<GameSettings>) => void;
-  onOpenSettings: () => void;
+  onEditSettings: () => void;
   onSessionActiveChange: (active: boolean) => void;
+  soundEnabled: boolean;
+  onToggleSound: () => void;
 };
 
 export function FlipMemoryGame({
   settings,
   onSelectTrainingType,
   onUpdateSettings,
-  onOpenSettings,
+  onEditSettings,
   onSessionActiveChange,
+  soundEnabled,
+  onToggleSound,
 }: FlipMemoryGameProps) {
   const moving = settings.flipDifficulty === "moving";
   const cardCount = settings.flipCardCount;
@@ -140,6 +146,7 @@ export function FlipMemoryGame({
 
   const chooseCard = (card: FlipCard) => {
     if (flipPhase !== "selecting" || foundIds.includes(card.id) || mistakeIds.includes(card.id)) return;
+    if (soundEnabled) playFeedbackSound(card.isTarget ? "correct" : "wrong");
     if (card.isTarget) {
       const nextFound = [...foundIds, card.id];
       setFoundIds(nextFound);
@@ -183,7 +190,7 @@ export function FlipMemoryGame({
             <p className="result-note">找对 {stats.found} 张 · 误点 {stats.mistakes} 张 · 历史最佳 {bestScore || score}%</p>
             <div className="result-actions">
               <button className="secondary-button" onClick={beginGame}>再练一轮</button>
-              <button className="primary-button" onClick={onOpenSettings}>修改设置 <span>→</span></button>
+              <button className="primary-button" onClick={onEditSettings}>修改设置 <span>→</span></button>
             </div>
           </div>
         </section>
@@ -209,6 +216,7 @@ export function FlipMemoryGame({
           <IdleSettings settings={settings} onChange={onUpdateSettings} />
           <div className="idle-launch">
             <button className="start-button" onClick={beginGame}>开始翻牌记忆 <span>→</span></button>
+            <SoundToggle enabled={soundEnabled} onToggle={onToggleSound} />
           </div>
         </div>
       ) : (

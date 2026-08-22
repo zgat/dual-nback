@@ -32,6 +32,9 @@ test("server-renders the Dual N-Back game", async () => {
   assert.match(html, /位置方块/);
   assert.match(html, /颜色数量/);
   assert.match(html, /训练长度/);
+  assert.match(html, /role="switch"/);
+  assert.match(html, /aria-checked="false"/);
+  assert.match(html, /音效/);
   assert.doesNotMatch(html, /6个位置棋盘/);
   assert.doesNotMatch(html, /位置 ✓ · 颜色 ✓/);
   assert.doesNotMatch(html, /位置 ✓ · 颜色 ×/);
@@ -90,5 +93,25 @@ test("uses the requested compact home-setting layouts", async () => {
   assert.match(idleSettings, /onChange\(\{ mode: "challenge", interval: Number\(event\.target\.value\) \}\)/);
   assert.doesNotMatch(idleSettings, /训练牌组|13 个点数|4 种花色|quick-fixed-value/);
   assert.doesNotMatch(settingsModal, /固定 2-Back|扑克牌玩法固定|card-pool-setting/);
+  assert.match(settingsModal, /VERSION 2\.0/);
+  assert.match(settingsModal, /偏好设置/);
+  assert.match(settingsModal, /作答音效/);
+  assert.doesNotMatch(settingsModal, /训练内容|牌阵数量|N-Back 难度|训练长度|保存设置|四选一规则/);
   assert.doesNotMatch(core, /trainingType === "cards" \? 2/);
+});
+
+test("persists optional feedback sounds and uses distinct correct and wrong tones", async () => {
+  const [controller, flipMemory, sound] = await Promise.all([
+    readFile(new URL("../app/game/useGameController.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/game/FlipMemoryGame.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/game/sound.ts", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(controller, /dual-nback-sound-enabled/);
+  assert.match(controller, /playFeedbackSound\(answer === expected \? "correct" : "wrong"\)/);
+  assert.match(flipMemory, /playFeedbackSound\(card\.isTarget \? "correct" : "wrong"\)/);
+  assert.match(sound, /playCorrectTone/);
+  assert.match(sound, /\[659\.25, 880\]/);
+  assert.match(sound, /playWrongTone/);
+  assert.match(sound, /exponentialRampToValueAtTime\(72/);
 });

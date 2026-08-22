@@ -9,8 +9,7 @@ export default function Home() {
   const game = useGameController();
   const {
     settings,
-    draftSettings,
-    setDraftSettings,
+    soundEnabled,
     phase,
     round,
     current,
@@ -32,7 +31,7 @@ export default function Home() {
     advanceWarmup,
     optionClass,
     openSettings,
-    saveSettings,
+    toggleSound,
     updateSettings,
     selectTrainingType,
     goHome,
@@ -64,7 +63,7 @@ export default function Home() {
               <b>重新开始</b>
             </button>
           )}
-          <button className="icon-button" onClick={openSettings} aria-label={isFlipMode && flipSessionActive ? "结束当前训练并打开设置" : "打开训练设置"}>⚙</button>
+          <button className="icon-button" onClick={openSettings} aria-label="打开偏好设置">⚙</button>
         </div>
         <div className="top-progress" style={{ width: `${isFlipMode ? 0 : progress}%` }} />
       </header>
@@ -75,9 +74,11 @@ export default function Home() {
             key={`${settings.flipDifficulty}-${settings.flipCardCount}-${settings.flipRounds}-${flipSessionKey}`}
             settings={settings}
             onSelectTrainingType={selectTrainingType}
-            onOpenSettings={openSettings}
+            onEditSettings={goHome}
             onUpdateSettings={updateSettings}
             onSessionActiveChange={setFlipSessionActive}
+            soundEnabled={soundEnabled}
+            onToggleSound={toggleSound}
           />
         ) : (
           <NBackGame
@@ -97,19 +98,20 @@ export default function Home() {
             respond={respond}
             advanceWarmup={advanceWarmup}
             optionClass={optionClass}
-            openSettings={openSettings}
+            editSettings={goHome}
             updateSettings={updateSettings}
             selectTrainingType={selectTrainingType}
+            soundEnabled={soundEnabled}
+            onToggleSound={toggleSound}
           />
         )}
       </section>
 
       {showSettings && (
         <SettingsModal
-          draftSettings={draftSettings}
-          setDraftSettings={setDraftSettings}
+          soundEnabled={soundEnabled}
+          onToggleSound={toggleSound}
           onClose={() => setShowSettings(false)}
-          onSave={saveSettings}
         />
       )}
     </main>

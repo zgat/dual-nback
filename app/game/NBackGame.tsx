@@ -13,6 +13,7 @@ import {
 } from "./core";
 import type { GameSettings, MatchType, Phase, Stats, TrainingType, Trial } from "./core";
 import { IdleSettings } from "./IdleSettings";
+import { SoundToggle } from "./SoundToggle";
 
 type NBackGameProps = {
   settings: GameSettings;
@@ -31,9 +32,11 @@ type NBackGameProps = {
   respond: (answer: MatchType) => void;
   advanceWarmup: () => void;
   optionClass: (id: MatchType) => string;
-  openSettings: () => void;
+  editSettings: () => void;
   updateSettings: (patch: Partial<GameSettings>) => void;
   selectTrainingType: (trainingType: TrainingType) => void;
+  soundEnabled: boolean;
+  onToggleSound: () => void;
 };
 
 export function NBackGame({
@@ -53,9 +56,11 @@ export function NBackGame({
   respond,
   advanceWarmup,
   optionClass,
-  openSettings,
+  editSettings,
   updateSettings,
   selectTrainingType,
+  soundEnabled,
+  onToggleSound,
 }: NBackGameProps) {
   const accuracy = scorePercent(stats);
   const warmup = phase === "playing" && round < settings.n;
@@ -128,6 +133,7 @@ export function NBackGame({
             <button className="start-button" onClick={beginCountdown}>
               {settings.mode === "self-paced" ? "开始计时" : "开始挑战"} <span>→</span>
             </button>
+            <SoundToggle enabled={soundEnabled} onToggle={onToggleSound} />
           </div>
         </div>
       ) : phase === "finished" ? (
@@ -163,7 +169,7 @@ export function NBackGame({
             <p className="result-note">答错 {wrongAnswers} 次 · 未作答 {stats.misses} 次 · 最长连续正确 {stats.bestStreak} 轮</p>
             <div className="result-actions">
               <button className="secondary-button" onClick={beginCountdown}>再练一轮</button>
-              <button className="primary-button" onClick={openSettings}>修改设置 <span>→</span></button>
+              <button className="primary-button" onClick={editSettings}>修改设置 <span>→</span></button>
             </div>
           </div>
         </section>
