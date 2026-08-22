@@ -142,6 +142,7 @@ export function useGameController(settings: GameSettings, soundEnabled: boolean,
 
   const beginCountdown = useCallback(() => {
     timers.clearAll();
+    if (soundEnabledRef.current) playFeedbackSound("advance");
     sequenceRef.current = makeSequence(settingsRef.current);
     statsRef.current = EMPTY_STATS;
     responseRef.current = null;
@@ -212,6 +213,7 @@ export function useGameController(settings: GameSettings, soundEnabled: boolean,
       && settingsRef.current.mode === "self-paced"
       && roundRef.current < settingsRef.current.n
     ) {
+      if (soundEnabledRef.current) playFeedbackSound("advance");
       finalizeRef.current();
     }
   }, []);

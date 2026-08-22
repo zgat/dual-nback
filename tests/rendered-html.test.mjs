@@ -152,7 +152,7 @@ test("uses the requested compact home-setting layouts", async () => {
   assert.match(css, /\.nback-game\.phase-countdown,[\s\S]*grid-template-rows:\s*auto auto auto/s);
 });
 
-test("persists optional feedback sounds and uses distinct correct and wrong tones", async () => {
+test("balances three game sounds and avoids sticky touch hover feedback", async () => {
   const [controller, flipMemory, sound, storage] = await Promise.all([
     readFile(new URL("../app/game/useGameController.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/game/FlipMemoryGame.tsx", import.meta.url), "utf8"),
@@ -162,11 +162,21 @@ test("persists optional feedback sounds and uses distinct correct and wrong tone
 
   assert.match(storage, /dual-nback-sound-enabled/);
   assert.match(controller, /playFeedbackSound\(answer === expected \? "correct" : "wrong"\)/);
+  assert.match(controller, /const beginCountdown[\s\S]*playFeedbackSound\("advance"\)/);
+  assert.match(controller, /const advanceWarmup[\s\S]*playFeedbackSound\("advance"\)/);
   assert.match(flipMemory, /playFeedbackSound\(card\.isTarget \? "correct" : "wrong"\)/);
+  assert.match(flipMemory, /const beginGame[\s\S]*playFeedbackSound\("advance"\)/);
   assert.match(sound, /playCorrectTone/);
   assert.match(sound, /\[659\.25, 880\]/);
   assert.match(sound, /playWrongTone/);
-  assert.match(sound, /exponentialRampToValueAtTime\(72/);
+  assert.match(sound, /body\.frequency\.setValueAtTime\(196/);
+  assert.match(sound, /playAdvanceTone/);
+  assert.match(sound, /createBalancedOutput/);
+  assert.match(sound, /compressor\.threshold\.setValueAtTime\(-18/);
+
+  const css = await readFile(new URL("../app/globals.css", import.meta.url), "utf8");
+  assert.match(css, /\.match-button\s*{[^}]*touch-action:\s*manipulation[^}]*-webkit-tap-highlight-color:\s*transparent/s);
+  assert.match(css, /@media \(hover: hover\) and \(pointer: fine\)\s*{\s*\.warmup-next:hover\s*{[^}]*}\s*\.match-button:not\(:disabled\):hover/s);
 });
 
 test("keeps the visible app version synchronized and auto-bumps APK builds", async () => {

@@ -1057,8 +1057,6 @@ h1 {
   font-weight: 800;
 }
 .warmup-next span { display: block; margin-top: .35rem; color: #81786e; font-size: .6rem; font-weight: 500; }
-.warmup-next:hover { border-color: var(--teal); background: rgba(31,103,97,.07); }
-
 .match-button {
   display: flex;
   align-items: center;
@@ -1069,10 +1067,16 @@ h1 {
   border-radius: 12px;
   background: rgba(255,255,255,.28);
   cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
   transition: transform .15s ease, background .15s ease, border-color .15s ease;
 }
 
-.match-button:not(:disabled):hover { transform: translateY(-2px); background: rgba(255,255,255,.65); }
+@media (hover: hover) and (pointer: fine) {
+  .warmup-next:hover { border-color: var(--teal); background: rgba(31,103,97,.07); }
+  .match-button:not(:disabled):hover { transform: translateY(-2px); background: rgba(255,255,255,.65); }
+}
+
 .match-button:disabled { opacity: .52; }
 .match-button.is-pressed { opacity: 1; transform: translateY(1px); }
 .match-button.is-correct { border-color: var(--teal); background: rgba(31,103,97,.11); }

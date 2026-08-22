@@ -128,13 +128,14 @@ export function FlipMemoryGame({
   }, [cardCount, finishPreview, previewMs, targetCount, timers]);
 
   const beginGame = useCallback(() => {
+    if (soundEnabled) playFeedbackSound("advance");
     setStats({ found: 0, mistakes: 0 });
     setElapsedMs(0);
     startedAtRef.current = Date.now();
     pausedAtRef.current = 0;
     pausedDurationRef.current = 0;
     dealRound(0);
-  }, [dealRound]);
+  }, [dealRound, soundEnabled]);
 
   const finishGame = useCallback(() => {
     timers.clearAll();
