@@ -146,12 +146,21 @@ function shuffle<T>(values: T[]) {
   return result;
 }
 
-function shuffleForMovement<T extends { id: string }>(values: T[]) {
-  for (let attempt = 0; attempt < 12; attempt += 1) {
-    const candidate = shuffle(values);
-    if (candidate.every((item, index) => item.id !== values[index].id)) return candidate;
+function makeVisibleShuffleSteps(cardCount: number): Array<[number, number]> {
+  const positions = shuffle(Array.from({ length: cardCount }, (_, index) => index));
+  const steps: Array<[number, number]> = [];
+  let pairStart = 0;
+
+  // An odd board starts with a visible three-card cycle; the rest move in pairs.
+  if (cardCount % 2 === 1) {
+    steps.push([positions[0], positions[1]], [positions[1], positions[2]]);
+    pairStart = 3;
   }
-  return [...values.slice(1), values[0]];
+
+  for (let index = pairStart; index < positions.length; index += 2) {
+    steps.push([positions[index], positions[index + 1]]);
+  }
+  return steps;
 }
 
 function makeFlipCards(cardCount: number, targetCount: number): FlipCard[] {
@@ -305,7 +314,8 @@ function FlipMemoryGame({
   const [flipPhase, setFlipPhase] = useState<FlipPhase>("idle");
   const [round, setRound] = useState(0);
   const [cards, setCards] = useState<FlipCard[]>(() => makeFlipCards(cardCount, targetCount));
-  const [moveTargets, setMoveTargets] = useState<Record<string, number>>({});
+  const [activeSwap, setActiveSwap] = useState<[number, number] | null>(null);
+  const [shuffleProgress, setShuffleProgress] = useState({ current: 0, total: 0 });
   const [foundIds, setFoundIds] = useState<string[]>([]);
   const [mistakeIds, setMistakeIds] = useState<string[]>([]);
   const [stats, setStats] = useState({ found: 0, mistakes: 0 });
@@ -314,6 +324,7 @@ function FlipMemoryGame({
   const timerRef = useRef<number | null>(null);
   const startedAtRef = useRef(0);
   const cardsRef = useRef(cards);
+  const previewFinishedRef = useRef(false);
   const score = stats.found === 0 ? 0 : Math.round((stats.found / (stats.found + stats.mistakes)) * 100);
 
   const clearFlipTimer = useCallback(() => {
@@ -322,30 +333,51 @@ function FlipMemoryGame({
   }, []);
 
   const finishPreview = useCallback(() => {
+    if (previewFinishedRef.current) return;
+    previewFinishedRef.current = true;
     clearFlipTimer();
     if (moving) {
-      const movedCards = shuffleForMovement(cardsRef.current);
-      setMoveTargets(Object.fromEntries(movedCards.map((card, index) => [card.id, index])));
+      const steps = makeVisibleShuffleSteps(cardCount);
       setFlipPhase("shuffling");
-      timerRef.current = window.setTimeout(() => {
-        cardsRef.current = movedCards;
-        setCards(movedCards);
-        setMoveTargets({});
-        setFlipPhase("selecting");
-        timerRef.current = null;
-      }, 1800);
+      setShuffleProgress({ current: 0, total: steps.length });
+
+      const playStep = (stepIndex: number, currentCards: FlipCard[]) => {
+        if (stepIndex >= steps.length) {
+          setActiveSwap(null);
+          setFlipPhase("selecting");
+          timerRef.current = null;
+          return;
+        }
+
+        const swap = steps[stepIndex];
+        setActiveSwap(swap);
+        setShuffleProgress({ current: stepIndex + 1, total: steps.length });
+        timerRef.current = window.setTimeout(() => {
+          const nextCards = [...currentCards];
+          [nextCards[swap[0]], nextCards[swap[1]]] = [nextCards[swap[1]], nextCards[swap[0]]];
+          cardsRef.current = nextCards;
+          setCards(nextCards);
+          setActiveSwap(null);
+          timerRef.current = window.setTimeout(() => playStep(stepIndex + 1, nextCards), 180);
+        }, 680);
+      };
+
+      // Let the flip-to-back animation finish before the first visible swap.
+      timerRef.current = window.setTimeout(() => playStep(0, cardsRef.current), 420);
     } else {
       setFlipPhase("selecting");
     }
-  }, [clearFlipTimer, moving]);
+  }, [cardCount, clearFlipTimer, moving]);
 
   const dealRound = useCallback((roundIndex: number) => {
     clearFlipTimer();
     const nextCards = makeFlipCards(cardCount, targetCount);
+    previewFinishedRef.current = false;
     cardsRef.current = nextCards;
     setRound(roundIndex);
     setCards(nextCards);
-    setMoveTargets({});
+    setActiveSwap(null);
+    setShuffleProgress({ current: 0, total: 0 });
     setFoundIds([]);
     setMistakeIds([]);
     setFlipPhase("preview");
@@ -482,19 +514,25 @@ function FlipMemoryGame({
           const found = foundIds.includes(card.id);
           const mistake = mistakeIds.includes(card.id);
           const faceUp = showAllFaces || found || mistake;
-          const destination = moveTargets[card.id] ?? index;
+          const swapRole = activeSwap?.[0] === index ? "leading" : activeSwap?.[1] === index ? "trailing" : null;
+          const destination = swapRole === "leading" ? activeSwap![1] : swapRole === "trailing" ? activeSwap![0] : index;
           const columnCount = flipConfig.columns;
           const columnDelta = (destination % columnCount) - (index % columnCount);
           const rowDelta = Math.floor(destination / columnCount) - Math.floor(index / columnCount);
+          const arcDirection = swapRole === "leading" ? -1 : 1;
+          const arcX = -Math.sign(rowDelta) * 12 * arcDirection;
+          const arcY = Math.sign(columnDelta) * 12 * arcDirection;
           return (
             <button
-              className={`memory-card ${faceUp ? "is-face-up" : "is-face-down"} ${found ? "is-found" : ""} ${mistake ? "is-mistake" : ""}`}
+              className={`memory-card ${faceUp ? "is-face-up" : "is-face-down"} ${found ? "is-found" : ""} ${mistake ? "is-mistake" : ""} ${swapRole ? `is-swapping is-swap-${swapRole}` : ""}`}
               onClick={() => chooseCard(card)}
               disabled={flipPhase !== "selecting" || found || mistake}
               aria-label={faceUp ? `${card.suit.name}${card.rank.name}${found ? "，目标牌" : mistake ? "，不是目标" : ""}` : "盖住的扑克牌"}
-              style={flipPhase === "shuffling" ? {
+              style={swapRole ? {
                 "--move-x": `calc(${columnDelta * 100}% + ${columnDelta * FLIP_CARD_GAP}px)`,
                 "--move-y": `calc(${rowDelta * 100}% + ${rowDelta * FLIP_CARD_GAP}px)`,
+                "--move-mid-x": `calc(${columnDelta * 50}% + ${columnDelta * FLIP_CARD_GAP * 0.5 + arcX}px)`,
+                "--move-mid-y": `calc(${rowDelta * 50}% + ${rowDelta * FLIP_CARD_GAP * 0.5 + arcY}px)`,
               } as CSSProperties : undefined}
               key={card.id}
             >
@@ -502,7 +540,11 @@ function FlipMemoryGame({
             </button>
           );
         })}
-        {flipPhase === "shuffling" && <div className="shuffle-overlay">移动牌位中…</div>}
+        {flipPhase === "shuffling" && (
+          <div className="shuffle-overlay" aria-live="polite">
+            换位 {shuffleProgress.current || 1} / {shuffleProgress.total}
+          </div>
+        )}
       </div>
 
       {flipPhase === "preview" && (

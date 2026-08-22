@@ -459,18 +459,20 @@ h1 {
   font-size: 1rem;
   font-style: normal;
 }
-.flip-board.is-shuffling .memory-card {
+.flip-board.is-shuffling .memory-card { pointer-events: none; }
+.flip-board.is-shuffling .memory-card.is-swapping {
   z-index: 2;
-  animation: memory-move 1.75s cubic-bezier(.65,.05,.32,1) forwards;
+  animation: memory-swap .68s cubic-bezier(.55,.03,.32,1) forwards;
+  filter: drop-shadow(0 12px 14px rgba(50,39,29,.22));
 }
-.flip-board.is-shuffling .memory-card:nth-child(even) { z-index: 3; }
+.flip-board.is-shuffling .memory-card.is-swap-leading { z-index: 3; }
 .shuffle-overlay {
   position: absolute;
   left: 50%;
-  top: 50%;
+  top: 0;
   z-index: 4;
   padding: .55rem .8rem;
-  transform: translate(-50%, -50%);
+  transform: translate(-50%, -55%);
   border-radius: 999px;
   background: rgba(37,34,31,.88);
   color: white;
@@ -487,9 +489,9 @@ h1 {
   from { transform: rotateY(90deg) scale(.96); opacity: .5; }
   to { transform: rotateY(0) scale(1); opacity: 1; }
 }
-@keyframes memory-move {
+@keyframes memory-swap {
   from { transform: translate(0, 0) scale(1); }
-  48% { transform: translate(var(--move-x), var(--move-y)) scale(.94); }
+  50% { transform: translate(var(--move-mid-x), var(--move-mid-y)) scale(1.05); }
   to { transform: translate(var(--move-x), var(--move-y)) scale(1); }
 }
 @keyframes preview-countdown { to { transform: scaleX(0); } }
