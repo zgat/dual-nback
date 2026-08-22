@@ -6,7 +6,9 @@ import type { CSSProperties } from "react";
 type Phase = "idle" | "countdown" | "playing" | "paused" | "finished";
 type MatchType = "exact" | "position" | "color" | "different";
 type GameMode = "self-paced" | "challenge";
-type TrainingType = "grid" | "cards";
+type TrainingType = "grid" | "cards" | "flip";
+type FlipDifficulty = "classic" | "moving";
+type FlipPhase = "idle" | "preview" | "shuffling" | "selecting" | "round-complete" | "finished";
 
 type ColorToken = {
   name: string;
@@ -36,6 +38,11 @@ type CardTrial = {
   suit: CardSuit;
 };
 
+type FlipCard = CardTrial & {
+  id: string;
+  isTarget: boolean;
+};
+
 type Trial = GridTrial | CardTrial;
 
 type GameSettings = {
@@ -46,6 +53,8 @@ type GameSettings = {
   colorCount: number;
   mode: GameMode;
   trainingType: TrainingType;
+  flipDifficulty: FlipDifficulty;
+  flipRounds: number;
 };
 
 type Stats = {
@@ -97,6 +106,8 @@ const DEFAULT_SETTINGS: GameSettings = {
   colorCount: 4,
   mode: "self-paced",
   trainingType: "grid",
+  flipDifficulty: "classic",
+  flipRounds: 5,
 };
 const PRESET_INTERVALS = [3000, 2400, 1800];
 const EMPTY_STATS: Stats = {
@@ -111,6 +122,27 @@ const EMPTY_STATS: Stats = {
 function pickDifferent<T>(values: T[], excluded?: T) {
   const choices = excluded === undefined ? values : values.filter((value) => value !== excluded);
   return choices[Math.floor(Math.random() * choices.length)];
+}
+
+function shuffle<T>(values: T[]) {
+  const result = [...values];
+  for (let index = result.length - 1; index > 0; index -= 1) {
+    const swapWith = Math.floor(Math.random() * (index + 1));
+    [result[index], result[swapWith]] = [result[swapWith], result[index]];
+  }
+  return result;
+}
+
+function makeFlipCards(cardCount: number, targetCount: number): FlipCard[] {
+  const pool = CARD_SUITS.flatMap((suit) => CARD_RANKS.map((rank) => ({
+    type: "cards" as const,
+    id: `${suit.name}-${rank.name}`,
+    rank,
+    suit,
+  })));
+  const cards = shuffle(pool).slice(0, cardCount);
+  const targetIds = new Set(shuffle(cards).slice(0, targetCount).map((card) => card.id));
+  return cards.map((card) => ({ ...card, isTarget: targetIds.has(card.id) }));
 }
 
 function makeSequence(settings: GameSettings): Trial[] {
@@ -178,7 +210,7 @@ function clampInterval(value: number) {
 }
 
 function normalizeSettings(value: Partial<GameSettings>): GameSettings {
-  const trainingType = value.trainingType === "cards" ? "cards" : "grid";
+  const trainingType = value.trainingType === "cards" || value.trainingType === "flip" ? value.trainingType : "grid";
   return {
     n: trainingType === "cards" ? 2 : Math.min(5, Math.max(1, Math.round(value.n ?? DEFAULT_SETTINGS.n))),
     total: value.total === 30 ? 30 : 20,
@@ -187,6 +219,8 @@ function normalizeSettings(value: Partial<GameSettings>): GameSettings {
     colorCount: Math.min(7, Math.max(2, Math.round(value.colorCount ?? DEFAULT_SETTINGS.colorCount))),
     mode: value.mode === "challenge" ? "challenge" : "self-paced",
     trainingType,
+    flipDifficulty: value.flipDifficulty === "moving" ? "moving" : "classic",
+    flipRounds: value.flipRounds === 8 ? 8 : 5,
   };
 }
 
@@ -217,6 +251,231 @@ function formatDuration(milliseconds: number) {
   if (seconds < 60) return `${seconds.toFixed(1)} 秒`;
   const minutes = Math.floor(seconds / 60);
   return `${minutes} 分 ${Math.floor(seconds % 60).toString().padStart(2, "0")} 秒`;
+}
+
+function FlipCardFace({ card, compact = false }: { card: FlipCard; compact?: boolean }) {
+  return (
+    <span className={`flip-card-face ${card.suit.color === "red" ? "is-red" : ""} ${compact ? "is-compact" : ""}`}>
+      <span className="flip-card-rank">{card.rank.name}</span>
+      <span className="flip-card-suit">{card.suit.symbol}</span>
+    </span>
+  );
+}
+
+function FlipMemoryGame({
+  settings,
+  onSelectTrainingType,
+  onOpenSettings,
+}: {
+  settings: GameSettings;
+  onSelectTrainingType: (trainingType: TrainingType) => void;
+  onOpenSettings: () => void;
+}) {
+  const [flipPhase, setFlipPhase] = useState<FlipPhase>("idle");
+  const [round, setRound] = useState(0);
+  const [cards, setCards] = useState<FlipCard[]>([]);
+  const [moveTargets, setMoveTargets] = useState<Record<string, number>>({});
+  const [foundIds, setFoundIds] = useState<string[]>([]);
+  const [mistakeIds, setMistakeIds] = useState<string[]>([]);
+  const [stats, setStats] = useState({ found: 0, mistakes: 0 });
+  const [elapsedMs, setElapsedMs] = useState(0);
+  const [bestScore, setBestScore] = useState(() => typeof window === "undefined" ? 0 : Number(window.localStorage.getItem("flip-memory-best") || 0));
+  const timerRef = useRef<number | null>(null);
+  const startedAtRef = useRef(0);
+
+  const moving = settings.flipDifficulty === "moving";
+  const cardCount = moving ? 8 : 6;
+  const targetCount = moving ? 3 : 2;
+  const previewMs = moving ? 6000 : 5000;
+  const score = stats.found === 0 ? 0 : Math.round((stats.found / (stats.found + stats.mistakes)) * 100);
+
+  const clearFlipTimer = useCallback(() => {
+    if (timerRef.current !== null) window.clearTimeout(timerRef.current);
+    timerRef.current = null;
+  }, []);
+
+  const dealRound = useCallback((roundIndex: number) => {
+    clearFlipTimer();
+    const nextCards = makeFlipCards(cardCount, targetCount);
+    setRound(roundIndex);
+    setCards(nextCards);
+    setMoveTargets({});
+    setFoundIds([]);
+    setMistakeIds([]);
+    setFlipPhase("preview");
+
+    timerRef.current = window.setTimeout(() => {
+      if (moving) {
+        const movedCards = shuffle(nextCards);
+        setMoveTargets(Object.fromEntries(movedCards.map((card, index) => [card.id, index])));
+        setFlipPhase("shuffling");
+        timerRef.current = window.setTimeout(() => {
+          setCards(movedCards);
+          setMoveTargets({});
+          setFlipPhase("selecting");
+          timerRef.current = null;
+        }, 1800);
+      } else {
+        setFlipPhase("selecting");
+        timerRef.current = null;
+      }
+    }, previewMs);
+  }, [cardCount, clearFlipTimer, moving, previewMs, targetCount]);
+
+  const beginGame = useCallback(() => {
+    setStats({ found: 0, mistakes: 0 });
+    setElapsedMs(0);
+    startedAtRef.current = Date.now();
+    dealRound(0);
+  }, [dealRound]);
+
+  const finishGame = useCallback(() => {
+    clearFlipTimer();
+    const duration = Math.max(0, Date.now() - startedAtRef.current);
+    setElapsedMs(duration);
+    setFlipPhase("finished");
+    setBestScore((previous) => {
+      const next = Math.max(previous, score);
+      window.localStorage.setItem("flip-memory-best", String(next));
+      return next;
+    });
+  }, [clearFlipTimer, score]);
+
+  const advanceRound = () => {
+    if (round + 1 >= settings.flipRounds) finishGame();
+    else dealRound(round + 1);
+  };
+
+  const chooseCard = (card: FlipCard) => {
+    if (flipPhase !== "selecting" || foundIds.includes(card.id) || mistakeIds.includes(card.id)) return;
+    if (card.isTarget) {
+      const nextFound = [...foundIds, card.id];
+      setFoundIds(nextFound);
+      setStats((currentStats) => ({ ...currentStats, found: currentStats.found + 1 }));
+      if (nextFound.length === targetCount) setFlipPhase("round-complete");
+    } else {
+      setMistakeIds((currentIds) => [...currentIds, card.id]);
+      setStats((currentStats) => ({ ...currentStats, mistakes: currentStats.mistakes + 1 }));
+    }
+  };
+
+  useEffect(() => {
+    return clearFlipTimer;
+  }, [clearFlipTimer]);
+
+  const showAllFaces = flipPhase === "preview" || flipPhase === "round-complete";
+  const targets = cards.filter((card) => card.isTarget);
+  const targetPromptVisible = flipPhase === "selecting" || flipPhase === "round-complete";
+
+  if (flipPhase === "finished") {
+    return (
+      <>
+        <div className="stage-heading flip-heading">
+          <span className="eyebrow">翻牌记忆 · {moving ? "移动进阶" : "经典模式"}</span>
+          <h1>训练完成</h1>
+          <p>记忆牌面和位置，找到每轮指定的目标牌。</p>
+        </div>
+        <section className="result-panel" aria-label="翻牌记忆结果">
+          <div className="score-ring" style={{ "--score": `${score * 3.6}deg` } as CSSProperties}>
+            <div><strong>{score}</strong><span>%</span><small>选择正确率</small></div>
+          </div>
+          <div className="result-copy">
+            <span className="result-kicker">翻牌记忆</span>
+            <h2>{score >= 90 ? "位置记得很稳。" : score >= 75 ? "表现不错，再巩固一轮。" : "先用经典模式熟悉牌位。"}</h2>
+            <div className="result-config">
+              <span><b>{settings.flipRounds}</b> 轮训练</span>
+              <span><b>{cardCount}</b> 张牌 / 轮</span>
+            </div>
+            <div className="result-time"><small>总用时</small><strong>{formatDuration(elapsedMs)}</strong></div>
+            <p className="result-note">找对 {stats.found} 张 · 误点 {stats.mistakes} 张 · 历史最佳 {bestScore || score}%</p>
+            <div className="result-actions">
+              <button className="secondary-button" onClick={beginGame}>再练一轮</button>
+              <button className="primary-button" onClick={onOpenSettings}>调整难度 <span>→</span></button>
+            </div>
+          </div>
+        </section>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <div className="stage-heading flip-heading">
+        <span className="eyebrow">翻牌记忆 · {moving ? "移动进阶" : "经典模式"}</span>
+        <h1>{flipPhase === "idle" ? "看清每一张牌" : flipPhase === "preview" ? "记住全部牌位" : flipPhase === "shuffling" ? "牌位正在移动" : "找出目标牌"}</h1>
+        <p>
+          {flipPhase === "idle"
+            ? moving ? "牌盖住后会重新排列，再按记忆找出目标。" : "先看完整牌阵，盖牌后按原位置找出目标。"
+            : flipPhase === "preview"
+              ? `${previewMs / 1000} 秒后盖牌，目标会在盖牌后公布。`
+              : flipPhase === "shuffling"
+                ? "不要移开视线，记住每张牌移动后的位置。"
+                : `请依次点出 ${targetCount} 张目标牌。`}
+        </p>
+        {flipPhase === "idle" ? (
+          <div className="idle-switches">
+            <div className="training-switch three-options" aria-label="选择训练内容">
+              <button onClick={() => onSelectTrainingType("grid")}><span aria-hidden="true">▦</span> 彩色方格</button>
+              <button onClick={() => onSelectTrainingType("cards")}><span aria-hidden="true">♠</span> 扑克 2-Back</button>
+              <button className="is-selected" onClick={() => onSelectTrainingType("flip")}><span aria-hidden="true">▤</span> 翻牌记忆</button>
+            </div>
+          </div>
+        ) : (
+          <div className="flip-round-indicator">第 <b>{round + 1}</b> / {settings.flipRounds} 轮</div>
+        )}
+      </div>
+
+      {targetPromptVisible && (
+        <div className="target-prompt" aria-label="本轮目标牌">
+          <span>目标</span>
+          {targets.map((card) => (
+            <span className={card.suit.color === "red" ? "is-red" : ""} key={card.id}>
+              {card.rank.name}{card.suit.symbol}
+              {foundIds.includes(card.id) && <i aria-label="已找到">✓</i>}
+            </span>
+          ))}
+        </div>
+      )}
+
+      <div className={`flip-board ${moving ? "is-advanced" : ""} ${flipPhase === "shuffling" ? "is-shuffling" : ""}`} aria-label={`${cardCount}张扑克牌记忆区`}>
+        {(cards.length ? cards : makeFlipCards(cardCount, targetCount)).map((card, index) => {
+          const found = foundIds.includes(card.id);
+          const mistake = mistakeIds.includes(card.id);
+          const faceUp = showAllFaces || found || mistake;
+          const destination = moveTargets[card.id] ?? index;
+          const columnCount = moving ? 4 : 3;
+          const columnDelta = (destination % columnCount) - (index % columnCount);
+          const rowDelta = Math.floor(destination / columnCount) - Math.floor(index / columnCount);
+          return (
+            <button
+              className={`memory-card ${faceUp ? "is-face-up" : "is-face-down"} ${found ? "is-found" : ""} ${mistake ? "is-mistake" : ""}`}
+              onClick={() => chooseCard(card)}
+              disabled={flipPhase !== "selecting" || found || mistake}
+              aria-label={faceUp ? `${card.suit.name}${card.rank.name}${found ? "，目标牌" : mistake ? "，不是目标" : ""}` : "盖住的扑克牌"}
+              style={flipPhase === "shuffling" ? {
+                "--move-x": `calc(${columnDelta * 100}% + ${columnDelta * 10}px)`,
+                "--move-y": `calc(${rowDelta * 100}% + ${rowDelta * 10}px)`,
+              } as CSSProperties : undefined}
+              key={card.id}
+            >
+              {faceUp ? <FlipCardFace card={card} /> : <span className="memory-card-back"><i>N²</i></span>}
+            </button>
+          );
+        })}
+        {flipPhase === "shuffling" && <div className="shuffle-overlay">移动牌位中…</div>}
+      </div>
+
+      {flipPhase === "preview" && <div className="preview-timer" style={{ "--preview-duration": `${previewMs}ms` } as CSSProperties}><i /></div>}
+
+      {flipPhase === "idle" ? (
+        <button className="start-button" onClick={beginGame}>开始翻牌记忆 <span>→</span></button>
+      ) : flipPhase === "round-complete" ? (
+        <button className="start-button" onClick={advanceRound}>{round + 1 >= settings.flipRounds ? "查看结果" : "下一轮"} <span>→</span></button>
+      ) : (
+        <button className="start-button pause-button flip-restart" onClick={beginGame}><span aria-hidden="true">↻</span> 重新开始</button>
+      )}
+    </>
+  );
 }
 
 export default function Home() {
@@ -516,8 +775,10 @@ export default function Home() {
   const gridColumns = settings.cellCount <= 4 ? 2 : settings.cellCount <= 9 ? 3 : 4;
   const modeLabel = settings.mode === "self-paced" ? "计时模式" : "挑战模式";
   const isCardMode = settings.trainingType === "cards";
+  const isFlipMode = settings.trainingType === "flip";
   const draftIsCardMode = draftSettings.trainingType === "cards";
-  const trainingLabel = isCardMode ? "扑克牌" : "彩色方格";
+  const draftIsFlipMode = draftSettings.trainingType === "flip";
+  const trainingLabel = isCardMode ? "扑克牌" : isFlipMode ? "翻牌记忆" : "彩色方格";
   const memoryDimensions = isCardMode ? "点数与花色" : "位置与颜色";
   const currentCard = current?.type === "cards" ? current : null;
   const currentGrid = current?.type === "grid" ? current : null;
@@ -530,10 +791,10 @@ export default function Home() {
           <span>双重记忆</span>
         </button>
         <div className="round-pill" aria-live="polite">
-          {phase === "idle" ? `${isCardMode ? "扑克 · " : ""}${settings.n}-BACK` : `第 ${Math.max(0, round + 1)} / ${settings.total} 轮`}
+          {isFlipMode ? "翻牌记忆" : phase === "idle" ? `${isCardMode ? "扑克 · " : ""}${settings.n}-BACK` : `第 ${Math.max(0, round + 1)} / ${settings.total} 轮`}
         </div>
         <div className="top-actions">
-          {(phase === "countdown" || phase === "playing" || phase === "paused") && (
+          {!isFlipMode && (phase === "countdown" || phase === "playing" || phase === "paused") && (
             <button className="restart-button" onClick={beginCountdown} aria-label="重新开始本轮训练">
               <span aria-hidden="true">↻</span>
               <b>重新开始</b>
@@ -541,10 +802,19 @@ export default function Home() {
           )}
           <button className="icon-button" onClick={openSettings} aria-label="打开训练设置">⚙</button>
         </div>
-        <div className="top-progress" style={{ width: `${progress}%` }} />
+        <div className="top-progress" style={{ width: `${isFlipMode ? 0 : progress}%` }} />
       </header>
 
       <section className="game-stage">
+        {isFlipMode ? (
+          <FlipMemoryGame
+            key={`${settings.flipDifficulty}-${settings.flipRounds}`}
+            settings={settings}
+            onSelectTrainingType={selectTrainingType}
+            onOpenSettings={openSettings}
+          />
+        ) : (
+          <>
         <div className="stage-heading">
           <span className="eyebrow">{trainingLabel} · {modeLabel} · {settings.n}-BACK</span>
           <h1>{phase === "finished" ? "训练完成" : `记住${memoryDimensions}`}</h1>
@@ -568,13 +838,14 @@ export default function Home() {
           )}
           {phase === "idle" && (
             <div className="idle-switches">
-              <div className="training-switch" aria-label="选择训练内容">
+              <div className="training-switch three-options" aria-label="选择训练内容">
                 <button className={!isCardMode ? "is-selected" : ""} onClick={() => selectTrainingType("grid")}>
                   <span aria-hidden="true">▦</span> 彩色方格
                 </button>
                 <button className={isCardMode ? "is-selected" : ""} onClick={() => selectTrainingType("cards")}>
-                  <span aria-hidden="true">♠</span> 扑克牌
+                  <span aria-hidden="true">♠</span> 扑克 2-Back
                 </button>
+                <button onClick={() => selectTrainingType("flip")}><span aria-hidden="true">▤</span> 翻牌记忆</button>
               </div>
               <div className="mode-switch" aria-label="选择节奏模式">
                 <button className={settings.mode === "self-paced" ? "is-selected" : ""} onClick={() => selectMode("self-paced")}>
@@ -721,16 +992,18 @@ export default function Home() {
             )}
           </>
         )}
+          </>
+        )}
       </section>
 
       <footer className="statusbar">
         <span>
           <i className="status-dot" />
-          {isCardMode ? "13 个点数 · 4 种花色" : `${settings.cellCount} 个位置 · ${settings.colorCount} 种颜色`}
+          {isFlipMode ? `${settings.flipDifficulty === "moving" ? 8 : 6} 张牌 · ${settings.flipDifficulty === "moving" ? 3 : 2} 张目标` : isCardMode ? "13 个点数 · 4 种花色" : `${settings.cellCount} 个位置 · ${settings.colorCount} 种颜色`}
         </span>
-        <span>正确率 <b>{stats.total ? `${accuracy}%` : "—"}</b></span>
-        <span>节奏 <b>{modeLabel}</b></span>
-        <span>历史最佳 <b>{bestScore ? `${bestScore}%` : "—"}</b></span>
+        <span>{isFlipMode ? "流程" : "正确率"} <b>{isFlipMode ? "先看后找" : stats.total ? `${accuracy}%` : "—"}</b></span>
+        <span>{isFlipMode ? "难度" : "节奏"} <b>{isFlipMode ? settings.flipDifficulty === "moving" ? "移动进阶" : "经典模式" : modeLabel}</b></span>
+        <span>{isFlipMode ? "轮数" : "历史最佳"} <b>{isFlipMode ? settings.flipRounds : bestScore ? `${bestScore}%` : "—"}</b></span>
       </footer>
 
       {showSettings && (
@@ -743,9 +1016,9 @@ export default function Home() {
 
             <fieldset className="setting-group training-setting">
               <legend>训练内容</legend>
-              <div className="choice-row two-columns training-options">
+              <div className="choice-row training-options three-columns">
                 <button
-                  className={!draftIsCardMode ? "is-selected" : ""}
+                  className={draftSettings.trainingType === "grid" ? "is-selected" : ""}
                   onClick={() => setDraftSettings((value) => normalizeSettings({ ...value, trainingType: "grid" }))}
                 >
                   彩色方格<small>位置 × 颜色 · 可调 N-Back</small>
@@ -756,124 +1029,133 @@ export default function Home() {
                 >
                   扑克牌<small>点数 × 花色 · 固定 2-Back</small>
                 </button>
-              </div>
-            </fieldset>
-
-            <fieldset className="setting-group mode-setting">
-              <legend>节奏模式</legend>
-              <div className="choice-row two-columns mode-options">
-                <button className={draftSettings.mode === "self-paced" ? "is-selected" : ""} onClick={() => setDraftSettings((value) => ({ ...value, mode: "self-paced" }))}>
-                  计时模式<small>不限时，作答后换轮并记录总用时</small>
-                </button>
-                <button className={draftSettings.mode === "challenge" ? "is-selected" : ""} onClick={() => setDraftSettings((value) => ({ ...value, mode: "challenge" }))}>
-                  挑战模式<small>固定节奏，自动进入下一轮</small>
+                <button
+                  className={draftIsFlipMode ? "is-selected" : ""}
+                  onClick={() => setDraftSettings((value) => normalizeSettings({ ...value, trainingType: "flip" }))}
+                >
+                  翻牌记忆<small>看牌 · 盖牌 · 找目标</small>
                 </button>
               </div>
             </fieldset>
 
-            <div className="setting-row">
-              <div>
-                <b>N-Back 难度</b>
-                <small>{draftIsCardMode ? "扑克牌玩法固定比较 2 轮前的牌面" : "需要回忆多少轮之前的位置与颜色"}</small>
-              </div>
-              {draftIsCardMode ? (
-                <strong className="fixed-setting-value">2</strong>
-              ) : (
-                <div className="stepper">
-                  <button onClick={() => setDraftSettings((value) => ({ ...value, n: Math.max(1, value.n - 1) }))} aria-label="降低难度">−</button>
-                  <strong>{draftSettings.n}</strong>
-                  <button onClick={() => setDraftSettings((value) => ({ ...value, n: Math.min(5, value.n + 1) }))} aria-label="提高难度">＋</button>
-                </div>
-              )}
-            </div>
-
-            {draftIsCardMode ? (
-              <div className="card-pool-setting" aria-label="扑克牌训练牌组">
-                <div className="card-pool-summary">
-                  <span><b>13</b> 个点数</span>
-                  <span><b>4</b> 种花色</span>
-                </div>
-                <div className="setting-suits" aria-hidden="true">
-                  {CARD_SUITS.map((suit) => <i className={suit.color === "red" ? "is-red" : ""} key={suit.name}>{suit.symbol}</i>)}
-                </div>
-                <small>使用 A、2–10、J、Q、K 和完整四种花色。</small>
-              </div>
+            {draftIsFlipMode ? (
+              <>
+                <fieldset className="setting-group mode-setting">
+                  <legend>翻牌难度</legend>
+                  <div className="choice-row two-columns mode-options">
+                    <button className={draftSettings.flipDifficulty === "classic" ? "is-selected" : ""} onClick={() => setDraftSettings((value) => ({ ...value, flipDifficulty: "classic" }))}>
+                      经典模式<small>6 张牌 · 2 张目标 · 盖牌后位置不变</small>
+                    </button>
+                    <button className={draftSettings.flipDifficulty === "moving" ? "is-selected" : ""} onClick={() => setDraftSettings((value) => ({ ...value, flipDifficulty: "moving" }))}>
+                      移动进阶<small>8 张牌 · 3 张目标 · 盖牌后重新排列</small>
+                    </button>
+                  </div>
+                </fieldset>
+                <fieldset className="setting-group">
+                  <legend>训练长度</legend>
+                  <div className="choice-row two-columns">
+                    {[5, 8].map((flipRounds) => (
+                      <button className={draftSettings.flipRounds === flipRounds ? "is-selected" : ""} onClick={() => setDraftSettings((value) => ({ ...value, flipRounds }))} key={flipRounds}>
+                        {flipRounds} 轮<small>{flipRounds === 5 ? "短时练习" : "完整训练"}</small>
+                      </button>
+                    ))}
+                  </div>
+                </fieldset>
+              </>
             ) : (
               <>
-                <div className="setting-row">
-                  <div><b>位置方块数</b><small>可选 4–16 个位置；越少越容易</small></div>
-                  <div className="stepper">
-                    <button onClick={() => setDraftSettings((value) => ({ ...value, cellCount: Math.max(4, value.cellCount - 1) }))} aria-label="减少位置方块">−</button>
-                    <strong>{draftSettings.cellCount}</strong>
-                    <button onClick={() => setDraftSettings((value) => ({ ...value, cellCount: Math.min(16, value.cellCount + 1) }))} aria-label="增加位置方块">＋</button>
+                <fieldset className="setting-group mode-setting">
+                  <legend>节奏模式</legend>
+                  <div className="choice-row two-columns mode-options">
+                    <button className={draftSettings.mode === "self-paced" ? "is-selected" : ""} onClick={() => setDraftSettings((value) => ({ ...value, mode: "self-paced" }))}>
+                      计时模式<small>不限时，作答后换轮并记录总用时</small>
+                    </button>
+                    <button className={draftSettings.mode === "challenge" ? "is-selected" : ""} onClick={() => setDraftSettings((value) => ({ ...value, mode: "challenge" }))}>
+                      挑战模式<small>固定节奏，自动进入下一轮</small>
+                    </button>
                   </div>
-                </div>
+                </fieldset>
 
                 <div className="setting-row">
-                  <div><b>颜色数量</b><small>从彩虹色中选择 2–7 种；越少越容易</small></div>
-                  <div className="stepper">
-                    <button onClick={() => setDraftSettings((value) => ({ ...value, colorCount: Math.max(2, value.colorCount - 1) }))} aria-label="减少颜色">−</button>
-                    <strong>{draftSettings.colorCount}</strong>
-                    <button onClick={() => setDraftSettings((value) => ({ ...value, colorCount: Math.min(7, value.colorCount + 1) }))} aria-label="增加颜色">＋</button>
-                  </div>
+                  <div><b>N-Back 难度</b><small>{draftIsCardMode ? "扑克牌玩法固定比较 2 轮前的牌面" : "需要回忆多少轮之前的位置与颜色"}</small></div>
+                  {draftIsCardMode ? <strong className="fixed-setting-value">2</strong> : (
+                    <div className="stepper">
+                      <button onClick={() => setDraftSettings((value) => ({ ...value, n: Math.max(1, value.n - 1) }))} aria-label="降低难度">−</button>
+                      <strong>{draftSettings.n}</strong>
+                      <button onClick={() => setDraftSettings((value) => ({ ...value, n: Math.min(5, value.n + 1) }))} aria-label="提高难度">＋</button>
+                    </div>
+                  )}
                 </div>
+
+                {draftIsCardMode ? (
+                  <div className="card-pool-setting" aria-label="扑克牌训练牌组">
+                    <div className="card-pool-summary"><span><b>13</b> 个点数</span><span><b>4</b> 种花色</span></div>
+                    <div className="setting-suits" aria-hidden="true">{CARD_SUITS.map((suit) => <i className={suit.color === "red" ? "is-red" : ""} key={suit.name}>{suit.symbol}</i>)}</div>
+                    <small>使用 A、2–10、J、Q、K 和完整四种花色。</small>
+                  </div>
+                ) : (
+                  <>
+                    <div className="setting-row">
+                      <div><b>位置方块数</b><small>可选 4–16 个位置；越少越容易</small></div>
+                      <div className="stepper">
+                        <button onClick={() => setDraftSettings((value) => ({ ...value, cellCount: Math.max(4, value.cellCount - 1) }))} aria-label="减少位置方块">−</button>
+                        <strong>{draftSettings.cellCount}</strong>
+                        <button onClick={() => setDraftSettings((value) => ({ ...value, cellCount: Math.min(16, value.cellCount + 1) }))} aria-label="增加位置方块">＋</button>
+                      </div>
+                    </div>
+                    <div className="setting-row">
+                      <div><b>颜色数量</b><small>从彩虹色中选择 2–7 种；越少越容易</small></div>
+                      <div className="stepper">
+                        <button onClick={() => setDraftSettings((value) => ({ ...value, colorCount: Math.max(2, value.colorCount - 1) }))} aria-label="减少颜色">−</button>
+                        <strong>{draftSettings.colorCount}</strong>
+                        <button onClick={() => setDraftSettings((value) => ({ ...value, colorCount: Math.min(7, value.colorCount + 1) }))} aria-label="增加颜色">＋</button>
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {draftSettings.mode === "challenge" && <fieldset className="setting-group">
+                  <legend>每轮节奏</legend>
+                  <div className="choice-row pace-options">
+                    {[{ label: "舒缓", value: 3000 }, { label: "标准", value: 2400 }, { label: "快速", value: 1800 }].map((option) => (
+                      <button className={draftSettings.interval === option.value ? "is-selected" : ""} onClick={() => setDraftSettings((value) => ({ ...value, interval: option.value }))} key={option.value}>{option.label}<small>{option.value / 1000} 秒</small></button>
+                    ))}
+                    <button className={customPace ? "is-selected" : ""} onClick={() => setDraftSettings((value) => ({ ...value, interval: PRESET_INTERVALS.includes(value.interval) ? 5000 : value.interval }))}>
+                      自定义<small>{customPace ? `${(draftSettings.interval / 1000).toFixed(1)} 秒` : "1.5–20 秒"}</small>
+                    </button>
+                  </div>
+                  {customPace && <div className="custom-pace-row">
+                    <label htmlFor="custom-pace">每轮时长</label>
+                    <div className="duration-input">
+                      <input id="custom-pace" type="number" min="1.5" max="20" step="0.5" value={draftSettings.interval / 1000} onChange={(event) => setDraftSettings((value) => ({ ...value, interval: Number(event.target.value) * 1000 }))} aria-describedby="custom-pace-help" />
+                      <span>秒</span>
+                    </div>
+                    <small id="custom-pace-help">{draftIsCardMode ? "牌面" : "色块"}显示时间也会随节奏适当延长</small>
+                  </div>}
+                </fieldset>}
+
+                <fieldset className="setting-group">
+                  <legend>训练长度</legend>
+                  <div className="choice-row two-columns">
+                    {[20, 30].map((total) => (
+                      <button className={draftSettings.total === total ? "is-selected" : ""} onClick={() => setDraftSettings((value) => ({ ...value, total }))} key={total}>
+                        {total} 轮<small>{draftSettings.mode === "self-paced" ? "按自己的速度完成" : `约 ${Math.ceil((total * draftSettings.interval) / 60000)} 分钟`}</small>
+                      </button>
+                    ))}
+                  </div>
+                </fieldset>
               </>
             )}
 
-            {draftSettings.mode === "challenge" && <fieldset className="setting-group">
-              <legend>每轮节奏</legend>
-              <div className="choice-row pace-options">
-                {[{ label: "舒缓", value: 3000 }, { label: "标准", value: 2400 }, { label: "快速", value: 1800 }].map((option) => (
-                  <button className={draftSettings.interval === option.value ? "is-selected" : ""} onClick={() => setDraftSettings((value) => ({ ...value, interval: option.value }))} key={option.value}>
-                    {option.label}<small>{option.value / 1000} 秒</small>
-                  </button>
-                ))}
-                <button
-                  className={customPace ? "is-selected" : ""}
-                  onClick={() => setDraftSettings((value) => ({ ...value, interval: PRESET_INTERVALS.includes(value.interval) ? 5000 : value.interval }))}
-                >
-                  自定义<small>{customPace ? `${(draftSettings.interval / 1000).toFixed(1)} 秒` : "1.5–20 秒"}</small>
-                </button>
-              </div>
-              {customPace && (
-                <div className="custom-pace-row">
-                  <label htmlFor="custom-pace">每轮时长</label>
-                  <div className="duration-input">
-                    <input
-                      id="custom-pace"
-                      type="number"
-                      min="1.5"
-                      max="20"
-                      step="0.5"
-                      value={draftSettings.interval / 1000}
-                      onChange={(event) => setDraftSettings((value) => ({ ...value, interval: Number(event.target.value) * 1000 }))}
-                      aria-describedby="custom-pace-help"
-                    />
-                    <span>秒</span>
-                  </div>
-                  <small id="custom-pace-help">{draftIsCardMode ? "牌面" : "色块"}显示时间也会随节奏适当延长</small>
-                </div>
-              )}
-            </fieldset>}
-
-            <fieldset className="setting-group">
-              <legend>训练长度</legend>
-              <div className="choice-row two-columns">
-                {[20, 30].map((total) => (
-                  <button className={draftSettings.total === total ? "is-selected" : ""} onClick={() => setDraftSettings((value) => ({ ...value, total }))} key={total}>
-                    {total} 轮<small>{draftSettings.mode === "self-paced" ? "按自己的速度完成" : `约 ${Math.ceil((total * draftSettings.interval) / 60000)} 分钟`}</small>
-                  </button>
-                ))}
-              </div>
-            </fieldset>
-
             <div className="how-to">
-              <b>四选一规则</b>
+              <b>{draftIsFlipMode ? "翻牌规则" : "四选一规则"}</b>
               <p>
-                {draftIsCardMode
+                {draftIsFlipMode
+                  ? "先看完整牌阵并记住每张牌的位置。盖牌后才会公布目标牌，点出全部目标即可进入下一轮；移动进阶会在盖牌后重新排列牌位。"
+                  : draftIsCardMode
                   ? "把当前牌的点数、花色分别与 2 轮前比较，从点数同/不同、花色同/不同的四种组合中选择答案。"
                   : "把当前位置、颜色分别与 N 轮前比较，从位置同/不同、颜色同/不同的四种组合中选择答案。"}
-                计时模式在作答后换轮，挑战模式会自动换轮。
+                {!draftIsFlipMode && "计时模式在作答后换轮，挑战模式会自动换轮。"}
               </p>
             </div>
 
