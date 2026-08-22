@@ -61,7 +61,10 @@ export type Stats = {
   streak: number;
   bestStreak: number;
   categoryHits: Record<MatchType, number>;
+  categoryTotals: Record<MatchType, number>;
 };
+
+export type RandomSource = () => number;
 
 export const COLORS: ColorToken[] = [
   { name: "红", value: "#e65347" },
@@ -127,24 +130,48 @@ export const EMPTY_STATS: Stats = {
   streak: 0,
   bestStreak: 0,
   categoryHits: { exact: 0, position: 0, color: 0, different: 0 },
+  categoryTotals: { exact: 0, position: 0, color: 0, different: 0 },
 };
 
-function pickDifferent<T>(values: T[], excluded?: T) {
+function pickDifferent<T>(values: T[], excluded?: T, random: RandomSource = Math.random) {
   const choices = excluded === undefined ? values : values.filter((value) => value !== excluded);
-  return choices[Math.floor(Math.random() * choices.length)];
+  return choices[Math.floor(random() * choices.length)];
 }
 
-function shuffle<T>(values: T[]) {
+function shuffle<T>(values: T[], random: RandomSource = Math.random) {
   const result = [...values];
   for (let index = result.length - 1; index > 0; index -= 1) {
-    const swapWith = Math.floor(Math.random() * (index + 1));
+    const swapWith = Math.floor(random() * (index + 1));
     [result[index], result[swapWith]] = [result[swapWith], result[index]];
   }
   return result;
 }
 
-export function makeVisibleShuffleSteps(cardCount: number): Array<[number, number]> {
-  const positions = shuffle(Array.from({ length: cardCount }, (_, index) => index));
+export function makeBalancedRelations(count: number, random: RandomSource = Math.random): MatchType[] {
+  const relationOrder = shuffle(OPTIONS.map((option) => option.id), random);
+  const baseCount = Math.floor(count / relationOrder.length);
+  const remainder = count % relationOrder.length;
+  const remaining = Object.fromEntries(
+    relationOrder.map((relation, index) => [relation, baseCount + Number(index < remainder)]),
+  ) as Record<MatchType, number>;
+  const result: MatchType[] = [];
+
+  while (result.length < count) {
+    const repeated = result.length >= 2 && result.at(-1) === result.at(-2) ? result.at(-1) : null;
+    let candidates = relationOrder.filter((relation) => remaining[relation] > 0 && relation !== repeated);
+    if (candidates.length === 0) candidates = relationOrder.filter((relation) => remaining[relation] > 0);
+    const highestRemaining = Math.max(...candidates.map((relation) => remaining[relation]));
+    candidates = candidates.filter((relation) => remaining[relation] >= highestRemaining - 1);
+    const relation = candidates[Math.floor(random() * candidates.length)];
+    result.push(relation);
+    remaining[relation] -= 1;
+  }
+
+  return result;
+}
+
+export function makeVisibleShuffleSteps(cardCount: number, random: RandomSource = Math.random): Array<[number, number]> {
+  const positions = shuffle(Array.from({ length: cardCount }, (_, index) => index), random);
   const steps: Array<[number, number]> = [];
   let pairStart = 0;
 
@@ -159,52 +186,53 @@ export function makeVisibleShuffleSteps(cardCount: number): Array<[number, numbe
   return steps;
 }
 
-export function makeFlipCards(cardCount: number, targetCount: number): FlipCard[] {
+export function makeFlipCards(cardCount: number, targetCount: number, random: RandomSource = Math.random): FlipCard[] {
   const pool = CARD_SUITS.flatMap((suit) => CARD_RANKS.map((rank) => ({
     type: "cards" as const,
     id: `${suit.name}-${rank.name}`,
     rank,
     suit,
   })));
-  const cards = shuffle(pool).slice(0, cardCount);
-  const targetIds = new Set(shuffle(cards).slice(0, targetCount).map((card) => card.id));
+  const cards = shuffle(pool, random).slice(0, cardCount);
+  const targetIds = new Set(shuffle(cards, random).slice(0, targetCount).map((card) => card.id));
   return cards.map((card) => ({ ...card, isTarget: targetIds.has(card.id) }));
 }
 
-export function makeSequence(settings: GameSettings): Trial[] {
+export function makeSequence(settings: GameSettings, random: RandomSource = Math.random): Trial[] {
   const sequence: Trial[] = [];
   const positions = Array.from({ length: settings.cellCount }, (_, index) => index);
   const colors = COLORS.slice(0, settings.colorCount);
+  const relations = makeBalancedRelations(Math.max(0, settings.total - settings.n), random);
 
   for (let index = 0; index < settings.total; index += 1) {
     if (index < settings.n) {
       sequence.push(settings.trainingType === "cards"
-        ? { type: "cards", rank: pickDifferent(CARD_RANKS), suit: pickDifferent(CARD_SUITS) }
-        : { type: "grid", position: pickDifferent(positions), color: pickDifferent(colors) });
+        ? { type: "cards", rank: pickDifferent(CARD_RANKS, undefined, random), suit: pickDifferent(CARD_SUITS, undefined, random) }
+        : { type: "grid", position: pickDifferent(positions, undefined, random), color: pickDifferent(colors, undefined, random) });
       continue;
     }
 
     const target = sequence[index - settings.n];
-    const relation = OPTIONS[Math.floor(Math.random() * OPTIONS.length)].id;
+    const relation = relations[index - settings.n];
     if (target.type === "cards") {
       sequence.push({
         type: "cards",
         rank: relation === "exact" || relation === "position"
           ? target.rank
-          : pickDifferent(CARD_RANKS, target.rank),
+          : pickDifferent(CARD_RANKS, target.rank, random),
         suit: relation === "exact" || relation === "color"
           ? target.suit
-          : pickDifferent(CARD_SUITS, target.suit),
+          : pickDifferent(CARD_SUITS, target.suit, random),
       });
     } else {
       sequence.push({
         type: "grid",
         position: relation === "exact" || relation === "position"
           ? target.position
-          : pickDifferent(positions, target.position),
+          : pickDifferent(positions, target.position, random),
         color: relation === "exact" || relation === "color"
           ? target.color
-          : pickDifferent(colors, target.color),
+          : pickDifferent(colors, target.color, random),
       });
     }
   }
@@ -228,6 +256,26 @@ export function classify(current: Trial, target: Trial): MatchType {
 
 export function scorePercent(stats: Stats) {
   return stats.total === 0 ? 0 : Math.round((stats.correct / stats.total) * 100);
+}
+
+export function recordTrialResult(stats: Stats, expected: MatchType, answered: MatchType | null): Stats {
+  const isCorrect = answered === expected;
+  const nextStreak = isCorrect ? stats.streak + 1 : 0;
+  return {
+    correct: stats.correct + Number(isCorrect),
+    total: stats.total + 1,
+    misses: stats.misses + Number(answered === null),
+    streak: nextStreak,
+    bestStreak: Math.max(stats.bestStreak, nextStreak),
+    categoryHits: {
+      ...stats.categoryHits,
+      [expected]: stats.categoryHits[expected] + Number(isCorrect),
+    },
+    categoryTotals: {
+      ...stats.categoryTotals,
+      [expected]: stats.categoryTotals[expected] + 1,
+    },
+  };
 }
 
 function normalizeInterval(value: number) {

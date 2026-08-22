@@ -14,6 +14,7 @@ import {
 import type { GameSettings, MatchType, Phase, Stats, TrainingType, Trial } from "./core";
 import { IdleSettings } from "./IdleSettings";
 import { SoundToggle } from "./SoundToggle";
+import { TrainingTypeSwitch } from "./TrainingTypeSwitch";
 
 type NBackGameProps = {
   settings: GameSettings;
@@ -111,17 +112,7 @@ export function NBackGame({
             </>
           )}
           {phase === "idle" && (
-            <div className="idle-switches">
-              <div className="training-switch three-options" aria-label="选择训练内容">
-                <button className={!isCardMode ? "is-selected" : ""} onClick={() => selectTrainingType("grid")}>
-                  <span aria-hidden="true">▦</span> 彩色方格
-                </button>
-                <button className={isCardMode ? "is-selected" : ""} onClick={() => selectTrainingType("cards")}>
-                  <span aria-hidden="true">♠</span> 扑克 N-Back
-                </button>
-                <button onClick={() => selectTrainingType("flip")}><span aria-hidden="true">▤</span> 翻牌记忆</button>
-              </div>
-            </div>
+            <TrainingTypeSwitch selected={settings.trainingType} onSelect={selectTrainingType} />
           )}
         </div>
       )}
@@ -163,7 +154,9 @@ export function NBackGame({
             )}
             <div className="result-metrics">
               {OPTIONS.map((option) => (
-                <span key={option.id}><b>{stats.categoryHits[option.id]}</b> {relationLabel(option.id, settings.trainingType)}</span>
+                <span key={option.id}>
+                  <b>{stats.categoryHits[option.id]}/{stats.categoryTotals[option.id]}</b> {relationLabel(option.id, settings.trainingType)}
+                </span>
               ))}
             </div>
             <p className="result-note">答错 {wrongAnswers} 次 · 未作答 {stats.misses} 次 · 最长连续正确 {stats.bestStreak} 轮</p>

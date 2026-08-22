@@ -1,0 +1,74 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+import {
+  DEFAULT_SETTINGS,
+  EMPTY_STATS,
+  OPTIONS,
+  classify,
+  makeBalancedRelations,
+  makeFlipCards,
+  makeSequence,
+  makeVisibleShuffleSteps,
+  recordTrialResult,
+} from "../app/game/core.ts";
+
+function seededRandom(seed = 1) {
+  let value = seed >>> 0;
+  return () => {
+    value = (value * 1664525 + 1013904223) >>> 0;
+    return value / 2 ** 32;
+  };
+}
+
+function assertBalanced(relations) {
+  const counts = OPTIONS.map(({ id }) => relations.filter((relation) => relation === id).length);
+  assert.ok(Math.max(...counts) - Math.min(...counts) <= 1, `relation counts are ${counts.join(",")}`);
+  for (let index = 2; index < relations.length; index += 1) {
+    assert.notEqual(
+      relations[index - 2] === relations[index - 1] && relations[index - 1] === relations[index],
+      true,
+      `three identical relations at index ${index}`,
+    );
+  }
+}
+
+test("builds balanced relation decks without three-answer streaks", () => {
+  assertBalanced(makeBalancedRelations(27, seededRandom(42)));
+  assertBalanced(makeBalancedRelations(18, seededRandom(7)));
+});
+
+for (const trainingType of ["grid", "cards"]) {
+  test(`generates a balanced ${trainingType} N-Back sequence`, () => {
+    const settings = { ...DEFAULT_SETTINGS, trainingType, n: 3, total: 30 };
+    const sequence = makeSequence(settings, seededRandom(trainingType === "grid" ? 11 : 19));
+    const relations = sequence.slice(settings.n).map((trial, index) => classify(trial, sequence[index]));
+    assert.equal(sequence.length, settings.total);
+    assertBalanced(relations);
+  });
+}
+
+test("records per-category attempts as well as correct answers", () => {
+  let stats = recordTrialResult(EMPTY_STATS, "exact", "exact");
+  stats = recordTrialResult(stats, "color", null);
+  stats = recordTrialResult(stats, "different", "position");
+
+  assert.deepEqual(
+    { correct: stats.correct, total: stats.total, misses: stats.misses, bestStreak: stats.bestStreak },
+    { correct: 1, total: 3, misses: 1, bestStreak: 1 },
+  );
+  assert.equal(stats.categoryHits.exact, 1);
+  assert.equal(stats.categoryTotals.exact, 1);
+  assert.equal(stats.categoryTotals.color, 1);
+  assert.equal(stats.categoryTotals.different, 1);
+});
+
+test("creates unique flip cards, exact target counts, and visible shuffle steps", () => {
+  const cards = makeFlipCards(16, 5, seededRandom(23));
+  assert.equal(new Set(cards.map((card) => card.id)).size, 16);
+  assert.equal(cards.filter((card) => card.isTarget).length, 5);
+
+  const steps = makeVisibleShuffleSteps(9, seededRandom(29));
+  assert.ok(steps.length >= 4);
+  assert.ok(steps.every(([from, to]) => from !== to && from >= 0 && to < 9));
+  assert.equal(new Set(steps.flat()).size, 9);
+});

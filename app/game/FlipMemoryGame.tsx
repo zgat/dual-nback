@@ -12,7 +12,10 @@ import {
 import type { FlipCard, FlipPhase, GameSettings, TrainingType } from "./core";
 import { IdleSettings } from "./IdleSettings";
 import { SoundToggle } from "./SoundToggle";
+import { TrainingTypeSwitch } from "./TrainingTypeSwitch";
 import { playFeedbackSound } from "./sound";
+import { readBestScore, writeBestScore } from "./storage";
+import { usePausableTimers } from "./usePausableTimers";
 
 function FlipCardFace({ card }: { card: FlipCard }) {
   return (
@@ -31,6 +34,7 @@ type FlipMemoryGameProps = {
   onSessionActiveChange: (active: boolean) => void;
   soundEnabled: boolean;
   onToggleSound: () => void;
+  paused: boolean;
 };
 
 export function FlipMemoryGame({
@@ -41,6 +45,7 @@ export function FlipMemoryGame({
   onSessionActiveChange,
   soundEnabled,
   onToggleSound,
+  paused,
 }: FlipMemoryGameProps) {
   const moving = settings.flipDifficulty === "moving";
   const cardCount = settings.flipCardCount;
@@ -57,22 +62,19 @@ export function FlipMemoryGame({
   const [mistakeIds, setMistakeIds] = useState<string[]>([]);
   const [stats, setStats] = useState({ found: 0, mistakes: 0 });
   const [elapsedMs, setElapsedMs] = useState(0);
-  const [bestScore, setBestScore] = useState(() => typeof window === "undefined" ? 0 : Number(window.localStorage.getItem(bestStorageKey) || 0));
-  const timerRef = useRef<number | null>(null);
+  const [bestScore, setBestScore] = useState(() => readBestScore(bestStorageKey));
   const startedAtRef = useRef(0);
+  const pausedAtRef = useRef(0);
+  const pausedDurationRef = useRef(0);
   const cardsRef = useRef(cards);
   const previewFinishedRef = useRef(false);
+  const timers = usePausableTimers();
   const score = stats.found === 0 ? 0 : Math.round((stats.found / (stats.found + stats.mistakes)) * 100);
-
-  const clearFlipTimer = useCallback(() => {
-    if (timerRef.current !== null) window.clearTimeout(timerRef.current);
-    timerRef.current = null;
-  }, []);
 
   const finishPreview = useCallback(() => {
     if (previewFinishedRef.current) return;
     previewFinishedRef.current = true;
-    clearFlipTimer();
+    timers.clear("main");
     if (moving) {
       const steps = makeVisibleShuffleSteps(cardCount);
       setFlipPhase("shuffling");
@@ -82,31 +84,30 @@ export function FlipMemoryGame({
         if (stepIndex >= steps.length) {
           setActiveSwap(null);
           setFlipPhase("selecting");
-          timerRef.current = null;
           return;
         }
 
         const swap = steps[stepIndex];
         setActiveSwap(swap);
         setShuffleProgress({ current: stepIndex + 1, total: steps.length });
-        timerRef.current = window.setTimeout(() => {
+        timers.schedule("main", () => {
           const nextCards = [...currentCards];
           [nextCards[swap[0]], nextCards[swap[1]]] = [nextCards[swap[1]], nextCards[swap[0]]];
           cardsRef.current = nextCards;
           setCards(nextCards);
           setActiveSwap(null);
-          timerRef.current = window.setTimeout(() => playStep(stepIndex + 1, nextCards), 180);
+          timers.schedule("main", () => playStep(stepIndex + 1, nextCards), 180);
         }, 680);
       };
 
-      timerRef.current = window.setTimeout(() => playStep(0, cardsRef.current), 420);
+      timers.schedule("main", () => playStep(0, cardsRef.current), 420);
     } else {
       setFlipPhase("selecting");
     }
-  }, [cardCount, clearFlipTimer, moving]);
+  }, [cardCount, moving, timers]);
 
   const dealRound = useCallback((roundIndex: number) => {
-    clearFlipTimer();
+    timers.clearAll();
     const nextCards = makeFlipCards(cardCount, targetCount);
     previewFinishedRef.current = false;
     cardsRef.current = nextCards;
@@ -117,27 +118,29 @@ export function FlipMemoryGame({
     setFoundIds([]);
     setMistakeIds([]);
     setFlipPhase("preview");
-    timerRef.current = window.setTimeout(finishPreview, previewMs);
-  }, [cardCount, clearFlipTimer, finishPreview, previewMs, targetCount]);
+    timers.schedule("main", finishPreview, previewMs);
+  }, [cardCount, finishPreview, previewMs, targetCount, timers]);
 
   const beginGame = useCallback(() => {
     setStats({ found: 0, mistakes: 0 });
     setElapsedMs(0);
     startedAtRef.current = Date.now();
+    pausedAtRef.current = 0;
+    pausedDurationRef.current = 0;
     dealRound(0);
   }, [dealRound]);
 
   const finishGame = useCallback(() => {
-    clearFlipTimer();
-    const duration = Math.max(0, Date.now() - startedAtRef.current);
+    timers.clearAll();
+    const duration = Math.max(0, Date.now() - startedAtRef.current - pausedDurationRef.current);
     setElapsedMs(duration);
     setFlipPhase("finished");
     setBestScore((previous) => {
       const next = Math.max(previous, score);
-      window.localStorage.setItem(bestStorageKey, String(next));
+      writeBestScore(bestStorageKey, next);
       return next;
     });
-  }, [bestStorageKey, clearFlipTimer, score]);
+  }, [bestStorageKey, score, timers]);
 
   const advanceRound = () => {
     if (round + 1 >= settings.flipRounds) finishGame();
@@ -155,10 +158,22 @@ export function FlipMemoryGame({
     } else {
       setMistakeIds((currentIds) => [...currentIds, card.id]);
       setStats((currentStats) => ({ ...currentStats, mistakes: currentStats.mistakes + 1 }));
+      timers.schedule(`mistake-${card.id}`, () => {
+        setMistakeIds((currentIds) => currentIds.filter((id) => id !== card.id));
+      }, 650);
     }
   };
 
-  useEffect(() => clearFlipTimer, [clearFlipTimer]);
+  useEffect(() => {
+    if (paused) {
+      timers.pauseAll();
+      if (flipPhase !== "idle" && flipPhase !== "finished" && !pausedAtRef.current) pausedAtRef.current = Date.now();
+    } else {
+      if (pausedAtRef.current) pausedDurationRef.current += Date.now() - pausedAtRef.current;
+      pausedAtRef.current = 0;
+      timers.resumeAll();
+    }
+  }, [flipPhase, paused, timers]);
 
   useEffect(() => {
     onSessionActiveChange(flipPhase !== "idle");
@@ -205,13 +220,7 @@ export function FlipMemoryGame({
           <div className="stage-heading flip-heading">
             <span className="eyebrow">翻牌记忆 · {cardCount} 张 · {moving ? "移动进阶" : "经典模式"}</span>
             <h1>看清每一张牌</h1>
-            <div className="idle-switches">
-              <div className="training-switch three-options" aria-label="选择训练内容">
-                <button onClick={() => onSelectTrainingType("grid")}><span aria-hidden="true">▦</span> 彩色方格</button>
-                <button onClick={() => onSelectTrainingType("cards")}><span aria-hidden="true">♠</span> 扑克 N-Back</button>
-                <button className="is-selected" onClick={() => onSelectTrainingType("flip")}><span aria-hidden="true">▤</span> 翻牌记忆</button>
-              </div>
-            </div>
+            <TrainingTypeSwitch selected="flip" onSelect={onSelectTrainingType} />
           </div>
           <IdleSettings settings={settings} onChange={onUpdateSettings} />
           <div className="idle-launch">

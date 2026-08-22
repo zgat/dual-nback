@@ -1,15 +1,20 @@
 "use client";
 
+import { useCallback, useState } from "react";
 import { FlipMemoryGame } from "./game/FlipMemoryGame";
 import { NBackGame } from "./game/NBackGame";
 import { SettingsModal } from "./game/SettingsModal";
 import { useGameController } from "./game/useGameController";
+import { usePreferences } from "./game/usePreferences";
 
 export default function Home() {
-  const game = useGameController();
+  const [showSettings, setShowSettings] = useState(false);
+  const [flipSessionActive, setFlipSessionActive] = useState(false);
+  const [flipSessionKey, setFlipSessionKey] = useState(0);
+  const preferences = usePreferences();
+  const { settings, soundEnabled, updateSettings, selectTrainingType, toggleSound } = preferences;
+  const game = useGameController(settings, soundEnabled, showSettings);
   const {
-    settings,
-    soundEnabled,
     phase,
     round,
     current,
@@ -19,28 +24,35 @@ export default function Home() {
     selected,
     stats,
     elapsedMs,
-    showSettings,
-    setShowSettings,
-    flipSessionActive,
-    setFlipSessionActive,
-    flipSessionKey,
     beginCountdown,
     completeCountdown,
+    pauseGame,
     togglePause,
     respond,
     advanceWarmup,
     optionClass,
-    openSettings,
-    toggleSound,
-    updateSettings,
-    selectTrainingType,
-    goHome,
+    goHome: resetNBack,
   } = game;
 
   const progress = round < 0 ? 0 : ((round + 1) / settings.total) * 100;
   const isCardMode = settings.trainingType === "cards";
   const isFlipMode = settings.trainingType === "flip";
   const showHomeButton = isFlipMode ? flipSessionActive : phase !== "idle";
+
+  const openSettings = () => {
+    pauseGame();
+    setShowSettings(true);
+  };
+
+  const closeSettings = useCallback(() => setShowSettings(false), []);
+
+  const goHome = () => {
+    resetNBack();
+    if (flipSessionActive) {
+      setFlipSessionKey((value) => value + 1);
+      setFlipSessionActive(false);
+    }
+  };
 
   return (
     <main className="app-shell">
@@ -79,6 +91,7 @@ export default function Home() {
             onSessionActiveChange={setFlipSessionActive}
             soundEnabled={soundEnabled}
             onToggleSound={toggleSound}
+            paused={showSettings}
           />
         ) : (
           <NBackGame
@@ -111,7 +124,7 @@ export default function Home() {
         <SettingsModal
           soundEnabled={soundEnabled}
           onToggleSound={toggleSound}
-          onClose={() => setShowSettings(false)}
+          onClose={closeSettings}
         />
       )}
     </main>

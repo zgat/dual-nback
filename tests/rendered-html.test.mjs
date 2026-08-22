@@ -52,11 +52,14 @@ test("keeps game screens inside the dynamic viewport", async () => {
   assert.match(css, /\.app-shell\s*{[^}]*height:\s*100dvh[^}]*grid-template-rows:\s*auto minmax\(0, 1fr\)/s);
   assert.doesNotMatch(css, /\.statusbar/);
   assert.match(css, /\.game-stage\s*{[^}]*height:\s*100%[^}]*overflow:\s*hidden/s);
-  assert.match(css, /\.quick-stepper strong,\s*\.stepper strong\s*{\s*background:\s*#fff/);
+  assert.match(css, /\.quick-stepper strong\s*{\s*background:\s*#fff/);
   assert.match(css, /\.idle-launch\s*{[^}]*gap:\s*clamp\(1\.6rem, 4dvh, 2\.5rem\)/s);
   assert.match(css, /\.sound-toggle\[aria-checked="true"\] \.sound-toggle-track\s*{\s*background:\s*var\(--orange-deep\)/);
   assert.doesNotMatch(css, /\.sound-toggle\[aria-checked="true"\][^}]*var\(--teal\)/s);
-  assert.match(css, /\.nback-game\.phase-finished,\s*\.flip-game\.flip-phase-finished\s*{[^}]*align-content:\s*center[^}]*translateY\(clamp\(-6rem, -10dvh, -2\.5rem\)\)/s);
+  assert.match(css, /--nback-board-size:/);
+  assert.match(css, /--flip-block-scale:/);
+  assert.match(css, /\.nback-game\.phase-finished,\s*\.flip-game\.flip-phase-finished\s*{[^}]*align-content:\s*center[^}]*overflow-y:\s*auto/s);
+  assert.doesNotMatch(css, /translateY\(clamp\(-6rem, -10dvh, -2\.5rem\)\)/);
   assert.match(css, /@media \(max-height: 600px\) and \(min-aspect-ratio: 4 \/ 3\)/);
 });
 
@@ -66,6 +69,8 @@ test("removes flip-memory instructions once play begins", async () => {
   assert.doesNotMatch(source, /找出目标牌|请依次点出|牌位正在移动|记住全部牌位/);
   assert.match(source, /flipPhase === "idle" \?/);
   assert.match(source, /<IdleSettings settings={settings} onChange={onUpdateSettings}/);
+  assert.match(source, /timers\.schedule\(`mistake-\$\{card\.id\}`,[\s\S]*}, 650\)/);
+  assert.match(source, /if \(paused\) \{[\s\S]*timers\.pauseAll\(\)/);
 });
 
 test("keeps result screens compact and free of evaluation copy", async () => {
@@ -105,13 +110,14 @@ test("uses the requested compact home-setting layouts", async () => {
 });
 
 test("persists optional feedback sounds and uses distinct correct and wrong tones", async () => {
-  const [controller, flipMemory, sound] = await Promise.all([
+  const [controller, flipMemory, sound, storage] = await Promise.all([
     readFile(new URL("../app/game/useGameController.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/game/FlipMemoryGame.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/game/sound.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/game/storage.ts", import.meta.url), "utf8"),
   ]);
 
-  assert.match(controller, /dual-nback-sound-enabled/);
+  assert.match(storage, /dual-nback-sound-enabled/);
   assert.match(controller, /playFeedbackSound\(answer === expected \? "correct" : "wrong"\)/);
   assert.match(flipMemory, /playFeedbackSound\(card\.isTarget \? "correct" : "wrong"\)/);
   assert.match(sound, /playCorrectTone/);

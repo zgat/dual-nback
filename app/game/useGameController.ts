@@ -3,19 +3,19 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   CARD_FLIP_DURATION_MS,
-  DEFAULT_SETTINGS,
   EMPTY_STATS,
   OPTIONS,
   classify,
   makeSequence,
-  normalizeSettings,
+  recordTrialResult,
 } from "./core";
-import type { GameSettings, MatchType, Phase, Stats, TrainingType, Trial } from "./core";
+import type { GameSettings, MatchType, Phase, Stats, Trial } from "./core";
 import { playFeedbackSound } from "./sound";
+import { usePausableTimers } from "./usePausableTimers";
 
-export function useGameController() {
-  const [settings, setSettings] = useState<GameSettings>(DEFAULT_SETTINGS);
-  const [soundEnabled, setSoundEnabled] = useState(false);
+type RunningPhase = "countdown" | "playing";
+
+export function useGameController(settings: GameSettings, soundEnabled: boolean, inputBlocked = false) {
   const [phase, setPhase] = useState<Phase>("idle");
   const [round, setRound] = useState(-1);
   const [current, setCurrent] = useState<Trial | null>(null);
@@ -26,36 +26,36 @@ export function useGameController() {
   const [correctAnswer, setCorrectAnswer] = useState<MatchType | null>(null);
   const [stats, setStats] = useState<Stats>(EMPTY_STATS);
   const [elapsedMs, setElapsedMs] = useState(0);
-  const [showSettings, setShowSettings] = useState(false);
-  const [flipSessionActive, setFlipSessionActive] = useState(false);
-  const [flipSessionKey, setFlipSessionKey] = useState(0);
 
-  const sequenceRef = useRef<Trial[]>([]);
   const settingsRef = useRef(settings);
-  const soundEnabledRef = useRef(false);
+  const soundEnabledRef = useRef(soundEnabled);
+  const sequenceRef = useRef<Trial[]>([]);
   const phaseRef = useRef<Phase>(phase);
+  const phaseBeforePauseRef = useRef<RunningPhase>("playing");
   const roundRef = useRef(-1);
   const responseRef = useRef<MatchType | null>(null);
   const statsRef = useRef<Stats>(EMPTY_STATS);
-  const trialTimerRef = useRef<number | null>(null);
-  const stimulusTimerRef = useRef<number | null>(null);
-  const countdownTimerRef = useRef<number | null>(null);
-  const countdownExitTimerRef = useRef<number | null>(null);
+  const stimulusVisibleRef = useRef(false);
   const finalizeRef = useRef<() => void>(() => undefined);
+  const countdownStepRef = useRef<() => void>(() => undefined);
+  const countdownRemainingRef = useRef(3);
   const sessionStartedAtRef = useRef(0);
   const sessionEndedAtRef = useRef(0);
   const pauseStartedAtRef = useRef(0);
   const pausedDurationRef = useRef(0);
+  const timers = usePausableTimers();
 
-  const clearTimers = useCallback(() => {
-    if (trialTimerRef.current !== null) window.clearTimeout(trialTimerRef.current);
-    if (stimulusTimerRef.current !== null) window.clearTimeout(stimulusTimerRef.current);
-    if (countdownTimerRef.current !== null) window.clearInterval(countdownTimerRef.current);
-    if (countdownExitTimerRef.current !== null) window.clearTimeout(countdownExitTimerRef.current);
-    trialTimerRef.current = null;
-    stimulusTimerRef.current = null;
-    countdownTimerRef.current = null;
-    countdownExitTimerRef.current = null;
+  useEffect(() => {
+    settingsRef.current = settings;
+  }, [settings]);
+
+  useEffect(() => {
+    soundEnabledRef.current = soundEnabled;
+  }, [soundEnabled]);
+
+  const setVisible = useCallback((visible: boolean) => {
+    stimulusVisibleRef.current = visible;
+    setStimulusVisible(visible);
   }, []);
 
   const startTrial = useCallback((index: number) => {
@@ -69,58 +69,39 @@ export function useGameController() {
     setCurrent(trial);
     setSelected(null);
     setCorrectAnswer(null);
-    setStimulusVisible(true);
+    setVisible(true);
 
-    if (settingsRef.current.mode === "challenge") {
-      if (trial.type === "cards") {
-        const hideAfter = CARD_FLIP_DURATION_MS + settingsRef.current.interval;
-        stimulusTimerRef.current = window.setTimeout(() => {
-          stimulusTimerRef.current = null;
-          setStimulusVisible(false);
-          trialTimerRef.current = window.setTimeout(() => finalizeRef.current(), CARD_FLIP_DURATION_MS);
-        }, hideAfter);
-      } else {
-        const showFor = Math.min(2400, Math.round(settingsRef.current.interval * 0.42));
-        stimulusTimerRef.current = window.setTimeout(() => setStimulusVisible(false), showFor);
-        trialTimerRef.current = window.setTimeout(() => finalizeRef.current(), settingsRef.current.interval);
-      }
+    if (settingsRef.current.mode !== "challenge") return;
+    if (trial.type === "cards") {
+      const hideAfter = CARD_FLIP_DURATION_MS + settingsRef.current.interval;
+      timers.schedule("stimulus", () => {
+        setVisible(false);
+        timers.schedule("trial", () => finalizeRef.current(), CARD_FLIP_DURATION_MS);
+      }, hideAfter);
+    } else {
+      const showFor = Math.min(2400, Math.round(settingsRef.current.interval * 0.42));
+      timers.schedule("stimulus", () => setVisible(false), showFor);
+      timers.schedule("trial", () => finalizeRef.current(), settingsRef.current.interval);
     }
-  }, []);
+  }, [setVisible, timers]);
 
   const finishSession = useCallback(() => {
-    clearTimers();
+    timers.clearAll();
     phaseRef.current = "finished";
     setPhase("finished");
-    setStimulusVisible(false);
+    setVisible(false);
     const endedAt = sessionEndedAtRef.current || Date.now();
     setElapsedMs(Math.max(0, endedAt - sessionStartedAtRef.current - pausedDurationRef.current));
-
-  }, [clearTimers]);
+  }, [setVisible, timers]);
 
   const finalizeTrial = useCallback(() => {
     if (phaseRef.current !== "playing") return;
     const index = roundRef.current;
     const n = settingsRef.current.n;
-    let nextStats = statsRef.current;
 
     if (index >= n) {
       const expected = classify(sequenceRef.current[index], sequenceRef.current[index - n]);
-      const answered = responseRef.current;
-      const isCorrect = answered === expected;
-      const nextStreak = isCorrect ? nextStats.streak + 1 : 0;
-
-      nextStats = {
-        correct: nextStats.correct + Number(isCorrect),
-        total: nextStats.total + 1,
-        misses: nextStats.misses + Number(answered === null),
-        streak: nextStreak,
-        bestStreak: Math.max(nextStats.bestStreak, nextStreak),
-        categoryHits: {
-          ...nextStats.categoryHits,
-          [expected]: nextStats.categoryHits[expected] + Number(isCorrect),
-        },
-      };
-
+      const nextStats = recordTrialResult(statsRef.current, expected, responseRef.current);
       statsRef.current = nextStats;
       setStats(nextStats);
     }
@@ -135,8 +116,7 @@ export function useGameController() {
 
   const completeCountdown = useCallback(() => {
     if (phaseRef.current !== "countdown") return;
-    if (countdownExitTimerRef.current !== null) window.clearTimeout(countdownExitTimerRef.current);
-    countdownExitTimerRef.current = null;
+    timers.clear("countdown-exit");
     setCountdownExiting(false);
     phaseRef.current = "playing";
     setPhase("playing");
@@ -145,10 +125,23 @@ export function useGameController() {
     pausedDurationRef.current = 0;
     pauseStartedAtRef.current = 0;
     startTrial(0);
-  }, [startTrial]);
+  }, [startTrial, timers]);
+
+  useEffect(() => {
+    countdownStepRef.current = () => {
+      countdownRemainingRef.current -= 1;
+      if (countdownRemainingRef.current <= 0) {
+        setCountdownExiting(true);
+        timers.schedule("countdown-exit", completeCountdown, 500);
+      } else {
+        setCountdown(countdownRemainingRef.current);
+        timers.schedule("countdown-step", () => countdownStepRef.current(), 700);
+      }
+    };
+  }, [completeCountdown, timers]);
 
   const beginCountdown = useCallback(() => {
-    clearTimers();
+    timers.clearAll();
     sequenceRef.current = makeSequence(settingsRef.current);
     statsRef.current = EMPTY_STATS;
     responseRef.current = null;
@@ -161,46 +154,40 @@ export function useGameController() {
     setElapsedMs(0);
     setSelected(null);
     setCorrectAnswer(null);
+    setVisible(false);
     setCountdown(3);
     setCountdownExiting(false);
-
-    let remaining = 3;
-    countdownTimerRef.current = window.setInterval(() => {
-      remaining -= 1;
-      if (remaining <= 0) {
-        if (countdownTimerRef.current !== null) window.clearInterval(countdownTimerRef.current);
-        countdownTimerRef.current = null;
-        setCountdownExiting(true);
-        // Fallback keeps the game moving if a browser suppresses animation events.
-        countdownExitTimerRef.current = window.setTimeout(completeCountdown, 500);
-      } else {
-        setCountdown(remaining);
-      }
-    }, 700);
-  }, [clearTimers, completeCountdown]);
+    countdownRemainingRef.current = 3;
+    timers.schedule("countdown-step", () => countdownStepRef.current(), 700);
+  }, [setVisible, timers]);
 
   const pauseGame = useCallback(() => {
-    if (phaseRef.current !== "playing") return;
-    clearTimers();
+    if (phaseRef.current !== "playing" && phaseRef.current !== "countdown") return false;
+    phaseBeforePauseRef.current = phaseRef.current;
+    timers.pauseAll();
     phaseRef.current = "paused";
     setPhase("paused");
-    setStimulusVisible(false);
+    if (phaseBeforePauseRef.current === "playing") setStimulusVisible(false);
     pauseStartedAtRef.current = Date.now();
-  }, [clearTimers]);
+    return true;
+  }, [timers]);
+
+  const resumeGame = useCallback(() => {
+    if (phaseRef.current !== "paused") return;
+    if (pauseStartedAtRef.current && phaseBeforePauseRef.current === "playing") {
+      pausedDurationRef.current += Date.now() - pauseStartedAtRef.current;
+    }
+    pauseStartedAtRef.current = 0;
+    phaseRef.current = phaseBeforePauseRef.current;
+    setPhase(phaseBeforePauseRef.current);
+    if (phaseBeforePauseRef.current === "playing") setStimulusVisible(stimulusVisibleRef.current);
+    timers.resumeAll();
+  }, [timers]);
 
   const togglePause = useCallback(() => {
-    if (phaseRef.current === "playing") {
-      pauseGame();
-    } else if (phaseRef.current === "paused") {
-      if (pauseStartedAtRef.current) {
-        pausedDurationRef.current += Date.now() - pauseStartedAtRef.current;
-        pauseStartedAtRef.current = 0;
-      }
-      phaseRef.current = "playing";
-      setPhase("playing");
-      startTrial(Math.max(0, roundRef.current));
-    }
-  }, [pauseGame, startTrial]);
+    if (phaseRef.current === "paused") resumeGame();
+    else pauseGame();
+  }, [pauseGame, resumeGame]);
 
   const respond = useCallback((answer: MatchType) => {
     if (phaseRef.current !== "playing" || responseRef.current !== null) return;
@@ -215,9 +202,9 @@ export function useGameController() {
     if (soundEnabledRef.current) playFeedbackSound(answer === expected ? "correct" : "wrong");
     if (settingsRef.current.mode === "self-paced") {
       if (index >= settingsRef.current.total - 1) sessionEndedAtRef.current = Date.now();
-      trialTimerRef.current = window.setTimeout(() => finalizeRef.current(), 450);
+      timers.schedule("trial", () => finalizeRef.current(), 450);
     }
-  }, []);
+  }, [timers]);
 
   const advanceWarmup = useCallback(() => {
     if (
@@ -236,36 +223,8 @@ export function useGameController() {
     return "";
   };
 
-  const openSettings = () => {
-    if (phaseRef.current === "playing") pauseGame();
-    setShowSettings(true);
-  };
-
-  const toggleSound = () => {
-    const next = !soundEnabledRef.current;
-    soundEnabledRef.current = next;
-    setSoundEnabled(next);
-    try {
-      window.localStorage.setItem("dual-nback-sound-enabled", next ? "1" : "0");
-    } catch {
-      // Keep the current-session preference when storage is unavailable.
-    }
-  };
-
-  const updateSettings = (patch: Partial<GameSettings>) => {
-    if (phaseRef.current !== "idle") return;
-    const next = normalizeSettings({ ...settingsRef.current, ...patch });
-    settingsRef.current = next;
-    setSettings(next);
-    window.localStorage.setItem("dual-nback-settings", JSON.stringify(next));
-  };
-
-  const selectTrainingType = (trainingType: TrainingType) => {
-    updateSettings({ trainingType });
-  };
-
-  const goHome = () => {
-    clearTimers();
+  const goHome = useCallback(() => {
+    timers.clearAll();
     statsRef.current = EMPTY_STATS;
     responseRef.current = null;
     roundRef.current = -1;
@@ -273,45 +232,17 @@ export function useGameController() {
     setPhase("idle");
     setRound(-1);
     setCurrent(null);
-    setStimulusVisible(false);
+    setVisible(false);
     setSelected(null);
     setCorrectAnswer(null);
     setStats(EMPTY_STATS);
     setElapsedMs(0);
     setCountdownExiting(false);
-    if (flipSessionActive) {
-      setFlipSessionKey((value) => value + 1);
-      setFlipSessionActive(false);
-    }
-  };
-
-  useEffect(() => {
-    const hydrateTimer = window.setTimeout(() => {
-      try {
-        const savedSettings = window.localStorage.getItem("dual-nback-settings");
-        const savedSoundEnabled = window.localStorage.getItem("dual-nback-sound-enabled") === "1";
-        if (savedSettings) {
-          const parsed = { ...DEFAULT_SETTINGS, ...JSON.parse(savedSettings) } as GameSettings;
-          const sanitized = normalizeSettings(parsed);
-          settingsRef.current = sanitized;
-          setSettings(sanitized);
-        }
-        soundEnabledRef.current = savedSoundEnabled;
-        setSoundEnabled(savedSoundEnabled);
-      } catch {
-        // The game remains fully playable when storage is unavailable.
-      }
-    }, 0);
-    return () => window.clearTimeout(hydrateTimer);
-  }, []);
+  }, [setVisible, timers]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.repeat) return;
-      if (showSettings) {
-        if (event.key === "Escape") setShowSettings(false);
-        return;
-      }
+      if (event.repeat || inputBlocked) return;
       const option = OPTIONS.find((item) => item.key === event.key);
       if (option) respond(option.id);
       const key = event.key.toLowerCase();
@@ -324,13 +255,9 @@ export function useGameController() {
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [advanceWarmup, respond, showSettings, togglePause]);
-
-  useEffect(() => clearTimers, [clearTimers]);
+  }, [advanceWarmup, inputBlocked, respond, togglePause]);
 
   return {
-    settings,
-    soundEnabled,
     phase,
     round,
     current,
@@ -340,21 +267,14 @@ export function useGameController() {
     selected,
     stats,
     elapsedMs,
-    showSettings,
-    setShowSettings,
-    flipSessionActive,
-    setFlipSessionActive,
-    flipSessionKey,
     beginCountdown,
     completeCountdown,
+    pauseGame,
+    resumeGame,
     togglePause,
     respond,
     advanceWarmup,
     optionClass,
-    openSettings,
-    toggleSound,
-    updateSettings,
-    selectTrainingType,
     goHome,
   };
 }
