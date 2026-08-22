@@ -27,10 +27,11 @@ test("server-renders the Dual N-Back game", async () => {
   assert.match(html, /彩色方格/);
   assert.match(html, /扑克牌/);
   assert.match(html, /翻牌记忆/);
-  assert.match(html, /位置 ✓ · 颜色 ✓/);
-  assert.match(html, /位置 ✓ · 颜色 ×/);
-  assert.match(html, /位置 × · 颜色 ✓/);
-  assert.match(html, /位置 × · 颜色 ×/);
+  assert.doesNotMatch(html, /6个位置棋盘/);
+  assert.doesNotMatch(html, /位置 ✓ · 颜色 ✓/);
+  assert.doesNotMatch(html, /位置 ✓ · 颜色 ×/);
+  assert.doesNotMatch(html, /位置 × · 颜色 ✓/);
+  assert.doesNotMatch(html, /位置 × · 颜色 ×/);
   assert.match(html, /包含彩色方格 N-Back、扑克牌 2-Back 和翻牌记忆训练/);
   assert.doesNotMatch(html, /四色关系判断|codex-preview|react-loading-skeleton/);
 });

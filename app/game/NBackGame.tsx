@@ -82,53 +82,61 @@ export function NBackGame({
 
   return (
     <>
-      <div className="stage-heading">
-        <span className="eyebrow">{trainingLabel} · {modeLabel} · {settings.n}-BACK</span>
-        <h1>{phase === "finished" ? "训练完成" : `记住${memoryDimensions}`}</h1>
-        <p>
-          {warmup
-            ? `先记住前 ${settings.n} 轮，之后开始四选一判断。`
-            : phase === "paused"
-              ? "训练已暂停，准备好后继续。"
-              : settings.mode === "self-paced"
-                ? "不限时思考，作答后才进入下一轮。"
-                : isCardMode
-                  ? `牌面翻开后完整显示 ${(settings.interval / 1000).toFixed(1)} 秒，再翻回牌背。`
-                  : `把当前色块与 ${settings.n} 轮前比较，选择唯一符合的关系。`}
-        </p>
-        {isCardMode ? (
-          <div className="suit-legend" aria-label="黑桃、红桃、梅花、方块四种花色">
-            {CARD_SUITS.map((suit) => <i className={suit.color === "red" ? "is-red" : ""} key={suit.name} title={suit.name}>{suit.symbol}</i>)}
-          </div>
-        ) : (
-          <div className="color-legend" aria-label={`${settings.colorCount}种训练颜色`}>
-            {COLORS.slice(0, settings.colorCount).map((color) => <i key={color.name} title={color.name} style={{ backgroundColor: color.value }} />)}
-          </div>
-        )}
-        {phase === "idle" && (
-          <div className="idle-switches">
-            <div className="training-switch three-options" aria-label="选择训练内容">
-              <button className={!isCardMode ? "is-selected" : ""} onClick={() => selectTrainingType("grid")}>
-                <span aria-hidden="true">▦</span> 彩色方格
-              </button>
-              <button className={isCardMode ? "is-selected" : ""} onClick={() => selectTrainingType("cards")}>
-                <span aria-hidden="true">♠</span> 扑克 2-Back
-              </button>
-              <button onClick={() => selectTrainingType("flip")}><span aria-hidden="true">▤</span> 翻牌记忆</button>
+      {(phase === "idle" || phase === "finished") && (
+        <div className="stage-heading">
+          <span className="eyebrow">{trainingLabel} · {modeLabel} · {settings.n}-BACK</span>
+          <h1>{phase === "finished" ? "训练完成" : `记住${memoryDimensions}`}</h1>
+          {phase === "idle" && (
+            <>
+              <p>
+                {settings.mode === "self-paced"
+                  ? "不限时思考，作答后才进入下一轮。"
+                  : isCardMode
+                    ? `牌面翻开后完整显示 ${(settings.interval / 1000).toFixed(1)} 秒，再翻回牌背。`
+                    : `把当前色块与 ${settings.n} 轮前比较，选择唯一符合的关系。`}
+              </p>
+              {isCardMode ? (
+                <div className="suit-legend" aria-label="黑桃、红桃、梅花、方块四种花色">
+                  {CARD_SUITS.map((suit) => <i className={suit.color === "red" ? "is-red" : ""} key={suit.name} title={suit.name}>{suit.symbol}</i>)}
+                </div>
+              ) : (
+                <div className="color-legend" aria-label={`${settings.colorCount}种训练颜色`}>
+                  {COLORS.slice(0, settings.colorCount).map((color) => <i key={color.name} title={color.name} style={{ backgroundColor: color.value }} />)}
+                </div>
+              )}
+            </>
+          )}
+          {phase === "idle" && (
+            <div className="idle-switches">
+              <div className="training-switch three-options" aria-label="选择训练内容">
+                <button className={!isCardMode ? "is-selected" : ""} onClick={() => selectTrainingType("grid")}>
+                  <span aria-hidden="true">▦</span> 彩色方格
+                </button>
+                <button className={isCardMode ? "is-selected" : ""} onClick={() => selectTrainingType("cards")}>
+                  <span aria-hidden="true">♠</span> 扑克 2-Back
+                </button>
+                <button onClick={() => selectTrainingType("flip")}><span aria-hidden="true">▤</span> 翻牌记忆</button>
+              </div>
+              <div className="mode-switch" aria-label="选择节奏模式">
+                <button className={settings.mode === "self-paced" ? "is-selected" : ""} onClick={() => selectMode("self-paced")}>
+                  计时模式<small>不限时 · 作答后换轮</small>
+                </button>
+                <button className={settings.mode === "challenge" ? "is-selected" : ""} onClick={() => selectMode("challenge")}>
+                  挑战模式<small>固定节奏 · 自动换轮</small>
+                </button>
+              </div>
             </div>
-            <div className="mode-switch" aria-label="选择节奏模式">
-              <button className={settings.mode === "self-paced" ? "is-selected" : ""} onClick={() => selectMode("self-paced")}>
-                计时模式<small>不限时 · 作答后换轮</small>
-              </button>
-              <button className={settings.mode === "challenge" ? "is-selected" : ""} onClick={() => selectMode("challenge")}>
-                挑战模式<small>固定节奏 · 自动换轮</small>
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      )}
 
-      {phase === "finished" ? (
+      {phase === "idle" ? (
+        <div className="idle-launch">
+          <button className="start-button" onClick={beginCountdown}>
+            {settings.mode === "self-paced" ? "开始计时" : "开始挑战"} <span>→</span>
+          </button>
+        </div>
+      ) : phase === "finished" ? (
         <section className="result-panel" aria-label="训练结果">
           <div className="score-ring" style={{ "--score": `${accuracy * 3.6}deg` } as CSSProperties}>
             <div><strong>{accuracy}</strong><span>%</span><small>综合正确率</small></div>
@@ -196,12 +204,6 @@ export function NBackGame({
               </span>
               {countdownOverlay}
               {phase === "paused" && <div className="board-overlay"><span>已暂停</span><small>按 P 或下方按钮继续</small></div>}
-              {phase === "idle" && (
-                <div className="board-overlay intro-overlay">
-                  <span>扑克牌 2-Back</span>
-                  <small>{settings.mode === "self-paced" ? "记住点数与花色 · 作答后换轮" : "记住点数与花色 · 固定节奏"}</small>
-                </div>
-              )}
             </div>
           ) : (
             <div
@@ -222,12 +224,6 @@ export function NBackGame({
               </span>
               {countdownOverlay}
               {phase === "paused" && <div className="board-overlay"><span>已暂停</span><small>按 P 或下方按钮继续</small></div>}
-              {phase === "idle" && (
-                <div className="board-overlay intro-overlay">
-                  <span>{modeLabel}</span>
-                  <small>{settings.mode === "self-paced" ? "不限时 · 作答后进入下一轮" : "固定节奏 · 自动进入下一轮"}</small>
-                </div>
-              )}
             </div>
           )}
 
@@ -251,11 +247,7 @@ export function NBackGame({
             </div>
           )}
 
-          {phase === "idle" ? (
-            <button className="start-button" onClick={beginCountdown}>
-              {settings.mode === "self-paced" ? "开始计时" : "开始挑战"} <span>→</span>
-            </button>
-          ) : phase === "countdown" ? (
+          {phase === "countdown" ? (
             <button className="start-button is-muted" disabled>准备开始…</button>
           ) : (
             <button className="start-button pause-button" onClick={togglePause}>

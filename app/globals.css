@@ -221,6 +221,17 @@ h1 {
   margin: .7rem auto 0;
 }
 
+.idle-launch {
+  display: grid;
+  min-height: clamp(110px, 20svh, 190px);
+  place-items: center;
+}
+
+.idle-launch .start-button {
+  width: min(100%, 280px);
+  min-height: 58px;
+}
+
 .training-switch, .mode-switch {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -652,8 +663,10 @@ h1 {
 .pause-button { background: #393531; }
 
 .statusbar {
+  align-self: end;
+  display: grid;
+  grid-template-columns: repeat(4, max-content);
   min-height: 60px;
-  display: flex;
   align-items: center;
   justify-content: center;
   gap: 2.25rem;
@@ -892,8 +905,13 @@ h1 {
   .choice-row.flip-count-options { grid-template-columns: repeat(3, 1fr); }
   .training-options.three-columns { grid-template-columns: 1fr; }
   .warmup-next { min-height: 116px; }
-  .statusbar { gap: 1rem; justify-content: space-between; }
-  .statusbar span:first-child, .statusbar span:nth-child(3) { display: none; }
+  .statusbar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .45rem 1rem;
+    min-height: 74px;
+    padding: .65rem 0;
+    text-align: center;
+  }
   .result-panel { grid-template-columns: 1fr; gap: 1.5rem; padding: 1.4rem; text-align: center; }
   .score-ring { width: 155px; margin: 0 auto; }
   .score-ring::before { width: 125px; }
