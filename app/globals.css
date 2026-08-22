@@ -244,7 +244,7 @@ button:disabled { cursor: not-allowed; }
 
 .flip-game.flip-count-9 > .flip-board,
 .flip-game.flip-count-16 > .flip-board {
-  width: min(100%, var(--flip-board-width, 500px), calc(70dvh - 16.4rem));
+  width: min(100%, var(--flip-board-width, 500px), calc(70dvh - 18rem));
 }
 
 .flip-game.flip-count-12 > .flip-board {
@@ -1130,11 +1130,11 @@ h1 {
   .flip-game:not(.flip-phase-idle):not(.flip-phase-finished) > .preview-timer { grid-column: 1; grid-row: 3; align-self: start; }
   .flip-game:not(.flip-phase-idle):not(.flip-phase-finished) > .start-button { grid-column: 1; grid-row: 4; }
   .flip-game:not(.flip-phase-idle):not(.flip-phase-finished) > .flip-board { grid-column: 2; grid-row: 1 / 5; }
-  .flip-game.flip-count-6 > .flip-board { width: min(100%, 430px, calc(100dvh - 8rem)); }
+  .flip-game.flip-count-6 > .flip-board { width: min(100%, 430px, calc(100dvh - 9rem)); }
   .flip-game.flip-count-8 > .flip-board { width: min(100%, 520px, calc(100dvh - 6rem)); }
   .flip-game.flip-count-9 > .flip-board,
-  .flip-game.flip-count-16 > .flip-board { width: min(100%, 500px, calc(70dvh - 5.6rem)); }
-  .flip-game.flip-count-12 > .flip-board { width: min(100%, 500px, calc(95dvh - 7.6rem)); }
+  .flip-game.flip-count-16 > .flip-board { width: min(100%, 500px, calc(70dvh - 6.5rem)); }
+  .flip-game.flip-count-12 > .flip-board { width: min(100%, 500px, calc(95dvh - 9rem)); }
 }
 
 @media (prefers-reduced-motion: reduce) {
