@@ -2,6 +2,7 @@
 
 import { FLIP_CARD_COUNTS, PRESET_INTERVALS } from "./core";
 import type { GameSettings } from "./core";
+import { SelectMenu } from "./SelectMenu";
 
 type IdleSettingsProps = {
   settings: GameSettings;
@@ -38,17 +39,14 @@ function QuickModeSetting({ settings, onChange }: {
       <span className="quick-setting-label">模式</span>
       <div className="quick-options two-options">
         <button className={settings.mode === "self-paced" ? "is-selected" : ""} onClick={() => onChange({ mode: "self-paced" })}>计时</button>
-        <select
-          className={`quick-select quick-challenge-select ${settings.mode === "challenge" ? "is-selected" : ""}`}
-          value={settings.mode === "challenge" ? settings.interval : ""}
-          onChange={(event) => onChange({ mode: "challenge", interval: Number(event.target.value) })}
-          aria-label="选择挑战模式间隔"
-        >
-          <option value="" disabled>挑战</option>
-          {PRESET_INTERVALS.map((interval) => (
-            <option value={interval} key={interval}>{(interval / 1000).toFixed(1)} 秒</option>
-          ))}
-        </select>
+        <SelectMenu
+          className={`quick-challenge-select ${settings.mode === "challenge" ? "is-selected" : ""}`}
+          value={settings.mode === "challenge" ? settings.interval : null}
+          options={PRESET_INTERVALS.map((interval) => ({ value: interval, label: `${(interval / 1000).toFixed(1)} 秒` }))}
+          placeholder="挑战"
+          ariaLabel="选择挑战模式间隔"
+          onChange={(interval) => onChange({ mode: "challenge", interval })}
+        />
       </div>
     </div>
   );
@@ -69,17 +67,14 @@ export function IdleSettings({ settings, onChange }: IdleSettingsProps) {
           </div>
         </div>
         <div className="quick-setting">
-          <label className="quick-setting-label" htmlFor="quick-flip-count">牌阵数量</label>
-          <select
-            id="quick-flip-count"
-            className="quick-select"
+          <span className="quick-setting-label">牌阵数量</span>
+          <SelectMenu
             value={settings.flipCardCount}
-            onChange={(event) => onChange({ flipCardCount: Number(event.target.value) as GameSettings["flipCardCount"] })}
-          >
-            {FLIP_CARD_COUNTS.map((flipCardCount) => (
-              <option value={flipCardCount} key={flipCardCount}>{flipCardCount} 张</option>
-            ))}
-          </select>
+            options={FLIP_CARD_COUNTS.map((flipCardCount) => ({ value: flipCardCount, label: `${flipCardCount} 张` }))}
+            placeholder="选择牌数"
+            ariaLabel="选择牌阵数量"
+            onChange={(flipCardCount) => onChange({ flipCardCount })}
+          />
         </div>
         <div className="quick-setting is-full">
           <span className="quick-setting-label">训练长度</span>

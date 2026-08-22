@@ -87,18 +87,25 @@ test("keeps result screens compact and free of evaluation copy", async () => {
 });
 
 test("uses the requested compact home-setting layouts", async () => {
-  const [idleSettings, settingsModal, core] = await Promise.all([
+  const [idleSettings, settingsModal, selectMenu, core] = await Promise.all([
     readFile(new URL("../app/game/IdleSettings.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/game/SettingsModal.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/game/SelectMenu.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/game/core.ts", import.meta.url), "utf8"),
   ]);
 
   assert.match(idleSettings, /grid-inline-settings/);
   assert.match(idleSettings, /card-inline-settings/);
-  assert.match(idleSettings, /id="quick-flip-count"/);
+  assert.match(idleSettings, /ariaLabel="选择牌阵数量"/);
   assert.match(idleSettings, /quick-setting is-full[\s\S]*训练长度/);
-  assert.match(idleSettings, /value={settings\.mode === "challenge" \? settings\.interval : ""}/);
-  assert.match(idleSettings, /onChange\(\{ mode: "challenge", interval: Number\(event\.target\.value\) \}\)/);
+  assert.match(idleSettings, /value={settings\.mode === "challenge" \? settings\.interval : null}/);
+  assert.match(idleSettings, /onChange=\{\(interval\) => onChange\(\{ mode: "challenge", interval \}\)\}/);
+  assert.doesNotMatch(idleSettings, /<select|<option/);
+  assert.match(selectMenu, /aria-haspopup="listbox"/);
+  assert.match(selectMenu, /role="listbox"/);
+  assert.match(selectMenu, /role="option"/);
+  assert.match(selectMenu, /aria-selected={option\.value === value}/);
+  assert.match(selectMenu, /ArrowDown|ArrowUp/);
   assert.doesNotMatch(idleSettings, /训练牌组|13 个点数|4 种花色|quick-fixed-value/);
   assert.doesNotMatch(settingsModal, /固定 2-Back|扑克牌玩法固定|card-pool-setting/);
   assert.match(settingsModal, /VERSION 2\.0/);
