@@ -2,6 +2,7 @@
 
 import type { Dispatch, SetStateAction } from "react";
 import {
+  CARD_FLIP_DURATION_MS,
   CARD_SUITS,
   FLIP_CARD_COUNTS,
   FLIP_CONFIG,
@@ -19,6 +20,7 @@ type SettingsModalProps = {
 export function SettingsModal({ draftSettings, setDraftSettings, onClose, onSave }: SettingsModalProps) {
   const draftIsCardMode = draftSettings.trainingType === "cards";
   const draftIsFlipMode = draftSettings.trainingType === "flip";
+  const challengeRoundMs = draftSettings.interval + (draftIsCardMode ? CARD_FLIP_DURATION_MS * 2 : 0);
 
   return (
     <div className="modal-backdrop">
@@ -145,7 +147,7 @@ export function SettingsModal({ draftSettings, setDraftSettings, onClose, onSave
 
             {draftSettings.mode === "challenge" && (
               <fieldset className="setting-group">
-                <legend>每轮节奏</legend>
+                <legend>{draftIsCardMode ? "牌面可见时间" : "每轮节奏"}</legend>
                 <div className="choice-row pace-options">
                   {[{ label: "舒缓", value: 3000 }, { label: "标准", value: 2400 }, { label: "快速", value: 1800 }, { label: "极快", value: 1200 }].map((option) => (
                     <button className={draftSettings.interval === option.value ? "is-selected" : ""} onClick={() => setDraftSettings((value) => ({ ...value, interval: option.value }))} key={option.value}>{option.label}<small>{option.value / 1000} 秒</small></button>
@@ -159,7 +161,7 @@ export function SettingsModal({ draftSettings, setDraftSettings, onClose, onSave
               <div className="choice-row two-columns">
                 {[20, 30].map((total) => (
                   <button className={draftSettings.total === total ? "is-selected" : ""} onClick={() => setDraftSettings((value) => ({ ...value, total }))} key={total}>
-                    {total} 轮<small>{draftSettings.mode === "self-paced" ? "按自己的速度完成" : `约 ${Math.ceil((total * draftSettings.interval) / 60000)} 分钟`}</small>
+                    {total} 轮<small>{draftSettings.mode === "self-paced" ? "按自己的速度完成" : `约 ${Math.ceil((total * challengeRoundMs) / 60000)} 分钟`}</small>
                   </button>
                 ))}
               </div>

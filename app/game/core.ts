@@ -104,6 +104,7 @@ export const FLIP_CONFIG: Record<FlipCardCount, { columns: number; targets: numb
   16: { columns: 4, targets: 5, previewSeconds: 12, boardWidth: 500, layout: "4 × 4" },
 };
 export const FLIP_CARD_GAP = 8;
+export const CARD_FLIP_DURATION_MS = 240;
 
 export const DEFAULT_SETTINGS: GameSettings = {
   n: 2,

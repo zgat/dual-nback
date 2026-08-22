@@ -2,6 +2,7 @@
 
 import type { CSSProperties } from "react";
 import {
+  CARD_FLIP_DURATION_MS,
   CARD_SUITS,
   COLORS,
   OPTIONS,
@@ -91,7 +92,9 @@ export function NBackGame({
               ? "训练已暂停，准备好后继续。"
               : settings.mode === "self-paced"
                 ? "不限时思考，作答后才进入下一轮。"
-                : `把当前${isCardMode ? "牌面" : "色块"}与 ${settings.n} 轮前比较，选择唯一符合的关系。`}
+                : isCardMode
+                  ? `牌面翻开后完整显示 ${(settings.interval / 1000).toFixed(1)} 秒，再翻回牌背。`
+                  : `把当前色块与 ${settings.n} 轮前比较，选择唯一符合的关系。`}
         </p>
         {isCardMode ? (
           <div className="suit-legend" aria-label="黑桃、红桃、梅花、方块四种花色">
@@ -174,7 +177,11 @@ export function NBackGame({
         <>
           {isCardMode ? (
             <div className="card-board" aria-label="扑克牌训练区">
-              <div className={`playing-card ${currentCard?.suit.color === "red" ? "is-red" : ""} ${!stimulusVisible || !currentCard ? "is-back" : ""}`} aria-hidden="true">
+              <div
+                className={`playing-card ${currentCard?.suit.color === "red" ? "is-red" : ""} ${!stimulusVisible || !currentCard ? "is-back" : ""}`}
+                style={{ "--card-flip-duration": `${CARD_FLIP_DURATION_MS}ms` } as CSSProperties}
+                aria-hidden="true"
+              >
                 <div className="playing-card-inner">
                   <div className="playing-card-face">
                     <span className="card-corner is-top"><b>{currentCard?.rank.name}</b><i>{currentCard?.suit.symbol}</i></span>

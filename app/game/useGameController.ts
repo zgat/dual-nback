@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  CARD_FLIP_DURATION_MS,
   DEFAULT_SETTINGS,
   EMPTY_STATS,
   OPTIONS,
@@ -71,9 +72,18 @@ export function useGameController() {
     setStimulusVisible(true);
 
     if (settingsRef.current.mode === "challenge") {
-      const showFor = Math.min(2400, Math.round(settingsRef.current.interval * 0.42));
-      stimulusTimerRef.current = window.setTimeout(() => setStimulusVisible(false), showFor);
-      trialTimerRef.current = window.setTimeout(() => finalizeRef.current(), settingsRef.current.interval);
+      if (trial.type === "cards") {
+        const hideAfter = CARD_FLIP_DURATION_MS + settingsRef.current.interval;
+        stimulusTimerRef.current = window.setTimeout(() => {
+          stimulusTimerRef.current = null;
+          setStimulusVisible(false);
+          trialTimerRef.current = window.setTimeout(() => finalizeRef.current(), CARD_FLIP_DURATION_MS);
+        }, hideAfter);
+      } else {
+        const showFor = Math.min(2400, Math.round(settingsRef.current.interval * 0.42));
+        stimulusTimerRef.current = window.setTimeout(() => setStimulusVisible(false), showFor);
+        trialTimerRef.current = window.setTimeout(() => finalizeRef.current(), settingsRef.current.interval);
+      }
     }
   }, []);
 
