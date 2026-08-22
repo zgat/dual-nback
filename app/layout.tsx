@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "双重记忆 · Dual N-Back",
-  description: "包含彩色方格 N-Back、扑克牌 2-Back 和翻牌记忆训练的前端游戏。",
+  description: "包含彩色方格 N-Back、扑克牌 N-Back 和翻牌记忆训练的前端游戏。",
   icons: {
     icon: "/favicon.svg",
     shortcut: "/favicon.svg",

@@ -29,6 +29,34 @@ function QuickStepper({ label, value, min, max, onChange }: StepperProps) {
   );
 }
 
+function QuickModeSetting({ settings, isCardMode, onChange }: {
+  settings: GameSettings;
+  isCardMode: boolean;
+  onChange: IdleSettingsProps["onChange"];
+}) {
+  return (
+    <div className="quick-setting quick-mode-setting">
+      <span className="quick-setting-label">模式</span>
+      <div className="quick-options two-options">
+        <button className={settings.mode === "self-paced" ? "is-selected" : ""} onClick={() => onChange({ mode: "self-paced" })}>计时</button>
+        <button className={settings.mode === "challenge" ? "is-selected" : ""} onClick={() => onChange({ mode: "challenge" })}>挑战</button>
+      </div>
+      {settings.mode === "challenge" && (
+        <select
+          className="quick-select"
+          value={settings.interval}
+          onChange={(event) => onChange({ interval: Number(event.target.value) })}
+          aria-label={isCardMode ? "牌面可见时间" : "每轮节奏"}
+        >
+          {PRESET_INTERVALS.map((interval) => (
+            <option value={interval} key={interval}>{isCardMode ? "牌面" : "节奏"} {(interval / 1000).toFixed(1)} 秒</option>
+          ))}
+        </select>
+      )}
+    </div>
+  );
+}
+
 export function IdleSettings({ settings, onChange }: IdleSettingsProps) {
   const isFlipMode = settings.trainingType === "flip";
   const isCardMode = settings.trainingType === "cards";
@@ -44,18 +72,23 @@ export function IdleSettings({ settings, onChange }: IdleSettingsProps) {
           </div>
         </div>
         <div className="quick-setting">
+          <label className="quick-setting-label" htmlFor="quick-flip-count">牌阵数量</label>
+          <select
+            id="quick-flip-count"
+            className="quick-select"
+            value={settings.flipCardCount}
+            onChange={(event) => onChange({ flipCardCount: Number(event.target.value) as GameSettings["flipCardCount"] })}
+          >
+            {FLIP_CARD_COUNTS.map((flipCardCount) => (
+              <option value={flipCardCount} key={flipCardCount}>{flipCardCount} 张</option>
+            ))}
+          </select>
+        </div>
+        <div className="quick-setting is-full">
           <span className="quick-setting-label">训练长度</span>
           <div className="quick-options two-options">
             {[5, 8].map((flipRounds) => (
               <button className={settings.flipRounds === flipRounds ? "is-selected" : ""} onClick={() => onChange({ flipRounds })} key={flipRounds}>{flipRounds} 轮</button>
-            ))}
-          </div>
-        </div>
-        <div className="quick-setting is-full">
-          <span className="quick-setting-label">牌阵数量</span>
-          <div className="quick-options five-options">
-            {FLIP_CARD_COUNTS.map((flipCardCount) => (
-              <button className={settings.flipCardCount === flipCardCount ? "is-selected" : ""} onClick={() => onChange({ flipCardCount })} key={flipCardCount}>{flipCardCount}</button>
             ))}
           </div>
         </div>
@@ -64,25 +97,18 @@ export function IdleSettings({ settings, onChange }: IdleSettingsProps) {
   }
 
   return (
-    <section className="inline-settings" aria-label={`${isCardMode ? "扑克牌" : "彩色方格"}训练设置`}>
-      <div className="quick-setting">
-        <span className="quick-setting-label">模式</span>
-        <div className="quick-options two-options">
-          <button className={settings.mode === "self-paced" ? "is-selected" : ""} onClick={() => onChange({ mode: "self-paced" })}>计时</button>
-          <button className={settings.mode === "challenge" ? "is-selected" : ""} onClick={() => onChange({ mode: "challenge" })}>挑战</button>
-        </div>
-      </div>
+    <section className={`inline-settings ${isCardMode ? "card-inline-settings" : "grid-inline-settings"}`} aria-label={`${isCardMode ? "扑克牌" : "彩色方格"}训练设置`}>
+      <QuickModeSetting settings={settings} isCardMode={isCardMode} onChange={onChange} />
+      <QuickStepper label="N-Back" value={settings.n} min={1} max={5} onChange={(n) => onChange({ n })} />
 
-      {isCardMode ? (
-        <div className="quick-setting">
-          <span className="quick-setting-label">N-Back</span>
-          <strong className="quick-fixed-value">2-Back</strong>
-        </div>
-      ) : (
-        <QuickStepper label="N-Back" value={settings.n} min={1} max={5} onChange={(n) => onChange({ n })} />
+      {!isCardMode && (
+        <>
+          <QuickStepper label="位置方块" value={settings.cellCount} min={4} max={16} onChange={(cellCount) => onChange({ cellCount })} />
+          <QuickStepper label="颜色数量" value={settings.colorCount} min={2} max={7} onChange={(colorCount) => onChange({ colorCount })} />
+        </>
       )}
 
-      <div className="quick-setting">
+      <div className="quick-setting is-full">
         <span className="quick-setting-label">训练长度</span>
         <div className="quick-options two-options">
           {[20, 30].map((total) => (
@@ -90,29 +116,6 @@ export function IdleSettings({ settings, onChange }: IdleSettingsProps) {
           ))}
         </div>
       </div>
-
-      {isCardMode ? (
-        <div className="quick-setting is-wide">
-          <span className="quick-setting-label">训练牌组</span>
-          <strong className="quick-fixed-value">13 个点数 · 4 种花色</strong>
-        </div>
-      ) : (
-        <>
-          <QuickStepper label="位置方块" value={settings.cellCount} min={4} max={16} onChange={(cellCount) => onChange({ cellCount })} />
-          <QuickStepper label="颜色数量" value={settings.colorCount} min={2} max={7} onChange={(colorCount) => onChange({ colorCount })} />
-        </>
-      )}
-
-      {settings.mode === "challenge" && (
-        <div className="quick-setting is-wide">
-          <span className="quick-setting-label">{isCardMode ? "牌面时间" : "每轮节奏"}</span>
-          <div className="quick-options four-options">
-            {PRESET_INTERVALS.map((interval) => (
-              <button className={settings.interval === interval ? "is-selected" : ""} onClick={() => onChange({ interval })} key={interval}>{(interval / 1000).toFixed(1)}s</button>
-            ))}
-          </div>
-        </div>
-      )}
     </section>
   );
 }

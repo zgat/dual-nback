@@ -9,7 +9,6 @@ import {
   classify,
   makeSequence,
   normalizeSettings,
-  scorePercent,
 } from "./core";
 import type { GameSettings, MatchType, Phase, Stats, TrainingType, Trial } from "./core";
 
@@ -25,7 +24,6 @@ export function useGameController() {
   const [selected, setSelected] = useState<MatchType | null>(null);
   const [correctAnswer, setCorrectAnswer] = useState<MatchType | null>(null);
   const [stats, setStats] = useState<Stats>(EMPTY_STATS);
-  const [bestScore, setBestScore] = useState(0);
   const [elapsedMs, setElapsedMs] = useState(0);
   const [showSettings, setShowSettings] = useState(false);
   const [flipSessionActive, setFlipSessionActive] = useState(false);
@@ -87,7 +85,7 @@ export function useGameController() {
     }
   }, []);
 
-  const finishSession = useCallback((finalStats: Stats) => {
+  const finishSession = useCallback(() => {
     clearTimers();
     phaseRef.current = "finished";
     setPhase("finished");
@@ -95,12 +93,6 @@ export function useGameController() {
     const endedAt = sessionEndedAtRef.current || Date.now();
     setElapsedMs(Math.max(0, endedAt - sessionStartedAtRef.current - pausedDurationRef.current));
 
-    const score = scorePercent(finalStats);
-    setBestScore((previous) => {
-      const next = Math.max(previous, score);
-      window.localStorage.setItem("dual-nback-best", String(next));
-      return next;
-    });
   }, [clearTimers]);
 
   const finalizeTrial = useCallback(() => {
@@ -131,7 +123,7 @@ export function useGameController() {
       setStats(nextStats);
     }
 
-    if (index >= settingsRef.current.total - 1) finishSession(nextStats);
+    if (index >= settingsRef.current.total - 1) finishSession();
     else startTrial(index + 1);
   }, [finishSession, startTrial]);
 
@@ -357,7 +349,6 @@ export function useGameController() {
     countdownExiting,
     selected,
     stats,
-    bestScore,
     elapsedMs,
     showSettings,
     setShowSettings,

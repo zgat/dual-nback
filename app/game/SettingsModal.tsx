@@ -3,12 +3,11 @@
 import type { Dispatch, SetStateAction } from "react";
 import {
   CARD_FLIP_DURATION_MS,
-  CARD_SUITS,
   FLIP_CARD_COUNTS,
   FLIP_CONFIG,
   normalizeSettings,
 } from "./core";
-import type { GameSettings } from "./core";
+import type { FlipCardCount, GameSettings } from "./core";
 
 type SettingsModalProps = {
   draftSettings: GameSettings;
@@ -44,7 +43,7 @@ export function SettingsModal({ draftSettings, setDraftSettings, onClose, onSave
               className={draftIsCardMode ? "is-selected" : ""}
               onClick={() => setDraftSettings((value) => normalizeSettings({ ...value, trainingType: "cards" }))}
             >
-              扑克牌<small>点数 × 花色 · 固定 2-Back</small>
+              扑克牌<small>点数 × 花色 · 可调 N-Back</small>
             </button>
             <button
               className={draftIsFlipMode ? "is-selected" : ""}
@@ -59,17 +58,18 @@ export function SettingsModal({ draftSettings, setDraftSettings, onClose, onSave
           <>
             <fieldset className="setting-group mode-setting">
               <legend>牌阵数量</legend>
-              <div className="choice-row flip-count-options">
+              <select
+                className="setting-select"
+                value={draftSettings.flipCardCount}
+                onChange={(event) => {
+                  const flipCardCount = Number(event.target.value) as FlipCardCount;
+                  setDraftSettings((value) => ({ ...value, flipCardCount }));
+                }}
+              >
                 {FLIP_CARD_COUNTS.map((flipCardCount) => (
-                  <button
-                    className={draftSettings.flipCardCount === flipCardCount ? "is-selected" : ""}
-                    onClick={() => setDraftSettings((value) => ({ ...value, flipCardCount }))}
-                    key={flipCardCount}
-                  >
-                    {flipCardCount} 张<small>{FLIP_CONFIG[flipCardCount].layout}</small>
-                  </button>
+                  <option value={flipCardCount} key={flipCardCount}>{flipCardCount} 张 · {FLIP_CONFIG[flipCardCount].layout}</option>
                 ))}
-              </div>
+              </select>
             </fieldset>
             <fieldset className="setting-group">
               <legend>翻牌难度</legend>
@@ -108,23 +108,15 @@ export function SettingsModal({ draftSettings, setDraftSettings, onClose, onSave
             </fieldset>
 
             <div className="setting-row">
-              <div><b>N-Back 难度</b><small>{draftIsCardMode ? "扑克牌玩法固定比较 2 轮前的牌面" : "需要回忆多少轮之前的位置与颜色"}</small></div>
-              {draftIsCardMode ? <strong className="fixed-setting-value">2</strong> : (
-                <div className="stepper">
-                  <button onClick={() => setDraftSettings((value) => ({ ...value, n: Math.max(1, value.n - 1) }))} aria-label="降低难度">−</button>
-                  <strong>{draftSettings.n}</strong>
-                  <button onClick={() => setDraftSettings((value) => ({ ...value, n: Math.min(5, value.n + 1) }))} aria-label="提高难度">＋</button>
-                </div>
-              )}
+              <div><b>N-Back 难度</b><small>{draftIsCardMode ? "需要回忆多少轮之前的点数与花色" : "需要回忆多少轮之前的位置与颜色"}</small></div>
+              <div className="stepper">
+                <button onClick={() => setDraftSettings((value) => ({ ...value, n: Math.max(1, value.n - 1) }))} aria-label="降低难度">−</button>
+                <strong>{draftSettings.n}</strong>
+                <button onClick={() => setDraftSettings((value) => ({ ...value, n: Math.min(5, value.n + 1) }))} aria-label="提高难度">＋</button>
+              </div>
             </div>
 
-            {draftIsCardMode ? (
-              <div className="card-pool-setting" aria-label="扑克牌训练牌组">
-                <div className="card-pool-summary"><span><b>13</b> 个点数</span><span><b>4</b> 种花色</span></div>
-                <div className="setting-suits" aria-hidden="true">{CARD_SUITS.map((suit) => <i className={suit.color === "red" ? "is-red" : ""} key={suit.name}>{suit.symbol}</i>)}</div>
-                <small>使用 A、2–10、J、Q、K 和完整四种花色。</small>
-              </div>
-            ) : (
+            {!draftIsCardMode && (
               <>
                 <div className="setting-row">
                   <div><b>位置方块数</b><small>可选 4–16 个位置；越少越容易</small></div>
@@ -175,7 +167,7 @@ export function SettingsModal({ draftSettings, setDraftSettings, onClose, onSave
             {draftIsFlipMode
               ? "先看完整牌阵并记住每张牌的位置。盖牌后才会公布目标牌，点出全部目标即可进入下一轮；移动进阶会逐步展示每次换位。"
               : draftIsCardMode
-                ? "把当前牌的点数、花色分别与 2 轮前比较，从点数同/不同、花色同/不同的四种组合中选择答案。"
+                ? `把当前牌的点数、花色分别与 ${draftSettings.n} 轮前比较，从点数同/不同、花色同/不同的四种组合中选择答案。`
                 : "把当前位置、颜色分别与 N 轮前比较，从位置同/不同、颜色同/不同的四种组合中选择答案。"}
             {!draftIsFlipMode && "计时模式在作答后换轮，挑战模式会自动换轮。"}
           </p>

@@ -3,7 +3,6 @@
 import { FlipMemoryGame } from "./game/FlipMemoryGame";
 import { NBackGame } from "./game/NBackGame";
 import { SettingsModal } from "./game/SettingsModal";
-import { FLIP_CONFIG, scorePercent } from "./game/core";
 import { useGameController } from "./game/useGameController";
 
 export default function Home() {
@@ -20,7 +19,6 @@ export default function Home() {
     countdownExiting,
     selected,
     stats,
-    bestScore,
     elapsedMs,
     showSettings,
     setShowSettings,
@@ -40,13 +38,10 @@ export default function Home() {
     goHome,
   } = game;
 
-  const accuracy = scorePercent(stats);
   const progress = round < 0 ? 0 : ((round + 1) / settings.total) * 100;
   const isCardMode = settings.trainingType === "cards";
   const isFlipMode = settings.trainingType === "flip";
   const showHomeButton = isFlipMode ? flipSessionActive : phase !== "idle";
-  const modeLabel = settings.mode === "self-paced" ? "计时模式" : "挑战模式";
-  const activeFlipConfig = FLIP_CONFIG[settings.flipCardCount];
 
   return (
     <main className="app-shell">
@@ -108,16 +103,6 @@ export default function Home() {
           />
         )}
       </section>
-
-      <footer className="statusbar">
-        <span>
-          <i className="status-dot" />
-          {isFlipMode ? `${settings.flipCardCount} 张牌 · ${activeFlipConfig.targets} 张目标` : isCardMode ? "13 个点数 · 4 种花色" : `${settings.cellCount} 个位置 · ${settings.colorCount} 种颜色`}
-        </span>
-        <span>{isFlipMode ? "流程" : "正确率"} <b>{isFlipMode ? "先看后找" : stats.total ? `${accuracy}%` : "—"}</b></span>
-        <span>{isFlipMode ? "难度" : "节奏"} <b>{isFlipMode ? settings.flipDifficulty === "moving" ? "移动进阶" : "经典模式" : modeLabel}</b></span>
-        <span>{isFlipMode ? "轮数" : "历史最佳"} <b>{isFlipMode ? settings.flipRounds : bestScore ? `${bestScore}%` : "—"}</b></span>
-      </footer>
 
       {showSettings && (
         <SettingsModal

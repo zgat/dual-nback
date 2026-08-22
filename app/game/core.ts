@@ -241,7 +241,7 @@ export function normalizeSettings(value: Partial<GameSettings>): GameSettings {
   const trainingType = value.trainingType === "cards" || value.trainingType === "flip" ? value.trainingType : "grid";
   const flipCardCount = FLIP_CARD_COUNTS.includes(value.flipCardCount as FlipCardCount) ? value.flipCardCount as FlipCardCount : DEFAULT_SETTINGS.flipCardCount;
   return {
-    n: trainingType === "cards" ? 2 : Math.min(5, Math.max(1, Math.round(value.n ?? DEFAULT_SETTINGS.n))),
+    n: Math.min(5, Math.max(1, Math.round(value.n ?? DEFAULT_SETTINGS.n))),
     total: value.total === 30 ? 30 : 20,
     interval: normalizeInterval(value.interval ?? DEFAULT_SETTINGS.interval),
     cellCount: Math.min(16, Math.max(4, Math.round(value.cellCount ?? DEFAULT_SETTINGS.cellCount))),

@@ -112,7 +112,7 @@ export function NBackGame({
                   <span aria-hidden="true">▦</span> 彩色方格
                 </button>
                 <button className={isCardMode ? "is-selected" : ""} onClick={() => selectTrainingType("cards")}>
-                  <span aria-hidden="true">♠</span> 扑克 2-Back
+                  <span aria-hidden="true">♠</span> 扑克 N-Back
                 </button>
                 <button onClick={() => selectTrainingType("flip")}><span aria-hidden="true">▤</span> 翻牌记忆</button>
               </div>

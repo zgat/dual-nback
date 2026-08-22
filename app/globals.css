@@ -27,9 +27,9 @@ body {
   font-family: Arial, "PingFang SC", "Microsoft YaHei", sans-serif;
 }
 
-button, input { font: inherit; }
+button, input, select { font: inherit; }
 button { color: inherit; }
-button:focus-visible, input:focus-visible { outline: 3px solid rgba(31,103,97,.28); outline-offset: 3px; }
+button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid rgba(31,103,97,.28); outline-offset: 3px; }
 button:disabled { cursor: not-allowed; }
 
 .sr-only {
@@ -49,7 +49,7 @@ button:disabled { cursor: not-allowed; }
   height: 100dvh;
   min-height: 0;
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-rows: auto minmax(0, 1fr);
   padding: 0 3.5rem;
   overflow: hidden;
 }
@@ -353,7 +353,7 @@ h1 {
 
 .inline-settings {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: .55rem;
   width: 100%;
   padding: .7rem;
@@ -375,7 +375,6 @@ h1 {
   background: rgba(255,255,255,.32);
 }
 
-.quick-setting.is-wide { grid-column: span 2; }
 .quick-setting.is-full { grid-column: 1 / -1; }
 .quick-setting-label {
   color: #776f65;
@@ -391,8 +390,6 @@ h1 {
 }
 
 .quick-options.two-options { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.quick-options.four-options { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-.quick-options.five-options { grid-template-columns: repeat(5, minmax(0, 1fr)); }
 .quick-options button,
 .quick-stepper button {
   min-width: 0;
@@ -427,6 +424,30 @@ h1 {
   font-size: .8rem;
   font-weight: 500;
   text-align: center;
+}
+
+.quick-select,
+.setting-select {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid #cfc3b3;
+  border-radius: 7px;
+  background: rgba(255,255,255,.55);
+  color: var(--ink);
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.quick-select {
+  min-height: 32px;
+  padding: 0 .55rem;
+  font-size: .65rem;
+}
+
+.setting-select {
+  min-height: 48px;
+  padding: 0 .8rem;
+  font-size: .78rem;
 }
 
 .training-switch, .mode-switch {
@@ -859,24 +880,6 @@ h1 {
 .start-button.is-muted { opacity: .65; }
 .pause-button { background: #393531; }
 
-.statusbar {
-  align-self: end;
-  display: grid;
-  grid-template-columns: repeat(4, max-content);
-  min-height: 60px;
-  align-items: center;
-  justify-content: center;
-  gap: 2.25rem;
-  border-top: 1px solid var(--line);
-  color: #777067;
-  font-size: .68rem;
-  overflow: hidden;
-}
-
-.statusbar b { color: var(--ink); margin-left: .22rem; }
-.status-dot { display: inline-block; width: 6px; height: 6px; margin-right: .35rem; border-radius: 50%; background: var(--teal); }
-.status-dot.is-off { background: #958b7e; }
-
 .modal-backdrop {
   position: fixed;
   inset: 0;
@@ -1068,7 +1071,6 @@ h1 {
   .nback-game.phase-paused > .card-board { min-height: min(300px, calc(100dvh - 20rem)); }
   .playing-card { width: 170px; }
   .grid-cell { border-radius: 8px; }
-  .statusbar { min-height: 48px; }
   .match-button { min-height: 48px; }
   .warmup-next { min-height: 104px; }
   .start-button { min-height: 44px; }
@@ -1085,10 +1087,9 @@ h1 {
   .stage-heading { margin-bottom: 1.15rem; }
   .stage-heading p { padding: 0 .5rem; font-size: .8rem; }
   .idle-switches { width: 100%; }
-  .inline-settings { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .4rem; padding: .45rem; }
+  .inline-settings { gap: .4rem; padding: .45rem; }
   .quick-setting { gap: .28rem; padding: .4rem; }
-  .quick-setting.is-wide { grid-column: span 2; }
-  .quick-options button, .quick-stepper button, .quick-stepper strong, .quick-fixed-value { min-height: 30px; }
+  .quick-options button, .quick-stepper button, .quick-stepper strong, .quick-fixed-value, .quick-select { min-height: 30px; }
   .quick-options button, .quick-stepper button { padding-inline: .2rem; font-size: .6rem; }
   .training-switch button, .mode-switch button { font-size: .68rem; }
   .training-switch.three-options button { padding-inline: .15rem; font-size: .6rem; }
@@ -1129,13 +1130,6 @@ h1 {
   .choice-row.flip-count-options { grid-template-columns: repeat(3, 1fr); }
   .training-options.three-columns { grid-template-columns: 1fr; }
   .warmup-next { min-height: 116px; }
-  .statusbar {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: .45rem 1rem;
-    min-height: 74px;
-    padding: .65rem 0;
-    text-align: center;
-  }
   .result-panel { grid-template-columns: 106px minmax(0, 1fr); gap: .8rem; min-height: 0; padding: .9rem; text-align: left; }
   .score-ring { width: 106px; margin: 0; }
   .score-ring::before { width: 86px; }
@@ -1161,7 +1155,7 @@ h1 {
   .idle-home .idle-launch { min-height: 48px; }
   .inline-settings { gap: .35rem; padding: .4rem; }
   .quick-setting { padding: .34rem; }
-  .quick-options button, .quick-stepper button, .quick-stepper strong, .quick-fixed-value { min-height: 27px; }
+  .quick-options button, .quick-stepper button, .quick-stepper strong, .quick-fixed-value, .quick-select { min-height: 27px; }
   .training-switch button { min-height: 30px; }
   .mode-switch button { min-height: 36px; }
   .nback-game.phase-countdown > .game-grid,
@@ -1178,7 +1172,6 @@ h1 {
   .match-button { min-height: 44px; }
   .warmup-next { min-height: 96px; }
   .start-button { min-height: 42px; }
-  .statusbar { min-height: 60px; padding-block: .4rem; }
   .flip-heading h1 { font-size: 1.75rem; }
   .flip-round-indicator { margin-top: .35rem; }
   .target-prompt { min-height: 38px; }

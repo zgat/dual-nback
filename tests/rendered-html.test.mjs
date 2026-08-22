@@ -37,7 +37,8 @@ test("server-renders the Dual N-Back game", async () => {
   assert.doesNotMatch(html, /位置 ✓ · 颜色 ×/);
   assert.doesNotMatch(html, /位置 × · 颜色 ✓/);
   assert.doesNotMatch(html, /位置 × · 颜色 ×/);
-  assert.match(html, /包含彩色方格 N-Back、扑克牌 2-Back 和翻牌记忆训练/);
+  assert.match(html, /包含彩色方格 N-Back、扑克牌 N-Back 和翻牌记忆训练/);
+  assert.doesNotMatch(html, /<footer|statusbar/);
   assert.doesNotMatch(html, /四色关系判断|codex-preview|react-loading-skeleton/);
 });
 
@@ -45,7 +46,8 @@ test("keeps game screens inside the dynamic viewport", async () => {
   const css = await readFile(new URL("../app/globals.css", import.meta.url), "utf8");
 
   assert.match(css, /html, body, #root\s*{[^}]*overflow:\s*hidden/s);
-  assert.match(css, /\.app-shell\s*{[^}]*height:\s*100dvh[^}]*grid-template-rows:\s*auto minmax\(0, 1fr\) auto/s);
+  assert.match(css, /\.app-shell\s*{[^}]*height:\s*100dvh[^}]*grid-template-rows:\s*auto minmax\(0, 1fr\)/s);
+  assert.doesNotMatch(css, /\.statusbar/);
   assert.match(css, /\.game-stage\s*{[^}]*height:\s*100%[^}]*overflow:\s*hidden/s);
   assert.match(css, /@media \(max-height: 600px\) and \(min-aspect-ratio: 4 \/ 3\)/);
 });
@@ -69,4 +71,20 @@ test("keeps result screens compact and free of evaluation copy", async () => {
   assert.match(sources[0], /<IdleSettings settings={settings} onChange={updateSettings}/);
   assert.match(sources[0], />修改设置 <span>→<\/span>/);
   assert.match(sources[1], />修改设置 <span>→<\/span>/);
+});
+
+test("uses the requested compact home-setting layouts", async () => {
+  const [idleSettings, settingsModal, core] = await Promise.all([
+    readFile(new URL("../app/game/IdleSettings.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/game/SettingsModal.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/game/core.ts", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(idleSettings, /grid-inline-settings/);
+  assert.match(idleSettings, /card-inline-settings/);
+  assert.match(idleSettings, /id="quick-flip-count"/);
+  assert.match(idleSettings, /quick-setting is-full[\s\S]*训练长度/);
+  assert.doesNotMatch(idleSettings, /训练牌组|13 个点数|4 种花色|quick-fixed-value/);
+  assert.doesNotMatch(settingsModal, /固定 2-Back|扑克牌玩法固定|card-pool-setting/);
+  assert.doesNotMatch(core, /trainingType === "cards" \? 2/);
 });

@@ -201,7 +201,7 @@ export function FlipMemoryGame({
             <div className="idle-switches">
               <div className="training-switch three-options" aria-label="选择训练内容">
                 <button onClick={() => onSelectTrainingType("grid")}><span aria-hidden="true">▦</span> 彩色方格</button>
-                <button onClick={() => onSelectTrainingType("cards")}><span aria-hidden="true">♠</span> 扑克 2-Back</button>
+                <button onClick={() => onSelectTrainingType("cards")}><span aria-hidden="true">♠</span> 扑克 N-Back</button>
                 <button className="is-selected" onClick={() => onSelectTrainingType("flip")}><span aria-hidden="true">▤</span> 翻牌记忆</button>
               </div>
             </div>
