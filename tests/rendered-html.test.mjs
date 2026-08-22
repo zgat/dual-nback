@@ -24,10 +24,14 @@ test("server-renders the Dual N-Back game", async () => {
   assert.match(html, /记住位置与颜色/);
   assert.match(html, /开始计时/);
   assert.match(html, /计时模式/);
-  assert.match(html, /挑战模式/);
+  assert.match(html, /挑战/);
   assert.match(html, /彩色方格/);
   assert.match(html, /扑克牌/);
   assert.match(html, /翻牌记忆/);
+  assert.match(html, /N-Back/);
+  assert.match(html, /位置方块/);
+  assert.match(html, /颜色数量/);
+  assert.match(html, /训练长度/);
   assert.doesNotMatch(html, /6个位置棋盘/);
   assert.doesNotMatch(html, /位置 ✓ · 颜色 ✓/);
   assert.doesNotMatch(html, /位置 ✓ · 颜色 ×/);
@@ -50,5 +54,19 @@ test("removes flip-memory instructions once play begins", async () => {
   const source = await readFile(new URL("../app/game/FlipMemoryGame.tsx", import.meta.url), "utf8");
 
   assert.doesNotMatch(source, /找出目标牌|请依次点出|牌位正在移动|记住全部牌位/);
-  assert.match(source, /flipPhase === "idle" &&/);
+  assert.match(source, /flipPhase === "idle" \?/);
+  assert.match(source, /<IdleSettings settings={settings} onChange={onUpdateSettings}/);
+});
+
+test("keeps result screens compact and free of evaluation copy", async () => {
+  const sources = await Promise.all([
+    readFile(new URL("../app/game/NBackGame.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/game/FlipMemoryGame.tsx", import.meta.url), "utf8"),
+  ]);
+  const source = sources.join("\n");
+
+  assert.doesNotMatch(source, /本轮表现|先放慢节奏|判断稳定|表现不错|位置记得很稳|降低牌数|升到/);
+  assert.match(sources[0], /<IdleSettings settings={settings} onChange={updateSettings}/);
+  assert.match(sources[0], />修改设置 <span>→<\/span>/);
+  assert.match(sources[1], />修改设置 <span>→<\/span>/);
 });

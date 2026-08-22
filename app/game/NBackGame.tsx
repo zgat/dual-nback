@@ -11,7 +11,8 @@ import {
   relationLabel,
   scorePercent,
 } from "./core";
-import type { GameMode, GameSettings, MatchType, Phase, Stats, TrainingType, Trial } from "./core";
+import type { GameSettings, MatchType, Phase, Stats, TrainingType, Trial } from "./core";
+import { IdleSettings } from "./IdleSettings";
 
 type NBackGameProps = {
   settings: GameSettings;
@@ -31,8 +32,7 @@ type NBackGameProps = {
   advanceWarmup: () => void;
   optionClass: (id: MatchType) => string;
   openSettings: () => void;
-  levelUp: () => void;
-  selectMode: (mode: GameMode) => void;
+  updateSettings: (patch: Partial<GameSettings>) => void;
   selectTrainingType: (trainingType: TrainingType) => void;
 };
 
@@ -54,8 +54,7 @@ export function NBackGame({
   advanceWarmup,
   optionClass,
   openSettings,
-  levelUp,
-  selectMode,
+  updateSettings,
   selectTrainingType,
 }: NBackGameProps) {
   const accuracy = scorePercent(stats);
@@ -117,24 +116,19 @@ export function NBackGame({
                 </button>
                 <button onClick={() => selectTrainingType("flip")}><span aria-hidden="true">▤</span> 翻牌记忆</button>
               </div>
-              <div className="mode-switch" aria-label="选择节奏模式">
-                <button className={settings.mode === "self-paced" ? "is-selected" : ""} onClick={() => selectMode("self-paced")}>
-                  计时模式<small>不限时 · 作答后换轮</small>
-                </button>
-                <button className={settings.mode === "challenge" ? "is-selected" : ""} onClick={() => selectMode("challenge")}>
-                  挑战模式<small>固定节奏 · 自动换轮</small>
-                </button>
-              </div>
             </div>
           )}
         </div>
       )}
 
       {phase === "idle" ? (
-        <div className="idle-launch">
-          <button className="start-button" onClick={beginCountdown}>
-            {settings.mode === "self-paced" ? "开始计时" : "开始挑战"} <span>→</span>
-          </button>
+        <div className="idle-home">
+          <IdleSettings settings={settings} onChange={updateSettings} />
+          <div className="idle-launch">
+            <button className="start-button" onClick={beginCountdown}>
+              {settings.mode === "self-paced" ? "开始计时" : "开始挑战"} <span>→</span>
+            </button>
+          </div>
         </div>
       ) : phase === "finished" ? (
         <section className="result-panel" aria-label="训练结果">
@@ -142,8 +136,6 @@ export function NBackGame({
             <div><strong>{accuracy}</strong><span>%</span><small>综合正确率</small></div>
           </div>
           <div className="result-copy">
-            <span className="result-kicker">本轮表现</span>
-            <h2>{accuracy >= 85 ? "判断稳定，可以继续挑战。" : accuracy >= 70 ? "节奏不错，再巩固一轮。" : "先放慢节奏，辨清两个维度。"}</h2>
             <div className="result-config" aria-label="本轮训练设置">
               {isCardMode ? (
                 <>
@@ -171,13 +163,7 @@ export function NBackGame({
             <p className="result-note">答错 {wrongAnswers} 次 · 未作答 {stats.misses} 次 · 最长连续正确 {stats.bestStreak} 轮</p>
             <div className="result-actions">
               <button className="secondary-button" onClick={beginCountdown}>再练一轮</button>
-              {isCardMode ? (
-                <button className="primary-button" onClick={openSettings}>调整设置 <span>→</span></button>
-              ) : (
-                <button className="primary-button" onClick={levelUp} disabled={settings.n >= 5}>
-                  {settings.n >= 5 ? "已到最高难度" : `升到 ${settings.n + 1}-Back`} <span>→</span>
-                </button>
-              )}
+              <button className="primary-button" onClick={openSettings}>修改设置 <span>→</span></button>
             </div>
           </div>
         </section>

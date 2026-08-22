@@ -35,9 +35,8 @@ export default function Home() {
     optionClass,
     openSettings,
     saveSettings,
-    selectMode,
+    updateSettings,
     selectTrainingType,
-    levelUp,
     goHome,
   } = game;
 
@@ -82,6 +81,7 @@ export default function Home() {
             settings={settings}
             onSelectTrainingType={selectTrainingType}
             onOpenSettings={openSettings}
+            onUpdateSettings={updateSettings}
             onSessionActiveChange={setFlipSessionActive}
           />
         ) : (
@@ -103,8 +103,7 @@ export default function Home() {
             advanceWarmup={advanceWarmup}
             optionClass={optionClass}
             openSettings={openSettings}
-            levelUp={levelUp}
-            selectMode={selectMode}
+            updateSettings={updateSettings}
             selectTrainingType={selectTrainingType}
           />
         )}

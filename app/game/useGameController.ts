@@ -11,7 +11,7 @@ import {
   normalizeSettings,
   scorePercent,
 } from "./core";
-import type { GameMode, GameSettings, MatchType, Phase, Stats, TrainingType, Trial } from "./core";
+import type { GameSettings, MatchType, Phase, Stats, TrainingType, Trial } from "./core";
 
 export function useGameController() {
   const [settings, setSettings] = useState<GameSettings>(DEFAULT_SETTINGS);
@@ -268,9 +268,9 @@ export function useGameController() {
     }
   };
 
-  const selectMode = (mode: GameMode) => {
+  const updateSettings = (patch: Partial<GameSettings>) => {
     if (phaseRef.current !== "idle") return;
-    const next = { ...settingsRef.current, mode };
+    const next = normalizeSettings({ ...settingsRef.current, ...patch });
     settingsRef.current = next;
     setSettings(next);
     setDraftSettings(next);
@@ -278,22 +278,7 @@ export function useGameController() {
   };
 
   const selectTrainingType = (trainingType: TrainingType) => {
-    if (phaseRef.current !== "idle") return;
-    const next = normalizeSettings({ ...settingsRef.current, trainingType });
-    settingsRef.current = next;
-    setSettings(next);
-    setDraftSettings(next);
-    window.localStorage.setItem("dual-nback-settings", JSON.stringify(next));
-  };
-
-  const levelUp = () => {
-    if (settingsRef.current.trainingType === "cards") return;
-    const next = { ...settingsRef.current, n: Math.min(5, settingsRef.current.n + 1) };
-    settingsRef.current = next;
-    setSettings(next);
-    setDraftSettings(next);
-    window.localStorage.setItem("dual-nback-settings", JSON.stringify(next));
-    beginCountdown();
+    updateSettings({ trainingType });
   };
 
   const goHome = () => {
@@ -387,9 +372,8 @@ export function useGameController() {
     optionClass,
     openSettings,
     saveSettings,
-    selectMode,
+    updateSettings,
     selectTrainingType,
-    levelUp,
     goHome,
   };
 }
