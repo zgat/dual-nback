@@ -59,6 +59,11 @@ export default function Home() {
     }
   };
 
+  const editHomeSettings = () => {
+    goHome();
+    setHomeSettingsOpen(true);
+  };
+
   return (
     <main className="app-shell">
       <header className="topbar">
@@ -91,7 +96,7 @@ export default function Home() {
             key={`${settings.flipDifficulty}-${settings.flipCardCount}-${settings.flipRounds}-${flipSessionKey}`}
             settings={settings}
             onSelectTrainingType={selectTrainingType}
-            onEditSettings={goHome}
+            onEditSettings={editHomeSettings}
             onUpdateSettings={updateSettings}
             onSessionActiveChange={setFlipSessionActive}
             soundEnabled={soundEnabled}
@@ -120,7 +125,7 @@ export default function Home() {
             respond={respond}
             advanceWarmup={advanceWarmup}
             optionClass={optionClass}
-            editSettings={goHome}
+            editSettings={editHomeSettings}
             updateSettings={updateSettings}
             selectTrainingType={selectTrainingType}
             soundEnabled={soundEnabled}

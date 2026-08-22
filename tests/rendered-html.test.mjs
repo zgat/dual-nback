@@ -80,16 +80,21 @@ test("removes flip-memory instructions once play begins", async () => {
 });
 
 test("keeps result screens compact and free of evaluation copy", async () => {
-  const sources = await Promise.all([
+  const [nback, flip, page] = await Promise.all([
     readFile(new URL("../app/game/NBackGame.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/game/FlipMemoryGame.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
   ]);
+  const sources = [nback, flip];
   const source = sources.join("\n");
 
   assert.doesNotMatch(source, /本轮表现|先放慢节奏|判断稳定|表现不错|位置记得很稳|降低牌数|升到/);
   assert.match(sources[0], /<GameHome[\s\S]*onUpdateSettings={updateSettings}/);
   assert.match(sources[0], />修改设置 <span>→<\/span>/);
   assert.match(sources[1], />修改设置 <span>→<\/span>/);
+  assert.match(page, /const editHomeSettings = \(\) => \{\s*goHome\(\);\s*setHomeSettingsOpen\(true\);\s*\}/s);
+  assert.match(page, /onEditSettings={editHomeSettings}/);
+  assert.match(page, /editSettings={editHomeSettings}/);
 });
 
 test("uses the requested compact home-setting layouts", async () => {
@@ -141,6 +146,9 @@ test("uses the requested compact home-setting layouts", async () => {
   assert.match(css, /@media \(hover: hover\) and \(pointer: fine\)\s*{\s*\.settings-disclosure-toggle:hover/s);
   assert.match(css, /\.settings-disclosure-line i\s*{[^}]*background:\s*currentColor/s);
   assert.match(css, /\.home-intro\s*{[^}]*grid-template-rows:\s*1\.4rem 1\.25rem/s);
+  assert.match(css, /\.nback-game\.phase-idle,\s*\.flip-game\.flip-phase-idle\s*{[^}]*align-content:\s*start/s);
+  assert.match(css, /\.game-home\s*{[^}]*padding-top:\s*clamp\(4\.5rem, 15dvh, 9rem\)/s);
+  assert.match(css, /\.nback-game\.phase-countdown,[\s\S]*grid-template-rows:\s*auto auto auto/s);
 });
 
 test("persists optional feedback sounds and uses distinct correct and wrong tones", async () => {
@@ -169,7 +177,7 @@ test("packages the supplied Android launcher icon with an updated app version", 
     readFile(new URL("../android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_foreground.png", import.meta.url)),
   ]);
 
-  assert.match(gradle, /versionCode 13/);
+  assert.match(gradle, /versionCode 14/);
   assert.match(gradle, /versionName "2\.0\.1"/);
   assert.equal(JSON.parse(packageJson).version, "2.0.1");
   assert.match(adaptiveIcon, /@mipmap\/ic_launcher_foreground/);
