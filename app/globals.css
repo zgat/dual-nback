@@ -222,6 +222,11 @@ button:disabled { cursor: not-allowed; }
   gap: clamp(.35rem, 1dvh, .7rem);
 }
 
+.flip-game.flip-phase-finished {
+  align-content: start;
+  padding-top: clamp(1.25rem, 4dvh, 2.5rem);
+}
+
 .flip-game > .stage-heading,
 .flip-game > .target-prompt,
 .flip-game > .flip-board,
