@@ -1,6 +1,6 @@
 {
   "name": "site-creator-vinext-starter",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "private": true,
   "engines": {
     "node": ">=22.13.0"
@@ -11,7 +11,9 @@
     "start": "WRANGLER_LOG_PATH=.wrangler/wrangler.log vinext start",
     "mobile:build": "vite build --config vite.mobile.config.ts",
     "android:sync": "npm run mobile:build && cap sync android",
-    "android:apk": "npm run android:sync && cd android && ./gradlew assembleDebug",
+    "version:bump:apk": "node scripts/bump-apk-version.mjs",
+    "android:apk:no-bump": "npm run android:sync && cd android && ./gradlew assembleDebug",
+    "android:apk": "npm run version:bump:apk && npm run android:apk:no-bump",
     "test": "npm run build && node --test tests/*.test.mjs",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "db:generate": "drizzle-kit generate"
