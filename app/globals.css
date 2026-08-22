@@ -340,7 +340,7 @@ h1 {
   display: grid;
   align-content: center;
   justify-items: center;
-  gap: 1rem;
+  gap: clamp(1.6rem, 4dvh, 2.5rem);
   min-height: clamp(110px, 20svh, 190px);
 }
 
@@ -392,9 +392,9 @@ h1 {
   transition: transform .18s ease;
 }
 
-.sound-toggle[aria-checked="true"] { border-color: rgba(19,123,115,.46); background: rgba(19,123,115,.08); }
-.sound-toggle[aria-checked="true"] .sound-toggle-state { color: var(--teal); }
-.sound-toggle[aria-checked="true"] .sound-toggle-track { background: var(--teal); }
+.sound-toggle[aria-checked="true"] { border-color: var(--orange); background: rgba(233,101,45,.1); }
+.sound-toggle[aria-checked="true"] .sound-toggle-state { color: var(--orange-deep); }
+.sound-toggle[aria-checked="true"] .sound-toggle-track { background: var(--orange-deep); }
 .sound-toggle[aria-checked="true"] .sound-toggle-track i { transform: translateX(14px); }
 
 .idle-home {
@@ -1239,7 +1239,7 @@ h1 {
   .stage-heading { margin-bottom: .55rem; }
   h1 { margin-block: .28rem; font-size: clamp(1.65rem, 6dvh, 2.1rem); }
   .stage-heading p { font-size: .72rem; }
-  .idle-launch { min-height: clamp(64px, 12dvh, 92px); }
+  .idle-launch { gap: clamp(1.25rem, 3.4dvh, 1.6rem); min-height: clamp(64px, 12dvh, 92px); }
   .idle-home .idle-launch { min-height: 48px; }
   .inline-settings { gap: .35rem; padding: .4rem; }
   .quick-setting { padding: .34rem; }
