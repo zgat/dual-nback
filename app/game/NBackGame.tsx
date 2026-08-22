@@ -12,9 +12,7 @@ import {
   scorePercent,
 } from "./core";
 import type { GameSettings, MatchType, Phase, Stats, TrainingType, Trial } from "./core";
-import { IdleSettings } from "./IdleSettings";
-import { SoundToggle } from "./SoundToggle";
-import { TrainingTypeSwitch } from "./TrainingTypeSwitch";
+import { GameHome } from "./GameHome";
 
 type NBackGameProps = {
   settings: GameSettings;
@@ -87,46 +85,42 @@ export function NBackGame({
 
   return (
     <div className={`nback-game phase-${phase} ${isCardMode ? "is-card-mode" : "is-grid-mode"}`}>
-      {(phase === "idle" || phase === "finished") && (
+      {phase === "idle" ? (
+        <GameHome
+          key={settings.trainingType}
+          eyebrow={`${trainingLabel} · ${modeLabel} · ${settings.n}-BACK`}
+          title={`记住${memoryDimensions}`}
+          description={settings.mode === "self-paced"
+            ? "不限时思考，作答后进入下一轮。"
+            : isCardMode
+              ? `牌面完整显示 ${(settings.interval / 1000).toFixed(1)} 秒，再翻回牌背。`
+              : `比较当前色块与 ${settings.n} 轮前的位置和颜色。`}
+          introVisual={isCardMode ? (
+            <div className="suit-legend" aria-label="黑桃、红桃、梅花、方块四种花色">
+              {CARD_SUITS.map((suit) => <i className={suit.color === "red" ? "is-red" : ""} key={suit.name} title={suit.name}>{suit.symbol}</i>)}
+            </div>
+          ) : (
+            <div className="color-legend" aria-label={`${settings.colorCount}种训练颜色`}>
+              {COLORS.slice(0, settings.colorCount).map((color) => <i key={color.name} title={color.name} style={{ backgroundColor: color.value }} />)}
+            </div>
+          )}
+          settings={settings}
+          startLabel={settings.mode === "self-paced" ? "开始计时" : "开始挑战"}
+          onStart={beginCountdown}
+          onUpdateSettings={updateSettings}
+          onSelectTrainingType={selectTrainingType}
+          soundEnabled={soundEnabled}
+          onToggleSound={onToggleSound}
+        />
+      ) : phase === "finished" && (
         <div className="stage-heading">
           <span className="eyebrow">{trainingLabel} · {modeLabel} · {settings.n}-BACK</span>
-          <h1>{phase === "finished" ? "训练完成" : `记住${memoryDimensions}`}</h1>
-          {phase === "idle" && (
-            <>
-              <p>
-                {settings.mode === "self-paced"
-                  ? "不限时思考，作答后才进入下一轮。"
-                  : isCardMode
-                    ? `牌面翻开后完整显示 ${(settings.interval / 1000).toFixed(1)} 秒，再翻回牌背。`
-                    : `把当前色块与 ${settings.n} 轮前比较，选择唯一符合的关系。`}
-              </p>
-              {isCardMode ? (
-                <div className="suit-legend" aria-label="黑桃、红桃、梅花、方块四种花色">
-                  {CARD_SUITS.map((suit) => <i className={suit.color === "red" ? "is-red" : ""} key={suit.name} title={suit.name}>{suit.symbol}</i>)}
-                </div>
-              ) : (
-                <div className="color-legend" aria-label={`${settings.colorCount}种训练颜色`}>
-                  {COLORS.slice(0, settings.colorCount).map((color) => <i key={color.name} title={color.name} style={{ backgroundColor: color.value }} />)}
-                </div>
-              )}
-            </>
-          )}
-          {phase === "idle" && (
-            <TrainingTypeSwitch selected={settings.trainingType} onSelect={selectTrainingType} />
-          )}
+          <h1>训练完成</h1>
         </div>
       )}
 
       {phase === "idle" ? (
-        <div className="idle-home">
-          <IdleSettings settings={settings} onChange={updateSettings} />
-          <div className="idle-launch">
-            <button className="start-button" onClick={beginCountdown}>
-              {settings.mode === "self-paced" ? "开始计时" : "开始挑战"} <span>→</span>
-            </button>
-            <SoundToggle enabled={soundEnabled} onToggle={onToggleSound} />
-          </div>
-        </div>
+        null
       ) : phase === "finished" ? (
         <section className="result-panel" aria-label="训练结果">
           <div className="score-ring" style={{ "--score": `${accuracy * 3.6}deg` } as CSSProperties}>

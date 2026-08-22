@@ -383,12 +383,132 @@ h1 {
 
 .idle-home {
   display: grid;
-  gap: clamp(.45rem, 1dvh, .7rem);
+  gap: clamp(.35rem, .8dvh, .55rem);
   min-height: 0;
 }
 
-.idle-home .idle-launch {
-  min-height: clamp(58px, 9dvh, 76px);
+.game-home {
+  width: 100%;
+}
+
+.home-stage-heading {
+  margin-bottom: 0;
+}
+
+.home-intro {
+  display: grid;
+  grid-template-rows: 1.4rem 1.25rem;
+  min-height: 2.65rem;
+  align-items: center;
+}
+
+.home-intro p {
+  min-height: 0;
+  margin: 0;
+}
+
+.home-legend-slot {
+  display: grid;
+  min-height: 1.25rem;
+  place-items: center;
+}
+
+.home-legend-slot.is-empty {
+  visibility: hidden;
+}
+
+.home-legend-slot .color-legend,
+.home-legend-slot .suit-legend {
+  margin: 0;
+}
+
+.settings-disclosure {
+  display: grid;
+  width: 100%;
+}
+
+.settings-reveal {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition:
+    grid-template-rows .3s cubic-bezier(.4, 0, .2, 1),
+    opacity .16s ease-out;
+}
+
+.settings-disclosure.is-open .settings-reveal {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+
+.settings-reveal-inner {
+  min-height: 0;
+  overflow: hidden;
+  padding: 0 .4rem;
+  transition: padding .3s cubic-bezier(.4, 0, .2, 1);
+}
+
+.settings-disclosure.is-open .settings-reveal-inner {
+  padding: .35rem .4rem .55rem;
+}
+
+.settings-disclosure.is-reveal-ready .settings-reveal-inner {
+  overflow: visible;
+}
+
+.settings-disclosure-toggle {
+  display: grid;
+  width: 100%;
+  min-height: 38px;
+  place-items: center;
+  gap: 2px;
+  padding: .2rem 0 .35rem;
+  border: 0;
+  background: transparent;
+  color: #8b8379;
+  cursor: pointer;
+}
+
+.settings-disclosure-toggle:hover {
+  color: #625b54;
+}
+
+.settings-disclosure-line {
+  display: grid;
+  width: 100%;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: .7rem;
+}
+
+.settings-disclosure-line i {
+  height: 1px;
+  background: #c8bdad;
+}
+
+.settings-disclosure-line b {
+  font-size: .65rem;
+  font-weight: 700;
+  letter-spacing: .14em;
+}
+
+.settings-disclosure-chevron {
+  width: 8px;
+  height: 8px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(45deg);
+  transition: transform .24s ease;
+}
+
+.settings-disclosure.is-open .settings-disclosure-chevron {
+  transform: rotate(225deg);
+}
+
+.game-home .idle-launch {
+  grid-template-rows: 58px 38px;
+  gap: clamp(.7rem, 1.8dvh, 1.05rem);
+  min-height: 0;
 }
 
 .inline-settings {

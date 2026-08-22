@@ -32,6 +32,8 @@ test("server-renders the Dual N-Back game", async () => {
   assert.match(html, /位置方块/);
   assert.match(html, /颜色数量/);
   assert.match(html, /训练长度/);
+  assert.match(html, /aria-expanded="false"/);
+  assert.match(html, />设置</);
   assert.match(html, /role="switch"/);
   assert.match(html, /aria-checked="false"/);
   assert.match(html, /音效/);
@@ -64,11 +66,15 @@ test("keeps game screens inside the dynamic viewport", async () => {
 });
 
 test("removes flip-memory instructions once play begins", async () => {
-  const source = await readFile(new URL("../app/game/FlipMemoryGame.tsx", import.meta.url), "utf8");
+  const [source, gameHome] = await Promise.all([
+    readFile(new URL("../app/game/FlipMemoryGame.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/game/GameHome.tsx", import.meta.url), "utf8"),
+  ]);
 
-  assert.doesNotMatch(source, /找出目标牌|请依次点出|牌位正在移动|记住全部牌位/);
+  assert.doesNotMatch(source, /请依次点出|牌位正在移动|记住全部牌位/);
   assert.match(source, /flipPhase === "idle" \?/);
-  assert.match(source, /<IdleSettings settings={settings} onChange={onUpdateSettings}/);
+  assert.match(source, /<GameHome[\s\S]*description="记住牌面与位置，盖牌后找出目标牌。"[\s\S]*onUpdateSettings={onUpdateSettings}/);
+  assert.match(gameHome, /<IdleSettings settings={settings} onChange={onUpdateSettings}/);
   assert.match(source, /timers\.schedule\(`mistake-\$\{card\.id\}`,[\s\S]*}, 650\)/);
   assert.match(source, /if \(paused\) \{[\s\S]*timers\.pauseAll\(\)/);
 });
@@ -81,19 +87,27 @@ test("keeps result screens compact and free of evaluation copy", async () => {
   const source = sources.join("\n");
 
   assert.doesNotMatch(source, /本轮表现|先放慢节奏|判断稳定|表现不错|位置记得很稳|降低牌数|升到/);
-  assert.match(sources[0], /<IdleSettings settings={settings} onChange={updateSettings}/);
+  assert.match(sources[0], /<GameHome[\s\S]*onUpdateSettings={updateSettings}/);
   assert.match(sources[0], />修改设置 <span>→<\/span>/);
   assert.match(sources[1], />修改设置 <span>→<\/span>/);
 });
 
 test("uses the requested compact home-setting layouts", async () => {
-  const [idleSettings, settingsModal, selectMenu, core] = await Promise.all([
+  const [gameHome, idleSettings, settingsModal, selectMenu, core, css] = await Promise.all([
+    readFile(new URL("../app/game/GameHome.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/game/IdleSettings.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/game/SettingsModal.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/game/SelectMenu.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/game/core.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
   ]);
 
+  assert.match(gameHome, /useState\(false\)/);
+  assert.match(gameHome, /aria-expanded={settingsOpen}/);
+  assert.match(gameHome, /aria-controls={settingsId}/);
+  assert.match(gameHome, /inert={!settingsOpen}/);
+  assert.match(gameHome, /settings-disclosure-line/);
+  assert.match(gameHome, /<IdleSettings settings={settings} onChange={onUpdateSettings}/);
   assert.match(idleSettings, /grid-inline-settings/);
   assert.match(idleSettings, /card-inline-settings/);
   assert.match(idleSettings, /ariaLabel="选择牌阵数量"/);
@@ -114,6 +128,10 @@ test("uses the requested compact home-setting layouts", async () => {
   assert.doesNotMatch(settingsModal, /音效默认关闭，选择会保存在当前设备/);
   assert.doesNotMatch(settingsModal, /训练内容|牌阵数量|N-Back 难度|训练长度|保存设置|四选一规则/);
   assert.doesNotMatch(core, /trainingType === "cards" \? 2/);
+  assert.match(css, /\.settings-reveal\s*{[^}]*grid-template-rows:\s*0fr/s);
+  assert.match(css, /\.settings-disclosure\.is-open \.settings-reveal\s*{[^}]*grid-template-rows:\s*1fr/s);
+  assert.match(css, /\.settings-disclosure\.is-open \.settings-disclosure-chevron\s*{[^}]*rotate\(225deg\)/s);
+  assert.match(css, /\.home-intro\s*{[^}]*grid-template-rows:\s*1\.4rem 1\.25rem/s);
 });
 
 test("persists optional feedback sounds and uses distinct correct and wrong tones", async () => {

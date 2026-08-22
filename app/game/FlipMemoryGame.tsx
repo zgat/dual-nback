@@ -10,9 +10,7 @@ import {
   makeVisibleShuffleSteps,
 } from "./core";
 import type { FlipCard, FlipPhase, GameSettings, TrainingType } from "./core";
-import { IdleSettings } from "./IdleSettings";
-import { SoundToggle } from "./SoundToggle";
-import { TrainingTypeSwitch } from "./TrainingTypeSwitch";
+import { GameHome } from "./GameHome";
 import { playFeedbackSound } from "./sound";
 import { readBestScore, writeBestScore } from "./storage";
 import { usePausableTimers } from "./usePausableTimers";
@@ -216,18 +214,19 @@ export function FlipMemoryGame({
   return (
     <div className={`flip-game flip-phase-${flipPhase} flip-count-${cardCount}`}>
       {flipPhase === "idle" ? (
-        <div className="idle-home">
-          <div className="stage-heading flip-heading">
-            <span className="eyebrow">翻牌记忆 · {cardCount} 张 · {moving ? "移动进阶" : "经典模式"}</span>
-            <h1>看清每一张牌</h1>
-            <TrainingTypeSwitch selected="flip" onSelect={onSelectTrainingType} />
-          </div>
-          <IdleSettings settings={settings} onChange={onUpdateSettings} />
-          <div className="idle-launch">
-            <button className="start-button" onClick={beginGame}>开始翻牌记忆 <span>→</span></button>
-            <SoundToggle enabled={soundEnabled} onToggle={onToggleSound} />
-          </div>
-        </div>
+        <GameHome
+          key="flip"
+          eyebrow={`翻牌记忆 · ${cardCount} 张 · ${moving ? "移动进阶" : "经典模式"}`}
+          title="看清每一张牌"
+          description="记住牌面与位置，盖牌后找出目标牌。"
+          settings={settings}
+          startLabel="开始翻牌记忆"
+          onStart={beginGame}
+          onUpdateSettings={onUpdateSettings}
+          onSelectTrainingType={onSelectTrainingType}
+          soundEnabled={soundEnabled}
+          onToggleSound={onToggleSound}
+        />
       ) : (
         <>
           {targetPromptVisible && (
