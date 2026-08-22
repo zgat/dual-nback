@@ -50,7 +50,7 @@ test("keeps game screens inside the dynamic viewport", async () => {
   assert.doesNotMatch(css, /\.statusbar/);
   assert.match(css, /\.game-stage\s*{[^}]*height:\s*100%[^}]*overflow:\s*hidden/s);
   assert.match(css, /\.quick-stepper strong,\s*\.stepper strong\s*{\s*background:\s*#fff/);
-  assert.match(css, /\.nback-game\.phase-finished,\s*\.flip-game\.flip-phase-finished\s*{[^}]*align-content:\s*start[^}]*padding-top:/s);
+  assert.match(css, /\.nback-game\.phase-finished,\s*\.flip-game\.flip-phase-finished\s*{[^}]*align-content:\s*center[^}]*translateY\(clamp\(-6rem, -10dvh, -2\.5rem\)\)/s);
   assert.match(css, /@media \(max-height: 600px\) and \(min-aspect-ratio: 4 \/ 3\)/);
 });
 

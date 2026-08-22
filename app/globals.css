@@ -224,8 +224,8 @@ button:disabled { cursor: not-allowed; }
 
 .nback-game.phase-finished,
 .flip-game.flip-phase-finished {
-  align-content: start;
-  padding-top: clamp(1.25rem, 4dvh, 2.5rem);
+  align-content: center;
+  transform: translateY(clamp(-6rem, -10dvh, -2.5rem));
 }
 
 .flip-game > .stage-heading,
