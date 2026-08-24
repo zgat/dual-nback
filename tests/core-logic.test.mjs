@@ -111,48 +111,44 @@ test("ranks the ten best timed sessions by accuracy, rounds, then elapsed time",
   );
 });
 
-test("keeps separate classic and moving flip histories and ranks cards before time", () => {
+test("keeps separate flip best tens ranked by accuracy, rounds, then time", () => {
   let leaderboard = createEmptyLeaderboard();
-  for (let index = 0; index < 11; index += 1) {
+  const add = (difficulty, found, mistakes, rounds, elapsedMs, now) => {
     leaderboard = recordFlipLeaderboardResult(leaderboard, {
-      cardCount: index % 2 === 0 ? 16 : 6,
-      difficulty: "classic",
-      rounds: 8,
-      mistakes: 0,
-      elapsedMs: 9000 - index,
-    }, index + 1);
-  }
-  leaderboard = recordFlipLeaderboardResult(leaderboard, {
-    cardCount: 16,
-    difficulty: "moving",
-    rounds: 8,
-    mistakes: 0,
-    elapsedMs: 2000,
-  }, 20);
-  leaderboard = recordFlipLeaderboardResult(leaderboard, {
-    cardCount: 16,
-    difficulty: "moving",
-    rounds: 8,
-    mistakes: 1,
-    elapsedMs: 1000,
-  }, 21);
+      cardCount: 16,
+      difficulty,
+      rounds,
+      found,
+      mistakes,
+      elapsedMs,
+    }, now);
+  };
+  add("classic", 10, 0, 5, 20000, 1);
+  add("classic", 9, 1, 8, 9000, 2);
+  add("classic", 9, 1, 8, 6000, 3);
+  add("classic", 9, 1, 5, 1000, 4);
+  for (let index = 0; index < 8; index += 1) add("classic", 5, 5, 8, 5000 + index, 10 + index);
+  add("moving", 8, 2, 8, 4000, 20);
 
   assert.equal(leaderboard.flip.classic.length, 10);
   assert.equal(leaderboard.flip.moving.length, 1);
-  assert.equal(Math.min(...leaderboard.flip.classic.map(({ createdAt }) => createdAt)), 2);
   const ranked = rankFlipEntries(leaderboard.flip.classic);
-  assert.ok(ranked.slice(0, 5).every(({ cardCount }) => cardCount === 16));
-  assert.ok(ranked[0].elapsedMs < ranked[1].elapsedMs);
+  assert.deepEqual(
+    ranked.slice(0, 4).map(({ accuracy, rounds, elapsedMs }) => [accuracy, rounds, elapsedMs]),
+    [[100, 5, 20000], [90, 8, 6000], [90, 8, 9000], [90, 5, 1000]],
+  );
 
-  const migrated = normalizeLeaderboard({ ...leaderboard, version: 2, flip: [...leaderboard.flip.classic, ...leaderboard.flip.moving] });
-  assert.equal(migrated.flip.classic.length, 9);
-  assert.equal(migrated.flip.moving.length, 1);
+  const oldPerfect = { ...ranked[0] };
+  delete oldPerfect.accuracy;
+  const migrated = normalizeLeaderboard({ ...leaderboard, version: 3, flip: { classic: [oldPerfect], moving: [] } });
+  assert.equal(migrated.flip.classic[0].accuracy, 100);
 });
 
-test("fixes challenge sessions at 30 rounds and flip memory at 8 rounds", () => {
+test("fixes challenge sessions at 30 rounds and allows 5 or 8 flip rounds", () => {
   assert.equal(normalizeSettings({ ...DEFAULT_SETTINGS, mode: "challenge", total: 20 }).total, 30);
   assert.equal(normalizeSettings({ ...DEFAULT_SETTINGS, mode: "self-paced", total: 20 }).total, 20);
-  assert.equal(normalizeSettings({ ...DEFAULT_SETTINGS, flipRounds: 5 }).flipRounds, 8);
+  assert.equal(normalizeSettings({ ...DEFAULT_SETTINGS, flipRounds: 5 }).flipRounds, 5);
+  assert.equal(normalizeSettings({ ...DEFAULT_SETTINGS, flipRounds: 8 }).flipRounds, 8);
 });
 
 test("counts challenge successes separately for every interval and game", () => {

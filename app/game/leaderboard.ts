@@ -18,6 +18,7 @@ export type TimedLeaderboardEntry = {
 
 export type FlipHistoryEntry = {
   id: string;
+  accuracy: number;
   elapsedMs: number;
   createdAt: number;
   cardCount: FlipCardCount;
@@ -26,7 +27,7 @@ export type FlipHistoryEntry = {
 };
 
 export type LeaderboardData = {
-  version: 3;
+  version: 4;
   timed: Record<NBackTrainingType, TimedLeaderboardEntry[]>;
   challenge: Record<NBackTrainingType, Record<string, number>>;
   flip: Record<FlipDifficulty, FlipHistoryEntry[]>;
@@ -42,6 +43,7 @@ export type FlipSessionResult = {
   cardCount: FlipCardCount;
   difficulty: FlipDifficulty;
   rounds: number;
+  found: number;
   mistakes: number;
   elapsedMs: number;
 };
@@ -51,7 +53,7 @@ const FLIP_HISTORY_CARD_COUNTS: FlipCardCount[] = [6, 8, 9, 12, 16];
 
 export function createEmptyLeaderboard(): LeaderboardData {
   return {
-    version: 3,
+    version: 4,
     timed: { grid: [], cards: [] },
     challenge: { grid: {}, cards: {} },
     flip: { classic: [], moving: [] },
@@ -69,7 +71,8 @@ export function rankTimedEntries(entries: TimedLeaderboardEntry[]) {
 
 export function rankFlipEntries(entries: FlipHistoryEntry[]) {
   return [...entries].sort((left, right) => (
-    right.cardCount - left.cardCount
+    right.accuracy - left.accuracy
+    || right.rounds - left.rounds
     || left.elapsedMs - right.elapsedMs
     || right.createdAt - left.createdAt
   ));
@@ -96,19 +99,28 @@ function normalizeTimedEntries(value: unknown): TimedLeaderboardEntry[] {
 
 function normalizeFlipEntries(value: unknown): FlipHistoryEntry[] {
   if (!Array.isArray(value)) return [];
-  return value
-    .filter((entry): entry is FlipHistoryEntry => {
-      if (!entry || typeof entry !== "object") return false;
-      const candidate = entry as Partial<FlipHistoryEntry>;
-      return typeof candidate.id === "string"
-        && Number.isFinite(candidate.elapsedMs)
-        && Number.isFinite(candidate.createdAt)
-        && FLIP_HISTORY_CARD_COUNTS.includes(candidate.cardCount as FlipCardCount)
-        && (candidate.difficulty === "classic" || candidate.difficulty === "moving")
-        && candidate.rounds === 8;
-    })
-    .sort((left, right) => right.createdAt - left.createdAt)
-    .slice(0, 10);
+  const entries = value.flatMap((entry): FlipHistoryEntry[] => {
+    if (!entry || typeof entry !== "object") return [];
+    const candidate = entry as Partial<FlipHistoryEntry>;
+    const valid = typeof candidate.id === "string"
+      && Number.isFinite(candidate.elapsedMs)
+      && Number.isFinite(candidate.createdAt)
+      && FLIP_HISTORY_CARD_COUNTS.includes(candidate.cardCount as FlipCardCount)
+      && (candidate.difficulty === "classic" || candidate.difficulty === "moving")
+      && (candidate.rounds === 5 || candidate.rounds === 8)
+      && (candidate.accuracy === undefined || Number.isFinite(candidate.accuracy));
+    if (!valid) return [];
+    return [{
+      id: candidate.id!,
+      accuracy: Math.min(100, Math.max(0, Math.round(candidate.accuracy ?? 100))),
+      elapsedMs: candidate.elapsedMs!,
+      createdAt: candidate.createdAt!,
+      cardCount: candidate.cardCount as FlipCardCount,
+      difficulty: candidate.difficulty as FlipDifficulty,
+      rounds: candidate.rounds!,
+    }];
+  });
+  return rankFlipEntries(entries).slice(0, 10);
 }
 
 function normalizeFlipHistory(value: unknown): Record<FlipDifficulty, FlipHistoryEntry[]> {
@@ -142,7 +154,7 @@ export function normalizeLeaderboard(value: unknown): LeaderboardData {
     flip?: unknown;
   };
   return {
-    version: 3,
+    version: 4,
     timed: {
       grid: normalizeTimedEntries(candidate.timed?.grid),
       cards: normalizeTimedEntries(candidate.timed?.cards),
@@ -196,9 +208,11 @@ export function recordLeaderboardResult(data: LeaderboardData, result: NBackSess
 }
 
 export function recordFlipLeaderboardResult(data: LeaderboardData, result: FlipSessionResult, now = Date.now()): LeaderboardData {
-  if (result.mistakes !== 0 || result.rounds !== 8) return data;
+  if (result.rounds !== 5 && result.rounds !== 8) return data;
+  const attempts = result.found + result.mistakes;
   const entry: FlipHistoryEntry = {
     id: `${now}-${Math.random().toString(36).slice(2, 8)}`,
+    accuracy: attempts === 0 ? 0 : Math.round((result.found / attempts) * 100),
     elapsedMs: result.elapsedMs,
     createdAt: now,
     cardCount: result.cardCount,
@@ -209,9 +223,7 @@ export function recordFlipLeaderboardResult(data: LeaderboardData, result: FlipS
     ...data,
     flip: {
       ...data.flip,
-      [result.difficulty]: [entry, ...data.flip[result.difficulty]]
-        .sort((left, right) => right.createdAt - left.createdAt)
-        .slice(0, 10),
+      [result.difficulty]: rankFlipEntries([entry, ...data.flip[result.difficulty]]).slice(0, 10),
     },
   };
 }

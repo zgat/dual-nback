@@ -76,9 +76,13 @@ export function IdleSettings({ settings, onChange }: IdleSettingsProps) {
             onChange={(flipCardCount) => onChange({ flipCardCount })}
           />
         </div>
-        <div className="quick-setting is-full fixed-round-setting">
+        <div className="quick-setting is-full">
           <span className="quick-setting-label">训练长度</span>
-          <strong>8 轮（固定）</strong>
+          <div className="quick-options two-options">
+            {[5, 8].map((flipRounds) => (
+              <button className={settings.flipRounds === flipRounds ? "is-selected" : ""} onClick={() => onChange({ flipRounds })} key={flipRounds}>{flipRounds} 轮</button>
+            ))}
+          </div>
         </div>
       </section>
     );

@@ -119,7 +119,7 @@ export const DEFAULT_SETTINGS: GameSettings = {
   trainingType: "grid",
   flipDifficulty: "classic",
   flipCardCount: 6,
-  flipRounds: 8,
+  flipRounds: 5,
 };
 
 export const PRESET_INTERVALS = [3000, 2400, 1800, 1200];
@@ -299,7 +299,7 @@ export function normalizeSettings(value: Partial<GameSettings>): GameSettings {
     trainingType,
     flipDifficulty: value.flipDifficulty === "moving" ? "moving" : "classic",
     flipCardCount,
-    flipRounds: 8,
+    flipRounds: value.flipRounds === 8 ? 8 : 5,
   };
 }
 

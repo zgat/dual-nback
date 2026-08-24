@@ -148,10 +148,11 @@ export function FlipMemoryGame({
       cardCount,
       difficulty: settings.flipDifficulty,
       rounds: settings.flipRounds,
+      found: stats.found,
       mistakes: stats.mistakes,
       elapsedMs: duration,
     });
-  }, [cardCount, onSessionFinished, settings.flipDifficulty, settings.flipRounds, stats.mistakes, timers]);
+  }, [cardCount, onSessionFinished, settings.flipDifficulty, settings.flipRounds, stats.found, stats.mistakes, timers]);
 
   const advanceRound = () => {
     if (round + 1 >= settings.flipRounds) finishGame();

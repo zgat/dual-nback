@@ -133,7 +133,7 @@ test("uses the requested compact home-setting layouts", async () => {
   assert.match(idleSettings, /value={settings\.mode === "challenge" \? settings\.interval : null}/);
   assert.match(idleSettings, /onChange=\{\(interval\) => onChange\(\{ mode: "challenge", interval \}\)\}/);
   assert.match(idleSettings, /30 轮（固定）/);
-  assert.match(idleSettings, /8 轮（固定）/);
+  assert.match(idleSettings, /\[5, 8\]\.map\(\(flipRounds\)/);
   assert.doesNotMatch(idleSettings, /<select|<option/);
   assert.match(selectMenu, /aria-haspopup="listbox"/);
   assert.match(selectMenu, /role="listbox"/);
@@ -251,7 +251,7 @@ test("adds donation switching and local history entry points for all games", asy
   assert.match(leaderboardModal, />翻牌记忆<\/button>/);
   assert.match(leaderboardModal, />经典<\/button>/);
   assert.match(leaderboardModal, />移动<\/button>/);
-  assert.match(leaderboardModal, /经典与移动分别保留最近 10 次全对记录，牌数优先，其次比较用时/);
+  assert.match(leaderboardModal, /经典与移动分别保留最佳 10 次，依次比较正确率、轮数和用时/);
   assert.match(leaderboardModal, /entry\.totalRounds} 轮/);
   assert.match(leaderboardModal, /PRESET_INTERVALS\.map/);
   assert.match(leaderboardModal, /固定 30 轮/);

@@ -40,15 +40,15 @@ export function LeaderboardModal({ data, initialTrainingType, initialMode, initi
                 <li key={entry.id}>
                   <b className="rank-number">{index + 1}</b>
                   <span className="rank-result">
-                    <strong>{entry.cardCount} 张牌</strong>
-                    <small>{entry.rounds} 轮 · 全对</small>
+                    <strong>{entry.accuracy}%</strong>
+                    <small>{entry.rounds} 轮 · {entry.cardCount} 张牌</small>
                   </span>
                   <time>{formatDuration(entry.elapsedMs)}</time>
                 </li>
               ))}
             </ol>
           ) : (
-            <div className="leaderboard-empty"><b>暂无全对记录</b><span>完成一次无误点的翻牌记忆后显示</span></div>
+            <div className="leaderboard-empty"><b>暂无训练记录</b><span>完成一次翻牌记忆后显示</span></div>
           )
         ) : mode === "self-paced" ? (
           timedEntries.length > 0 ? (
@@ -88,7 +88,7 @@ export function LeaderboardModal({ data, initialTrainingType, initialMode, initi
             <button type="button" role="tab" aria-selected={flipDifficulty === "classic"} onClick={() => setFlipDifficulty("classic")}>经典</button>
             <button type="button" role="tab" aria-selected={flipDifficulty === "moving"} onClick={() => setFlipDifficulty("moving")}>移动</button>
           </div>
-          <p className="leaderboard-rule-note">经典与移动分别保留最近 10 次全对记录，牌数优先，其次比较用时。</p>
+          <p className="leaderboard-rule-note">经典与移动分别保留最佳 10 次，依次比较正确率、轮数和用时。</p>
         </>
       ) : (
         <div className={`segmented-slider leaderboard-mode-switch is-${mode}`} role="tablist" aria-label="切换历史最佳模式">
