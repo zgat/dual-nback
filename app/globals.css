@@ -321,7 +321,7 @@ h1 {
 .idle-switches {
   display: grid;
   gap: .45rem;
-  width: min(100%, 420px);
+  width: var(--home-control-width, min(100%, 420px));
   margin: .7rem auto 0;
 }
 
@@ -415,6 +415,7 @@ h1 {
 }
 
 .game-home {
+  --home-control-width: min(100%, 420px);
   width: 100%;
   padding-top: clamp(2.25rem, 7.5dvh, 4.5rem);
 }
@@ -452,7 +453,8 @@ h1 {
 
 .settings-disclosure {
   display: grid;
-  width: 100%;
+  width: var(--home-control-width);
+  margin-inline: auto;
 }
 
 .settings-reveal {
@@ -471,7 +473,7 @@ h1 {
 
 .settings-reveal-inner {
   min-height: 0;
-  padding: .35rem .4rem .55rem;
+  padding: .35rem 0 .55rem;
 }
 
 .settings-disclosure.is-reveal-ready .settings-reveal {
@@ -1549,7 +1551,7 @@ h1 {
   .game-stage { padding: clamp(.4rem, 1.4dvh, .8rem) 0; }
   .stage-heading { margin-bottom: 1.15rem; }
   .stage-heading p { padding: 0 .5rem; font-size: .8rem; }
-  .idle-switches { width: 100%; }
+  .idle-switches { width: var(--home-control-width); }
   .inline-settings { gap: .4rem; padding: .45rem; }
   .quick-setting { gap: .28rem; padding: .4rem; }
   .quick-options button, .quick-stepper button, .quick-stepper strong, .quick-select { min-height: 30px; }

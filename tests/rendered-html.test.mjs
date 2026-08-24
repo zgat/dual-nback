@@ -152,6 +152,11 @@ test("uses the requested compact home-setting layouts", async () => {
   assert.match(css, /\.custom-select-trigger\s*{[^}]*place-items:\s*center[^}]*padding-inline:\s*1\.55rem[^}]*text-align:\s*center/s);
   assert.match(css, /\.custom-select-chevron\s*{[^}]*right:\s*\.78rem/s);
   assert.match(css, /\.custom-select-menu button\s*{[^}]*place-items:\s*center[^}]*text-align:\s*center/s);
+  assert.match(css, /\.game-home\s*{[^}]*--home-control-width:\s*min\(100%, 420px\)/s);
+  assert.match(css, /\.idle-switches\s*{[^}]*width:\s*var\(--home-control-width/s);
+  assert.doesNotMatch(css, /\.idle-switches\s*{\s*width:\s*100%/);
+  assert.match(css, /\.settings-disclosure\s*{[^}]*width:\s*var\(--home-control-width\)[^}]*margin-inline:\s*auto/s);
+  assert.match(css, /\.settings-reveal-inner\s*{[^}]*padding:\s*\.35rem 0 \.55rem/s);
   assert.match(css, /\.settings-reveal\s*{[^}]*height:\s*0[^}]*overflow:\s*hidden[^}]*height \.22s cubic-bezier\(\.22, 1, \.36, 1\)/s);
   assert.doesNotMatch(css, /\.settings-reveal\s*{[^}]*grid-template-rows/s);
   assert.match(css, /\.settings-disclosure\.is-open \.settings-disclosure-chevron\s*{[^}]*rotate\(225deg\)/s);
