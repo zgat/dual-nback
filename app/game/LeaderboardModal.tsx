@@ -105,6 +105,7 @@ export function LeaderboardModal({ data, initialTrainingType, initialMode, initi
           <button type="button" role="tab" aria-selected={mode === "challenge"} onClick={() => setMode("challenge")}>挑战</button>
         </div>
       )}
+      {!isFlip && mode === "challenge" && <p className="leaderboard-rule-note">仅记录挑战成功的次数。</p>}
       <p className="leaderboard-device-note">仅记录当前设备</p>
     </ModalFrame>
   );

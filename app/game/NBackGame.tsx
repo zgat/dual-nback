@@ -72,6 +72,7 @@ export function NBackGame({
   onHomeSettingsHeightChange,
 }: NBackGameProps) {
   const accuracy = scorePercent(stats);
+  const isChallengeSuccess = settings.mode === "challenge" && accuracy === 100;
   const warmup = phase === "playing" && round < settings.n;
   const responseDisabled = phase !== "playing" || warmup || selected !== null;
   const wrongAnswers = Math.max(0, stats.total - stats.correct - stats.misses);
@@ -129,7 +130,7 @@ export function NBackGame({
       ) : phase === "finished" && (
         <div className="stage-heading">
           <span className="eyebrow">{trainingLabel} · {modeLabel} · {settings.n}-BACK</span>
-          <h1>训练完成</h1>
+          <h1>{isChallengeSuccess ? "挑战成功" : "训练完成"}</h1>
         </div>
       )}
 
@@ -169,7 +170,7 @@ export function NBackGame({
             </div>
             <p className="result-note">答错 {wrongAnswers} 次 · 未作答 {stats.misses} 次 · 最长连续正确 {stats.bestStreak} 轮</p>
             <div className="result-actions">
-              <button className="secondary-button" onClick={beginCountdown}>再练一轮</button>
+              <button className="secondary-button" onClick={beginCountdown}>{isChallengeSuccess ? "再次挑战" : "再练一轮"}</button>
               <button className="primary-button" onClick={editSettings}>修改设置 <span>→</span></button>
             </div>
             <button type="button" className="result-leaderboard-link" onClick={onOpenLeaderboard}>查看历史最佳 <span>→</span></button>

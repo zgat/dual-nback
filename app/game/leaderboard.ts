@@ -27,7 +27,7 @@ export type FlipHistoryEntry = {
 };
 
 export type LeaderboardData = {
-  version: 4;
+  version: 5;
   timed: Record<NBackTrainingType, TimedLeaderboardEntry[]>;
   challenge: Record<NBackTrainingType, Record<string, number>>;
   flip: Record<FlipDifficulty, FlipHistoryEntry[]>;
@@ -53,7 +53,7 @@ const FLIP_HISTORY_CARD_COUNTS: FlipCardCount[] = [6, 8, 9, 12, 16];
 
 export function createEmptyLeaderboard(): LeaderboardData {
   return {
-    version: 4,
+    version: 5,
     timed: { grid: [], cards: [] },
     challenge: { grid: {}, cards: {} },
     flip: { classic: [], moving: [] },
@@ -149,19 +149,21 @@ function normalizeChallengeCounts(value: unknown) {
 export function normalizeLeaderboard(value: unknown): LeaderboardData {
   if (!value || typeof value !== "object") return createEmptyLeaderboard();
   const candidate = value as {
+    version?: unknown;
     timed?: Partial<Record<NBackTrainingType, unknown>>;
     challenge?: Partial<Record<NBackTrainingType, unknown>>;
     flip?: unknown;
   };
+  const usesChallengeSuccessCounts = candidate.version === 5;
   return {
-    version: 4,
+    version: 5,
     timed: {
       grid: normalizeTimedEntries(candidate.timed?.grid),
       cards: normalizeTimedEntries(candidate.timed?.cards),
     },
     challenge: {
-      grid: normalizeChallengeCounts(candidate.challenge?.grid),
-      cards: normalizeChallengeCounts(candidate.challenge?.cards),
+      grid: usesChallengeSuccessCounts ? normalizeChallengeCounts(candidate.challenge?.grid) : {},
+      cards: usesChallengeSuccessCounts ? normalizeChallengeCounts(candidate.challenge?.cards) : {},
     },
     flip: normalizeFlipHistory(candidate.flip),
   };
@@ -173,6 +175,8 @@ export function recordLeaderboardResult(data: LeaderboardData, result: NBackSess
   const trainingType = settings.trainingType;
 
   if (settings.mode === "challenge") {
+    const succeeded = stats.total > 0 && stats.correct === stats.total;
+    if (!succeeded) return data;
     const interval = String(settings.interval);
     return {
       ...data,
@@ -180,7 +184,7 @@ export function recordLeaderboardResult(data: LeaderboardData, result: NBackSess
         ...data.challenge,
         [trainingType]: {
           ...data.challenge[trainingType],
-          [interval]: (data.challenge[trainingType][interval] ?? 0) + stats.correct,
+          [interval]: (data.challenge[trainingType][interval] ?? 0) + 1,
         },
       },
     };

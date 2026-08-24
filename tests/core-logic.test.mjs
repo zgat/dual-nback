@@ -158,14 +158,17 @@ test("counts challenge successes separately for every interval and game", () => 
     stats: { ...EMPTY_STATS, correct, total: 10 },
   });
   let leaderboard = createEmptyLeaderboard();
-  leaderboard = recordLeaderboardResult(leaderboard, result("grid", 2400, 7), 1);
+  leaderboard = recordLeaderboardResult(leaderboard, result("grid", 2400, 10), 1);
   leaderboard = recordLeaderboardResult(leaderboard, result("grid", 2400, 5), 2);
-  leaderboard = recordLeaderboardResult(leaderboard, result("grid", 1800, 4), 3);
-  leaderboard = recordLeaderboardResult(leaderboard, result("cards", 2400, 8), 4);
+  leaderboard = recordLeaderboardResult(leaderboard, result("grid", 1800, 10), 3);
+  leaderboard = recordLeaderboardResult(leaderboard, result("cards", 2400, 10), 4);
 
-  assert.equal(leaderboard.challenge.grid["2400"], 12);
-  assert.equal(leaderboard.challenge.grid["1800"], 4);
-  assert.equal(leaderboard.challenge.cards["2400"], 8);
+  assert.equal(leaderboard.challenge.grid["2400"], 1);
+  assert.equal(leaderboard.challenge.grid["1800"], 1);
+  assert.equal(leaderboard.challenge.cards["2400"], 1);
+
+  const migrated = normalizeLeaderboard({ ...leaderboard, version: 4, challenge: { grid: { "2400": 25 }, cards: { "2400": 12 } } });
+  assert.deepEqual(migrated.challenge, { grid: {}, cards: {} });
 });
 
 test("creates unique flip cards, exact target counts, and visible shuffle steps", () => {

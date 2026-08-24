@@ -257,7 +257,10 @@ test("adds donation switching and local history entry points for all games", asy
   assert.match(leaderboardModal, /entry\.cellCount}点 · \$\{entry\.colorCount}花色 · \$\{entry\.n}-BACK/);
   assert.match(leaderboardModal, /PRESET_INTERVALS\.map/);
   assert.match(leaderboardModal, /固定 30 轮/);
+  assert.match(leaderboardModal, /仅记录挑战成功的次数/);
   assert.match(leaderboardModal, /仅记录当前设备/);
+  assert.match(nback, /isChallengeSuccess \? "挑战成功" : "训练完成"/);
+  assert.match(nback, /isChallengeSuccess \? "再次挑战" : "再练一轮"/);
   assert.doesNotMatch(page, /showLeaderboard && !isFlipMode/);
 });
 
