@@ -37,6 +37,7 @@ test("server-renders the Dual N-Back game", async () => {
   assert.match(html, /role="switch"/);
   assert.match(html, /aria-checked="false"/);
   assert.match(html, /音效/);
+  assert.match(html, /历史最佳/);
   assert.doesNotMatch(html, /6个位置棋盘/);
   assert.doesNotMatch(html, /位置 ✓ · 颜色 ✓/);
   assert.doesNotMatch(html, /位置 ✓ · 颜色 ×/);
@@ -131,6 +132,8 @@ test("uses the requested compact home-setting layouts", async () => {
   assert.match(idleSettings, /quick-setting is-full[\s\S]*训练长度/);
   assert.match(idleSettings, /value={settings\.mode === "challenge" \? settings\.interval : null}/);
   assert.match(idleSettings, /onChange=\{\(interval\) => onChange\(\{ mode: "challenge", interval \}\)\}/);
+  assert.match(idleSettings, /30 轮（固定）/);
+  assert.match(idleSettings, /8 轮（固定）/);
   assert.doesNotMatch(idleSettings, /<select|<option/);
   assert.match(selectMenu, /aria-haspopup="listbox"/);
   assert.match(selectMenu, /role="listbox"/);
@@ -211,8 +214,8 @@ test("supports persistent web-only custom N-Back keyboard mappings", async () =>
   assert.match(page, /useGameController\([\s\S]*shortcutKeys,[\s\S]*showSettings \|\| showLeaderboard/);
 });
 
-test("adds donation switching and local N-Back leaderboard entry points", async () => {
-  const [page, settingsModal, donationPanel, leaderboardModal, controller, gameHome, nback, wechat, alipay] = await Promise.all([
+test("adds donation switching and local history entry points for all games", async () => {
+  const [page, settingsModal, donationPanel, leaderboardModal, controller, gameHome, nback, flip, wechat, alipay] = await Promise.all([
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/game/SettingsModal.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/game/DonationPanel.tsx", import.meta.url), "utf8"),
@@ -220,6 +223,7 @@ test("adds donation switching and local N-Back leaderboard entry points", async 
     readFile(new URL("../app/game/useGameController.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/game/GameHome.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/game/NBackGame.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/game/FlipMemoryGame.tsx", import.meta.url), "utf8"),
     readFile(new URL("../public/donation/wechat.png", import.meta.url)),
     readFile(new URL("../public/donation/alipay.jpg", import.meta.url)),
   ]);
@@ -237,12 +241,19 @@ test("adds donation switching and local N-Back leaderboard entry points", async 
   assert.match(page, /showLeaderboard/);
   assert.match(page, /<LeaderboardModal/);
   assert.match(controller, /onSessionFinishedRef\.current\?\.\(/);
-  assert.match(gameHome, /leaderboard-entry/);
-  assert.match(nback, /result-leaderboard-link/);
+  assert.match(gameHome, /leaderboard-entry[\s\S]*历史最佳/);
+  assert.match(nback, /result-leaderboard-link[\s\S]*历史最佳/);
+  assert.match(flip, /onSessionFinished\(\{/);
+  assert.match(flip, /result-leaderboard-link[\s\S]*历史最佳/);
   assert.match(leaderboardModal, /leaderboard-game-switch/);
   assert.match(leaderboardModal, /leaderboard-mode-switch/);
+  assert.match(leaderboardModal, />翻牌记忆<\/button>/);
+  assert.match(leaderboardModal, /仅保留最近 10 次全对记录，牌数优先，其次比较用时/);
+  assert.match(leaderboardModal, /entry\.totalRounds} 轮/);
   assert.match(leaderboardModal, /PRESET_INTERVALS\.map/);
+  assert.match(leaderboardModal, /固定 30 轮/);
   assert.match(leaderboardModal, /仅记录当前设备/);
+  assert.doesNotMatch(page, /showLeaderboard && !isFlipMode/);
 });
 
 test("keeps the visible app version synchronized and auto-bumps APK builds", async () => {

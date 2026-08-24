@@ -560,6 +560,16 @@ h1 {
 }
 
 .quick-setting.is-full { grid-column: 1 / -1; }
+.fixed-round-setting > strong {
+  display: grid;
+  min-height: 32px;
+  place-items: center;
+  border: 1px solid #d6ccbf;
+  border-radius: 7px;
+  background: #fff;
+  color: #625b53;
+  font-size: .65rem;
+}
 .quick-setting-label {
   color: #776f65;
   font-size: .61rem;
@@ -1389,7 +1399,17 @@ h1 {
 }
 .segmented-slider button[aria-selected="true"] { color: #fff; }
 
-.leaderboard-game-switch { width: min(100%, 320px); margin: 0 auto .8rem; }
+.leaderboard-game-switch {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  width: min(100%, 390px);
+  margin: 0 auto .8rem;
+}
+.leaderboard-game-switch::before {
+  inset: 3px auto 3px 3px;
+  width: calc((100% - 6px) / 3);
+}
+.leaderboard-game-switch.is-cards::before { transform: translateX(100%); }
+.leaderboard-game-switch.is-flip::before { transform: translateX(200%); }
 .leaderboard-list {
   min-height: 250px;
   max-height: min(49svh, 430px);
@@ -1429,10 +1449,11 @@ h1 {
 
 .leaderboard-empty { display: grid; min-height: 250px; place-content: center; gap: .35rem; text-align: center; }
 .leaderboard-empty b { font-size: .85rem; }
-.leaderboard-empty span, .leaderboard-device-note { color: #847b71; font-size: .62rem; }
+.leaderboard-empty span, .leaderboard-device-note, .leaderboard-rule-note { color: #847b71; font-size: .62rem; }
 .leaderboard-mode-switch { width: 180px; margin: .7rem auto 0; }
 .leaderboard-mode-switch button { min-height: 26px; font-size: .62rem; }
 .leaderboard-device-note { margin: .35rem 0 0; text-align: center; }
+.leaderboard-rule-note { margin: .7rem 0 0; line-height: 1.5; text-align: center; }
 
 .result-panel {
   display: grid;

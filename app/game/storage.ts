@@ -69,20 +69,3 @@ export function writeShortcutKeys(keys: ShortcutKeys) {
     // Keep the in-memory keyboard mapping for the current session.
   }
 }
-
-export function readBestScore(key: string) {
-  try {
-    const value = Number(getStorage()?.getItem(key) ?? 0);
-    return Number.isFinite(value) ? value : 0;
-  } catch {
-    return 0;
-  }
-}
-
-export function writeBestScore(key: string, score: number) {
-  try {
-    getStorage()?.setItem(key, String(score));
-  } catch {
-    // Best scores are non-critical and should never block a session.
-  }
-}

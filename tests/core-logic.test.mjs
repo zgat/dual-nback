@@ -9,6 +9,7 @@ import {
   makeFlipCards,
   makeSequence,
   makeVisibleShuffleSteps,
+  normalizeSettings,
   recordTrialResult,
 } from "../app/game/core.ts";
 import {
@@ -19,6 +20,8 @@ import {
 } from "../app/game/shortcuts.ts";
 import {
   createEmptyLeaderboard,
+  rankFlipEntries,
+  recordFlipLeaderboardResult,
   recordLeaderboardResult,
 } from "../app/game/leaderboard.ts";
 
@@ -85,26 +88,58 @@ test("normalizes keyboard shortcuts and swaps duplicate assignments", () => {
   assert.deepEqual(normalizeShortcutKeys({ ...swapped, color: "2" }), DEFAULT_SHORTCUT_KEYS);
 });
 
-test("ranks the ten best timed sessions by accuracy then elapsed time", () => {
-  const settings = { ...DEFAULT_SETTINGS, trainingType: "grid", mode: "self-paced" };
-  const result = (correct, elapsedMs) => ({
-    settings,
+test("ranks the ten best timed sessions by accuracy, rounds, then elapsed time", () => {
+  const result = (correct, elapsedMs, total = 20) => ({
+    settings: { ...DEFAULT_SETTINGS, trainingType: "grid", mode: "self-paced", total },
     elapsedMs,
     stats: { ...EMPTY_STATS, correct, total: 10 },
   });
   let leaderboard = createEmptyLeaderboard();
   leaderboard = recordLeaderboardResult(leaderboard, result(8, 7000), 1);
-  leaderboard = recordLeaderboardResult(leaderboard, result(9, 9000), 2);
-  leaderboard = recordLeaderboardResult(leaderboard, result(9, 6000), 3);
+  leaderboard = recordLeaderboardResult(leaderboard, result(9, 5000, 20), 2);
+  leaderboard = recordLeaderboardResult(leaderboard, result(9, 9000, 30), 3);
+  leaderboard = recordLeaderboardResult(leaderboard, result(9, 6000, 30), 4);
   for (let index = 0; index < 9; index += 1) {
     leaderboard = recordLeaderboardResult(leaderboard, result(7, 5000 + index), 10 + index);
   }
 
   assert.equal(leaderboard.timed.grid.length, 10);
   assert.deepEqual(
-    leaderboard.timed.grid.slice(0, 3).map(({ accuracy, elapsedMs }) => [accuracy, elapsedMs]),
-    [[90, 6000], [90, 9000], [80, 7000]],
+    leaderboard.timed.grid.slice(0, 4).map(({ accuracy, totalRounds, elapsedMs }) => [accuracy, totalRounds, elapsedMs]),
+    [[90, 30, 6000], [90, 30, 9000], [90, 20, 5000], [80, 20, 7000]],
   );
+});
+
+test("keeps the latest ten perfect flip sessions and ranks cards before time", () => {
+  let leaderboard = createEmptyLeaderboard();
+  for (let index = 0; index < 11; index += 1) {
+    leaderboard = recordFlipLeaderboardResult(leaderboard, {
+      cardCount: index % 2 === 0 ? 16 : 6,
+      difficulty: "classic",
+      rounds: 8,
+      mistakes: 0,
+      elapsedMs: 9000 - index,
+    }, index + 1);
+  }
+  leaderboard = recordFlipLeaderboardResult(leaderboard, {
+    cardCount: 16,
+    difficulty: "moving",
+    rounds: 8,
+    mistakes: 1,
+    elapsedMs: 1000,
+  }, 20);
+
+  assert.equal(leaderboard.flip.length, 10);
+  assert.equal(Math.min(...leaderboard.flip.map(({ createdAt }) => createdAt)), 2);
+  const ranked = rankFlipEntries(leaderboard.flip);
+  assert.ok(ranked.slice(0, 5).every(({ cardCount }) => cardCount === 16));
+  assert.ok(ranked[0].elapsedMs < ranked[1].elapsedMs);
+});
+
+test("fixes challenge sessions at 30 rounds and flip memory at 8 rounds", () => {
+  assert.equal(normalizeSettings({ ...DEFAULT_SETTINGS, mode: "challenge", total: 20 }).total, 30);
+  assert.equal(normalizeSettings({ ...DEFAULT_SETTINGS, mode: "self-paced", total: 20 }).total, 20);
+  assert.equal(normalizeSettings({ ...DEFAULT_SETTINGS, flipRounds: 5 }).flipRounds, 8);
 });
 
 test("counts challenge successes separately for every interval and game", () => {

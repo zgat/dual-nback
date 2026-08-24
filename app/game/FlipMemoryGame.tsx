@@ -11,8 +11,8 @@ import {
 } from "./core";
 import type { FlipCard, FlipPhase, GameSettings, TrainingType } from "./core";
 import { GameHome } from "./GameHome";
+import type { FlipSessionResult } from "./leaderboard";
 import { playFeedbackSound } from "./sound";
-import { readBestScore, writeBestScore } from "./storage";
 import { usePausableTimers } from "./usePausableTimers";
 
 function FlipCardFace({ card }: { card: FlipCard }) {
@@ -30,6 +30,8 @@ type FlipMemoryGameProps = {
   onUpdateSettings: (patch: Partial<GameSettings>) => void;
   onEditSettings: () => void;
   onSessionActiveChange: (active: boolean) => void;
+  onSessionFinished: (result: FlipSessionResult) => void;
+  onOpenLeaderboard: () => void;
   soundEnabled: boolean;
   onToggleSound: () => void;
   paused: boolean;
@@ -45,6 +47,8 @@ export function FlipMemoryGame({
   onUpdateSettings,
   onEditSettings,
   onSessionActiveChange,
+  onSessionFinished,
+  onOpenLeaderboard,
   soundEnabled,
   onToggleSound,
   paused,
@@ -58,7 +62,6 @@ export function FlipMemoryGame({
   const flipConfig = FLIP_CONFIG[cardCount];
   const targetCount = flipConfig.targets;
   const previewMs = (flipConfig.previewSeconds + (moving ? 2 : 0)) * 1000;
-  const bestStorageKey = `flip-memory-best-${settings.flipDifficulty}-${cardCount}`;
   const [flipPhase, setFlipPhase] = useState<FlipPhase>("idle");
   const [round, setRound] = useState(0);
   const [cards, setCards] = useState<FlipCard[]>(() => makeFlipCards(cardCount, targetCount));
@@ -68,7 +71,6 @@ export function FlipMemoryGame({
   const [mistakeIds, setMistakeIds] = useState<string[]>([]);
   const [stats, setStats] = useState({ found: 0, mistakes: 0 });
   const [elapsedMs, setElapsedMs] = useState(0);
-  const [bestScore, setBestScore] = useState(() => readBestScore(bestStorageKey));
   const startedAtRef = useRef(0);
   const pausedAtRef = useRef(0);
   const pausedDurationRef = useRef(0);
@@ -142,12 +144,14 @@ export function FlipMemoryGame({
     const duration = Math.max(0, Date.now() - startedAtRef.current - pausedDurationRef.current);
     setElapsedMs(duration);
     setFlipPhase("finished");
-    setBestScore((previous) => {
-      const next = Math.max(previous, score);
-      writeBestScore(bestStorageKey, next);
-      return next;
+    onSessionFinished({
+      cardCount,
+      difficulty: settings.flipDifficulty,
+      rounds: settings.flipRounds,
+      mistakes: stats.mistakes,
+      elapsedMs: duration,
     });
-  }, [bestStorageKey, score, timers]);
+  }, [cardCount, onSessionFinished, settings.flipDifficulty, settings.flipRounds, stats.mistakes, timers]);
 
   const advanceRound = () => {
     if (round + 1 >= settings.flipRounds) finishGame();
@@ -209,11 +213,12 @@ export function FlipMemoryGame({
               <span><b>{cardCount}</b> 张牌 / 轮</span>
             </div>
             <div className="result-time"><small>总用时</small><strong>{formatDuration(elapsedMs)}</strong></div>
-            <p className="result-note">找对 {stats.found} 张 · 误点 {stats.mistakes} 张 · 历史最佳 {bestScore || score}%</p>
+            <p className="result-note">找对 {stats.found} 张 · 误点 {stats.mistakes} 张</p>
             <div className="result-actions">
               <button className="secondary-button" onClick={beginGame}>再练一轮</button>
               <button className="primary-button" onClick={onEditSettings}>修改设置 <span>→</span></button>
             </div>
+            <button type="button" className="result-leaderboard-link" onClick={onOpenLeaderboard}>查看历史最佳 <span>→</span></button>
           </div>
         </section>
       </div>
@@ -234,6 +239,7 @@ export function FlipMemoryGame({
           onSelectTrainingType={onSelectTrainingType}
           soundEnabled={soundEnabled}
           onToggleSound={onToggleSound}
+          onOpenLeaderboard={onOpenLeaderboard}
           settingsOpen={homeSettingsOpen}
           settingsHeight={homeSettingsHeight}
           onSettingsOpenChange={onHomeSettingsOpenChange}

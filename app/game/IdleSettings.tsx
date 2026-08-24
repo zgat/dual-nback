@@ -76,13 +76,9 @@ export function IdleSettings({ settings, onChange }: IdleSettingsProps) {
             onChange={(flipCardCount) => onChange({ flipCardCount })}
           />
         </div>
-        <div className="quick-setting is-full">
+        <div className="quick-setting is-full fixed-round-setting">
           <span className="quick-setting-label">训练长度</span>
-          <div className="quick-options two-options">
-            {[5, 8].map((flipRounds) => (
-              <button className={settings.flipRounds === flipRounds ? "is-selected" : ""} onClick={() => onChange({ flipRounds })} key={flipRounds}>{flipRounds} 轮</button>
-            ))}
-          </div>
+          <strong>8 轮（固定）</strong>
         </div>
       </section>
     );
@@ -100,13 +96,17 @@ export function IdleSettings({ settings, onChange }: IdleSettingsProps) {
         </>
       )}
 
-      <div className="quick-setting is-full">
+      <div className={`quick-setting is-full ${settings.mode === "challenge" ? "fixed-round-setting" : ""}`}>
         <span className="quick-setting-label">训练长度</span>
-        <div className="quick-options two-options">
-          {[20, 30].map((total) => (
-            <button className={settings.total === total ? "is-selected" : ""} onClick={() => onChange({ total })} key={total}>{total} 轮</button>
-          ))}
-        </div>
+        {settings.mode === "challenge" ? (
+          <strong>30 轮（固定）</strong>
+        ) : (
+          <div className="quick-options two-options">
+            {[20, 30].map((total) => (
+              <button className={settings.total === total ? "is-selected" : ""} onClick={() => onChange({ total })} key={total}>{total} 轮</button>
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );

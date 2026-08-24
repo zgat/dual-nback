@@ -172,7 +172,7 @@ export function NBackGame({
               <button className="secondary-button" onClick={beginCountdown}>再练一轮</button>
               <button className="primary-button" onClick={editSettings}>修改设置 <span>→</span></button>
             </div>
-            <button type="button" className="result-leaderboard-link" onClick={onOpenLeaderboard}>查看排行榜 <span>→</span></button>
+            <button type="button" className="result-leaderboard-link" onClick={onOpenLeaderboard}>查看历史最佳 <span>→</span></button>
           </div>
         </section>
       ) : (

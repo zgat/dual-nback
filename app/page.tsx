@@ -115,9 +115,11 @@ export default function Home() {
             onEditSettings={editHomeSettings}
             onUpdateSettings={updateSettings}
             onSessionActiveChange={setFlipSessionActive}
+            onSessionFinished={leaderboard.recordFlipResult}
+            onOpenLeaderboard={openLeaderboard}
             soundEnabled={soundEnabled}
             onToggleSound={toggleSound}
-            paused={showSettings}
+            paused={showSettings || showLeaderboard}
             homeSettingsOpen={homeSettingsOpen}
             homeSettingsHeight={homeSettingsHeight}
             onHomeSettingsOpenChange={setHomeSettingsOpen}
@@ -166,10 +168,10 @@ export default function Home() {
         />
       )}
 
-      {showLeaderboard && !isFlipMode && (
+      {showLeaderboard && (
         <LeaderboardModal
           data={leaderboard.data}
-          initialTrainingType={isCardMode ? "cards" : "grid"}
+          initialTrainingType={settings.trainingType}
           initialMode={settings.mode}
           onClose={closeLeaderboard}
         />

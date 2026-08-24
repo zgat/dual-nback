@@ -4,10 +4,11 @@ import { useCallback, useEffect, useState } from "react";
 import {
   createEmptyLeaderboard,
   readLeaderboard,
+  recordFlipLeaderboardResult,
   recordLeaderboardResult,
   writeLeaderboard,
 } from "./leaderboard";
-import type { NBackSessionResult } from "./leaderboard";
+import type { FlipSessionResult, NBackSessionResult } from "./leaderboard";
 
 export function useLeaderboard() {
   const [data, setData] = useState(createEmptyLeaderboard);
@@ -17,13 +18,21 @@ export function useLeaderboard() {
     return () => window.clearTimeout(hydrateTimer);
   }, []);
 
-  const recordResult = useCallback((result: NBackSessionResult) => {
+  const updateAndPersist = useCallback((updater: Parameters<typeof setData>[0]) => {
     setData((current) => {
-      const next = recordLeaderboardResult(current, result);
+      const next = typeof updater === "function" ? updater(current) : updater;
       writeLeaderboard(next);
       return next;
     });
   }, []);
 
-  return { data, recordResult };
+  const recordResult = useCallback((result: NBackSessionResult) => {
+    updateAndPersist((current) => recordLeaderboardResult(current, result));
+  }, [updateAndPersist]);
+
+  const recordFlipResult = useCallback((result: FlipSessionResult) => {
+    updateAndPersist((current) => recordFlipLeaderboardResult(current, result));
+  }, [updateAndPersist]);
+
+  return { data, recordResult, recordFlipResult };
 }

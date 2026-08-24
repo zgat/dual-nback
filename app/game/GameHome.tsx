@@ -134,7 +134,7 @@ export function GameHome({
         <button className="start-button" onClick={startGame}>{startLabel} <span>→</span></button>
         <div className="home-utility-row">
           <SoundToggle enabled={soundEnabled} onToggle={onToggleSound} />
-          {onOpenLeaderboard && <button type="button" className="leaderboard-entry" onClick={onOpenLeaderboard}>排行榜 <span>→</span></button>}
+          {onOpenLeaderboard && <button type="button" className="leaderboard-entry" onClick={onOpenLeaderboard}>历史最佳 <span>→</span></button>}
         </div>
       </div>
     </div>
