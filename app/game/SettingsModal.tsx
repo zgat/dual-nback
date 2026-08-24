@@ -31,7 +31,7 @@ export function SettingsModal({
 
   return (
     <ModalFrame
-      eyebrow={showDonation ? "DONATE" : "VERSION 2.0.10"}
+      eyebrow={showDonation ? "DONATE" : "VERSION 2.0.11"}
       title={showDonation ? "支持开发" : "偏好设置"}
       className={showDonation ? "donation-panel" : "preferences-panel"}
       closeLabel={showDonation ? "关闭捐赠页面" : "关闭偏好设置"}

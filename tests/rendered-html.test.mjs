@@ -252,7 +252,9 @@ test("adds donation switching and local history entry points for all games", asy
   assert.match(leaderboardModal, />经典<\/button>/);
   assert.match(leaderboardModal, />移动<\/button>/);
   assert.match(leaderboardModal, /经典与移动分别保留最佳 10 次，依次比较正确率、轮数和用时/);
-  assert.match(leaderboardModal, /entry\.totalRounds} 轮/);
+  assert.match(leaderboardModal, /rank-rounds/);
+  assert.match(leaderboardModal, /entry\.cellCount}格 · \$\{entry\.colorCount}色 · \$\{entry\.n}-BACK/);
+  assert.match(leaderboardModal, /entry\.cellCount}点 · \$\{entry\.colorCount}花色 · \$\{entry\.n}-BACK/);
   assert.match(leaderboardModal, /PRESET_INTERVALS\.map/);
   assert.match(leaderboardModal, /固定 30 轮/);
   assert.match(leaderboardModal, /仅记录当前设备/);

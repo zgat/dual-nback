@@ -41,7 +41,11 @@ export function LeaderboardModal({ data, initialTrainingType, initialMode, initi
                   <b className="rank-number">{index + 1}</b>
                   <span className="rank-result">
                     <strong>{entry.accuracy}%</strong>
-                    <small>{entry.rounds} 轮 · {entry.cardCount} 张牌</small>
+                    <small>{entry.cardCount} 张牌</small>
+                  </span>
+                  <span className="rank-rounds" aria-label={`${entry.rounds} 轮`}>
+                    <strong>{entry.rounds}</strong>
+                    <small>轮</small>
                   </span>
                   <time>{formatDuration(entry.elapsedMs)}</time>
                 </li>
@@ -59,9 +63,14 @@ export function LeaderboardModal({ data, initialTrainingType, initialMode, initi
                   <span className="rank-result">
                     <strong>{entry.accuracy}%</strong>
                     <small>
-                      {entry.totalRounds} 轮 · {entry.n}-BACK · {entry.correct}/{entry.attempts}
-                      {nBackType === "grid" ? ` · ${entry.cellCount}格/${entry.colorCount}色` : ""}
+                      {nBackType === "grid"
+                        ? `${entry.cellCount}格 · ${entry.colorCount}色 · ${entry.n}-BACK`
+                        : `${entry.cellCount}点 · ${entry.colorCount}花色 · ${entry.n}-BACK`}
                     </small>
+                  </span>
+                  <span className="rank-rounds" aria-label={`${entry.totalRounds} 轮`}>
+                    <strong>{entry.totalRounds}</strong>
+                    <small>轮</small>
                   </span>
                   <time>{formatDuration(entry.elapsedMs)}</time>
                 </li>

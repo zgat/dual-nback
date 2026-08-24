@@ -1421,7 +1421,7 @@ h1 {
 .timed-ranking, .challenge-ranking { display: grid; gap: .38rem; margin: 0; padding: .65rem 0; list-style: none; }
 .timed-ranking li {
   display: grid;
-  grid-template-columns: 28px minmax(0, 1fr) auto;
+  grid-template-columns: 28px minmax(0, 1fr) 42px 62px;
   align-items: center;
   gap: .55rem;
   min-height: 44px;
@@ -1433,7 +1433,10 @@ h1 {
 .rank-result { display: grid; gap: .12rem; min-width: 0; }
 .rank-result strong { font-size: .85rem; }
 .rank-result small { overflow: hidden; color: #756d63; font-size: .58rem; text-overflow: ellipsis; white-space: nowrap; }
-.timed-ranking time { color: #4f4942; font-family: Georgia, serif; font-size: .78rem; font-weight: 700; }
+.rank-rounds { display: flex; align-items: baseline; justify-content: center; gap: .12rem; color: #4f4942; }
+.rank-rounds strong { font-family: Georgia, serif; font-size: .82rem; }
+.rank-rounds small { color: #756d63; font-size: .56rem; }
+.timed-ranking time { color: #4f4942; font-family: Georgia, serif; font-size: .78rem; font-weight: 700; text-align: right; }
 
 .challenge-ranking li {
   display: flex;
