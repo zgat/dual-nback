@@ -645,25 +645,34 @@ h1 {
 }
 
 .custom-select-trigger {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: .55rem;
-  text-align: left;
+  position: relative;
+  display: grid;
+  place-items: center;
+  padding-inline: 1.55rem;
+  text-align: center;
+}
+
+.custom-select-trigger > span {
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .custom-select-chevron {
+  position: absolute;
+  top: 50%;
+  right: .78rem;
   width: 7px;
   height: 7px;
-  flex: 0 0 auto;
   border-right: 1.5px solid currentColor;
   border-bottom: 1.5px solid currentColor;
-  transform: rotate(45deg) translateY(-2px);
+  transform: translateY(-68%) rotate(45deg);
   transition: transform .16s ease;
 }
 
 .custom-select-trigger[aria-expanded="true"] .custom-select-chevron {
-  transform: rotate(225deg) translate(-2px, -1px);
+  transform: translateY(-30%) rotate(225deg);
 }
 
 .quick-challenge-select.is-selected .custom-select-trigger {
@@ -690,11 +699,11 @@ h1 {
 }
 
 .custom-select-menu button {
-  display: flex;
+  position: relative;
+  display: grid;
   min-height: 34px;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 .65rem;
+  place-items: center;
+  padding: 0 1.55rem;
   border: 0;
   border-radius: 7px;
   background: transparent;
@@ -702,7 +711,7 @@ h1 {
   cursor: pointer;
   font-size: .68rem;
   font-weight: 700;
-  text-align: left;
+  text-align: center;
 }
 
 .custom-select-menu button:hover,
@@ -716,6 +725,8 @@ h1 {
 }
 
 .custom-select-menu button b {
+  position: absolute;
+  right: .65rem;
   color: var(--orange-deep);
   font-size: .72rem;
 }
