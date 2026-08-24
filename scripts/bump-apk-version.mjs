@@ -20,17 +20,31 @@ const [packageJsonText, packageLockText, gradleText, settingsModalText] = await 
 const packageJson = JSON.parse(packageJsonText);
 const packageLock = JSON.parse(packageLockText);
 const versionMatch = /^(\d+)\.(\d+)\.(\d+)$/.exec(packageJson.version);
+const requestedVersion = process.argv[2];
+const requestedVersionMatch = requestedVersion ? /^(\d+)\.(\d+)\.(\d+)$/.exec(requestedVersion) : null;
 const versionCodeMatch = /versionCode\s+(\d+)/.exec(gradleText);
 const versionNameMatch = /versionName\s+"([^"]+)"/.exec(gradleText);
 
 if (!versionMatch || !versionCodeMatch || !versionNameMatch) {
   throw new Error("无法读取当前 APK 版本号");
 }
+if (requestedVersion && !requestedVersionMatch) {
+  throw new Error(`目标版本号格式无效：${requestedVersion}`);
+}
 if (versionNameMatch[1] !== packageJson.version) {
   throw new Error(`版本号不一致：package.json=${packageJson.version}，Gradle=${versionNameMatch[1]}`);
 }
 
-const nextVersion = `${versionMatch[1]}.${versionMatch[2]}.${Number(versionMatch[3]) + 1}`;
+const nextVersion = requestedVersion ?? `${versionMatch[1]}.${versionMatch[2]}.${Number(versionMatch[3]) + 1}`;
+const currentVersionParts = versionMatch.map(Number).slice(1);
+const nextVersionParts = (requestedVersionMatch ?? /^(\d+)\.(\d+)\.(\d+)$/.exec(nextVersion)).map(Number).slice(1);
+const isNewerVersion = nextVersionParts.some((part, index) => (
+  part > currentVersionParts[index]
+  && nextVersionParts.slice(0, index).every((previous, previousIndex) => previous === currentVersionParts[previousIndex])
+));
+if (!isNewerVersion) {
+  throw new Error(`目标版本号必须高于当前版本：${packageJson.version}`);
+}
 const nextVersionCode = Number(versionCodeMatch[1]) + 1;
 
 packageJson.version = nextVersion;

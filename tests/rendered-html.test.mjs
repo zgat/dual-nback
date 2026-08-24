@@ -152,6 +152,7 @@ test("uses the requested compact home-setting layouts", async () => {
   assert.match(css, /\.custom-select-trigger\s*{[^}]*place-items:\s*center[^}]*padding-inline:\s*1\.55rem[^}]*text-align:\s*center/s);
   assert.match(css, /\.custom-select-chevron\s*{[^}]*right:\s*\.78rem/s);
   assert.match(css, /\.custom-select-menu button\s*{[^}]*place-items:\s*center[^}]*text-align:\s*center/s);
+  assert.match(css, /\.quick-challenge-select \.custom-select-trigger\s*{[^}]*padding-left:\s*0[^}]*padding-right:\s*calc\(\.78rem \+ 3\.5px\)/s);
   assert.match(css, /\.game-home\s*{[^}]*--home-control-width:\s*min\(100%, 420px\)/s);
   assert.match(css, /\.idle-switches\s*{[^}]*width:\s*var\(--home-control-width/s);
   assert.doesNotMatch(css, /\.idle-switches\s*{\s*width:\s*100%/);
@@ -273,12 +274,13 @@ test("adds donation switching and local history entry points for all games", asy
 });
 
 test("keeps the visible app version synchronized and auto-bumps APK builds", async () => {
-  const [gradle, adaptiveIcon, packageJsonText, packageLockText, settingsModal, launcher, foreground] = await Promise.all([
+  const [gradle, adaptiveIcon, packageJsonText, packageLockText, settingsModal, versionBumpScript, launcher, foreground] = await Promise.all([
     readFile(new URL("../android/app/build.gradle", import.meta.url), "utf8"),
     readFile(new URL("../android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml", import.meta.url), "utf8"),
     readFile(new URL("../package.json", import.meta.url), "utf8"),
     readFile(new URL("../package-lock.json", import.meta.url), "utf8"),
     readFile(new URL("../app/game/SettingsModal.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../scripts/bump-apk-version.mjs", import.meta.url), "utf8"),
     readFile(new URL("../android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png", import.meta.url)),
     readFile(new URL("../android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_foreground.png", import.meta.url)),
   ]);
@@ -295,6 +297,7 @@ test("keeps the visible app version synchronized and auto-bumps APK builds", asy
   assert.equal(packageJson.scripts["version:bump:apk"], "node scripts/bump-apk-version.mjs");
   assert.match(packageJson.scripts["android:apk"], /version:bump:apk/);
   assert.match(packageJson.scripts["android:apk:no-bump"], /assembleDebug/);
+  assert.match(versionBumpScript, /process\.argv\[2\]/);
   assert.match(adaptiveIcon, /@mipmap\/ic_launcher_foreground/);
   assert.equal(launcher.subarray(1, 4).toString(), "PNG");
   assert.equal(launcher.readUInt32BE(16), 192);
