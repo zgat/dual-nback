@@ -173,6 +173,7 @@ export default function Home() {
           data={leaderboard.data}
           initialTrainingType={settings.trainingType}
           initialMode={settings.mode}
+          initialFlipDifficulty={settings.flipDifficulty}
           onClose={closeLeaderboard}
         />
       )}

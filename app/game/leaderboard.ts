@@ -26,10 +26,10 @@ export type FlipHistoryEntry = {
 };
 
 export type LeaderboardData = {
-  version: 2;
+  version: 3;
   timed: Record<NBackTrainingType, TimedLeaderboardEntry[]>;
   challenge: Record<NBackTrainingType, Record<string, number>>;
-  flip: FlipHistoryEntry[];
+  flip: Record<FlipDifficulty, FlipHistoryEntry[]>;
 };
 
 export type NBackSessionResult = {
@@ -51,10 +51,10 @@ const FLIP_HISTORY_CARD_COUNTS: FlipCardCount[] = [6, 8, 9, 12, 16];
 
 export function createEmptyLeaderboard(): LeaderboardData {
   return {
-    version: 2,
+    version: 3,
     timed: { grid: [], cards: [] },
     challenge: { grid: {}, cards: {} },
-    flip: [],
+    flip: { classic: [], moving: [] },
   };
 }
 
@@ -111,6 +111,22 @@ function normalizeFlipEntries(value: unknown): FlipHistoryEntry[] {
     .slice(0, 10);
 }
 
+function normalizeFlipHistory(value: unknown): Record<FlipDifficulty, FlipHistoryEntry[]> {
+  if (Array.isArray(value)) {
+    const entries = normalizeFlipEntries(value);
+    return {
+      classic: entries.filter((entry) => entry.difficulty === "classic").slice(0, 10),
+      moving: entries.filter((entry) => entry.difficulty === "moving").slice(0, 10),
+    };
+  }
+  if (!value || typeof value !== "object") return { classic: [], moving: [] };
+  const groups = value as Partial<Record<FlipDifficulty, unknown>>;
+  return {
+    classic: normalizeFlipEntries(groups.classic).filter((entry) => entry.difficulty === "classic"),
+    moving: normalizeFlipEntries(groups.moving).filter((entry) => entry.difficulty === "moving"),
+  };
+}
+
 function normalizeChallengeCounts(value: unknown) {
   if (!value || typeof value !== "object") return {};
   return Object.fromEntries(
@@ -126,7 +142,7 @@ export function normalizeLeaderboard(value: unknown): LeaderboardData {
     flip?: unknown;
   };
   return {
-    version: 2,
+    version: 3,
     timed: {
       grid: normalizeTimedEntries(candidate.timed?.grid),
       cards: normalizeTimedEntries(candidate.timed?.cards),
@@ -135,7 +151,7 @@ export function normalizeLeaderboard(value: unknown): LeaderboardData {
       grid: normalizeChallengeCounts(candidate.challenge?.grid),
       cards: normalizeChallengeCounts(candidate.challenge?.cards),
     },
-    flip: normalizeFlipEntries(candidate.flip),
+    flip: normalizeFlipHistory(candidate.flip),
   };
 }
 
@@ -191,9 +207,12 @@ export function recordFlipLeaderboardResult(data: LeaderboardData, result: FlipS
   };
   return {
     ...data,
-    flip: [entry, ...data.flip]
-      .sort((left, right) => right.createdAt - left.createdAt)
-      .slice(0, 10),
+    flip: {
+      ...data.flip,
+      [result.difficulty]: [entry, ...data.flip[result.difficulty]]
+        .sort((left, right) => right.createdAt - left.createdAt)
+        .slice(0, 10),
+    },
   };
 }
 

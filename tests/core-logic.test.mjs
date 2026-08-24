@@ -20,6 +20,7 @@ import {
 } from "../app/game/shortcuts.ts";
 import {
   createEmptyLeaderboard,
+  normalizeLeaderboard,
   rankFlipEntries,
   recordFlipLeaderboardResult,
   recordLeaderboardResult,
@@ -110,7 +111,7 @@ test("ranks the ten best timed sessions by accuracy, rounds, then elapsed time",
   );
 });
 
-test("keeps the latest ten perfect flip sessions and ranks cards before time", () => {
+test("keeps separate classic and moving flip histories and ranks cards before time", () => {
   let leaderboard = createEmptyLeaderboard();
   for (let index = 0; index < 11; index += 1) {
     leaderboard = recordFlipLeaderboardResult(leaderboard, {
@@ -125,15 +126,27 @@ test("keeps the latest ten perfect flip sessions and ranks cards before time", (
     cardCount: 16,
     difficulty: "moving",
     rounds: 8,
+    mistakes: 0,
+    elapsedMs: 2000,
+  }, 20);
+  leaderboard = recordFlipLeaderboardResult(leaderboard, {
+    cardCount: 16,
+    difficulty: "moving",
+    rounds: 8,
     mistakes: 1,
     elapsedMs: 1000,
-  }, 20);
+  }, 21);
 
-  assert.equal(leaderboard.flip.length, 10);
-  assert.equal(Math.min(...leaderboard.flip.map(({ createdAt }) => createdAt)), 2);
-  const ranked = rankFlipEntries(leaderboard.flip);
+  assert.equal(leaderboard.flip.classic.length, 10);
+  assert.equal(leaderboard.flip.moving.length, 1);
+  assert.equal(Math.min(...leaderboard.flip.classic.map(({ createdAt }) => createdAt)), 2);
+  const ranked = rankFlipEntries(leaderboard.flip.classic);
   assert.ok(ranked.slice(0, 5).every(({ cardCount }) => cardCount === 16));
   assert.ok(ranked[0].elapsedMs < ranked[1].elapsedMs);
+
+  const migrated = normalizeLeaderboard({ ...leaderboard, version: 2, flip: [...leaderboard.flip.classic, ...leaderboard.flip.moving] });
+  assert.equal(migrated.flip.classic.length, 9);
+  assert.equal(migrated.flip.moving.length, 1);
 });
 
 test("fixes challenge sessions at 30 rounds and flip memory at 8 rounds", () => {

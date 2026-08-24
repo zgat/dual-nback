@@ -1385,7 +1385,8 @@ h1 {
   transition: transform .22s cubic-bezier(.22, 1, .36, 1);
 }
 .segmented-slider.is-cards::before,
-.segmented-slider.is-challenge::before { transform: translateX(100%); }
+.segmented-slider.is-challenge::before,
+.segmented-slider.is-moving::before { transform: translateX(100%); }
 .segmented-slider button {
   position: relative;
   z-index: 1;

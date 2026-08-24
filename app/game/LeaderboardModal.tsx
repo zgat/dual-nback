@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { PRESET_INTERVALS, formatDuration } from "./core";
-import type { GameMode } from "./core";
+import type { FlipDifficulty, GameMode } from "./core";
 import { rankFlipEntries } from "./leaderboard";
 import type { HistoryGameType, LeaderboardData, NBackTrainingType } from "./leaderboard";
 import { ModalFrame } from "./ModalFrame";
@@ -11,16 +11,18 @@ type LeaderboardModalProps = {
   data: LeaderboardData;
   initialTrainingType: HistoryGameType;
   initialMode: GameMode;
+  initialFlipDifficulty: FlipDifficulty;
   onClose: () => void;
 };
 
-export function LeaderboardModal({ data, initialTrainingType, initialMode, onClose }: LeaderboardModalProps) {
+export function LeaderboardModal({ data, initialTrainingType, initialMode, initialFlipDifficulty, onClose }: LeaderboardModalProps) {
   const [trainingType, setTrainingType] = useState(initialTrainingType);
   const [mode, setMode] = useState(initialMode);
+  const [flipDifficulty, setFlipDifficulty] = useState(initialFlipDifficulty);
   const isFlip = trainingType === "flip";
   const nBackType: NBackTrainingType = trainingType === "cards" ? "cards" : "grid";
   const timedEntries = data.timed[nBackType];
-  const flipEntries = rankFlipEntries(data.flip);
+  const flipEntries = rankFlipEntries(data.flip[flipDifficulty]);
 
   return (
     <ModalFrame eyebrow="LOCAL TOP 10" title="历史最佳" className="leaderboard-panel" closeLabel="关闭历史最佳" onClose={onClose}>
@@ -39,7 +41,7 @@ export function LeaderboardModal({ data, initialTrainingType, initialMode, onClo
                   <b className="rank-number">{index + 1}</b>
                   <span className="rank-result">
                     <strong>{entry.cardCount} 张牌</strong>
-                    <small>{entry.rounds} 轮 · {entry.difficulty === "moving" ? "移动进阶" : "经典模式"} · 全对</small>
+                    <small>{entry.rounds} 轮 · 全对</small>
                   </span>
                   <time>{formatDuration(entry.elapsedMs)}</time>
                 </li>
@@ -81,7 +83,13 @@ export function LeaderboardModal({ data, initialTrainingType, initialMode, onClo
       </div>
 
       {isFlip ? (
-        <p className="leaderboard-rule-note">仅保留最近 10 次全对记录，牌数优先，其次比较用时。</p>
+        <>
+          <div className={`segmented-slider leaderboard-mode-switch leaderboard-flip-mode-switch is-${flipDifficulty}`} role="tablist" aria-label="切换翻牌记忆模式">
+            <button type="button" role="tab" aria-selected={flipDifficulty === "classic"} onClick={() => setFlipDifficulty("classic")}>经典</button>
+            <button type="button" role="tab" aria-selected={flipDifficulty === "moving"} onClick={() => setFlipDifficulty("moving")}>移动</button>
+          </div>
+          <p className="leaderboard-rule-note">经典与移动分别保留最近 10 次全对记录，牌数优先，其次比较用时。</p>
+        </>
       ) : (
         <div className={`segmented-slider leaderboard-mode-switch is-${mode}`} role="tablist" aria-label="切换历史最佳模式">
           <button type="button" role="tab" aria-selected={mode === "self-paced"} onClick={() => setMode("self-paced")}>计时</button>

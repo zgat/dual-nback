@@ -247,8 +247,11 @@ test("adds donation switching and local history entry points for all games", asy
   assert.match(flip, /result-leaderboard-link[\s\S]*历史最佳/);
   assert.match(leaderboardModal, /leaderboard-game-switch/);
   assert.match(leaderboardModal, /leaderboard-mode-switch/);
+  assert.match(leaderboardModal, /leaderboard-flip-mode-switch/);
   assert.match(leaderboardModal, />翻牌记忆<\/button>/);
-  assert.match(leaderboardModal, /仅保留最近 10 次全对记录，牌数优先，其次比较用时/);
+  assert.match(leaderboardModal, />经典<\/button>/);
+  assert.match(leaderboardModal, />移动<\/button>/);
+  assert.match(leaderboardModal, /经典与移动分别保留最近 10 次全对记录，牌数优先，其次比较用时/);
   assert.match(leaderboardModal, /entry\.totalRounds} 轮/);
   assert.match(leaderboardModal, /PRESET_INTERVALS\.map/);
   assert.match(leaderboardModal, /固定 30 轮/);
