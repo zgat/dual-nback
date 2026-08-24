@@ -10,6 +10,7 @@ import {
   recordTrialResult,
 } from "./core";
 import type { GameSettings, MatchType, Phase, Stats, Trial } from "./core";
+import type { NBackSessionResult } from "./leaderboard";
 import { normalizeShortcutKey } from "./shortcuts";
 import type { ShortcutKeys } from "./shortcuts";
 import { playFeedbackSound } from "./sound";
@@ -17,7 +18,13 @@ import { usePausableTimers } from "./usePausableTimers";
 
 type RunningPhase = "countdown" | "playing";
 
-export function useGameController(settings: GameSettings, soundEnabled: boolean, shortcutKeys: ShortcutKeys, inputBlocked = false) {
+export function useGameController(
+  settings: GameSettings,
+  soundEnabled: boolean,
+  shortcutKeys: ShortcutKeys,
+  inputBlocked = false,
+  onSessionFinished?: (result: NBackSessionResult) => void,
+) {
   const [phase, setPhase] = useState<Phase>("idle");
   const [round, setRound] = useState(-1);
   const [current, setCurrent] = useState<Trial | null>(null);
@@ -32,6 +39,7 @@ export function useGameController(settings: GameSettings, soundEnabled: boolean,
   const settingsRef = useRef(settings);
   const soundEnabledRef = useRef(soundEnabled);
   const shortcutKeysRef = useRef(shortcutKeys);
+  const onSessionFinishedRef = useRef(onSessionFinished);
   const sequenceRef = useRef<Trial[]>([]);
   const phaseRef = useRef<Phase>(phase);
   const phaseBeforePauseRef = useRef<RunningPhase>("playing");
@@ -59,6 +67,10 @@ export function useGameController(settings: GameSettings, soundEnabled: boolean,
   useEffect(() => {
     shortcutKeysRef.current = shortcutKeys;
   }, [shortcutKeys]);
+
+  useEffect(() => {
+    onSessionFinishedRef.current = onSessionFinished;
+  }, [onSessionFinished]);
 
   const setVisible = useCallback((visible: boolean) => {
     stimulusVisibleRef.current = visible;
@@ -98,7 +110,13 @@ export function useGameController(settings: GameSettings, soundEnabled: boolean,
     setPhase("finished");
     setVisible(false);
     const endedAt = sessionEndedAtRef.current || Date.now();
-    setElapsedMs(Math.max(0, endedAt - sessionStartedAtRef.current - pausedDurationRef.current));
+    const elapsed = Math.max(0, endedAt - sessionStartedAtRef.current - pausedDurationRef.current);
+    setElapsedMs(elapsed);
+    onSessionFinishedRef.current?.({
+      settings: { ...settingsRef.current },
+      stats: statsRef.current,
+      elapsedMs: elapsed,
+    });
   }, [setVisible, timers]);
 
   const finalizeTrial = useCallback(() => {

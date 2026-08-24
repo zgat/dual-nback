@@ -17,6 +17,10 @@ import {
   normalizeShortcutKey,
   normalizeShortcutKeys,
 } from "../app/game/shortcuts.ts";
+import {
+  createEmptyLeaderboard,
+  recordLeaderboardResult,
+} from "../app/game/leaderboard.ts";
 
 function seededRandom(seed = 1) {
   let value = seed >>> 0;
@@ -79,6 +83,45 @@ test("normalizes keyboard shortcuts and swaps duplicate assignments", () => {
   assert.equal(swapped.position, "1");
   assert.deepEqual(normalizeShortcutKeys(swapped), swapped);
   assert.deepEqual(normalizeShortcutKeys({ ...swapped, color: "2" }), DEFAULT_SHORTCUT_KEYS);
+});
+
+test("ranks the ten best timed sessions by accuracy then elapsed time", () => {
+  const settings = { ...DEFAULT_SETTINGS, trainingType: "grid", mode: "self-paced" };
+  const result = (correct, elapsedMs) => ({
+    settings,
+    elapsedMs,
+    stats: { ...EMPTY_STATS, correct, total: 10 },
+  });
+  let leaderboard = createEmptyLeaderboard();
+  leaderboard = recordLeaderboardResult(leaderboard, result(8, 7000), 1);
+  leaderboard = recordLeaderboardResult(leaderboard, result(9, 9000), 2);
+  leaderboard = recordLeaderboardResult(leaderboard, result(9, 6000), 3);
+  for (let index = 0; index < 9; index += 1) {
+    leaderboard = recordLeaderboardResult(leaderboard, result(7, 5000 + index), 10 + index);
+  }
+
+  assert.equal(leaderboard.timed.grid.length, 10);
+  assert.deepEqual(
+    leaderboard.timed.grid.slice(0, 3).map(({ accuracy, elapsedMs }) => [accuracy, elapsedMs]),
+    [[90, 6000], [90, 9000], [80, 7000]],
+  );
+});
+
+test("counts challenge successes separately for every interval and game", () => {
+  const result = (trainingType, interval, correct) => ({
+    settings: { ...DEFAULT_SETTINGS, trainingType, mode: "challenge", interval },
+    elapsedMs: 20000,
+    stats: { ...EMPTY_STATS, correct, total: 10 },
+  });
+  let leaderboard = createEmptyLeaderboard();
+  leaderboard = recordLeaderboardResult(leaderboard, result("grid", 2400, 7), 1);
+  leaderboard = recordLeaderboardResult(leaderboard, result("grid", 2400, 5), 2);
+  leaderboard = recordLeaderboardResult(leaderboard, result("grid", 1800, 4), 3);
+  leaderboard = recordLeaderboardResult(leaderboard, result("cards", 2400, 8), 4);
+
+  assert.equal(leaderboard.challenge.grid["2400"], 12);
+  assert.equal(leaderboard.challenge.grid["1800"], 4);
+  assert.equal(leaderboard.challenge.cards["2400"], 8);
 });
 
 test("creates unique flip cards, exact target counts, and visible shuffle steps", () => {

@@ -2,20 +2,30 @@
 
 import { useCallback, useState } from "react";
 import { FlipMemoryGame } from "./game/FlipMemoryGame";
+import { LeaderboardModal } from "./game/LeaderboardModal";
 import { NBackGame } from "./game/NBackGame";
 import { SettingsModal } from "./game/SettingsModal";
 import { useGameController } from "./game/useGameController";
+import { useLeaderboard } from "./game/useLeaderboard";
 import { usePreferences } from "./game/usePreferences";
 
 export default function Home() {
   const [showSettings, setShowSettings] = useState(false);
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [homeSettingsOpen, setHomeSettingsOpen] = useState(false);
   const [homeSettingsHeight, setHomeSettingsHeight] = useState(0);
   const [flipSessionActive, setFlipSessionActive] = useState(false);
   const [flipSessionKey, setFlipSessionKey] = useState(0);
   const preferences = usePreferences();
+  const leaderboard = useLeaderboard();
   const { settings, soundEnabled, shortcutKeys, updateSettings, selectTrainingType, toggleSound, updateShortcutKeys } = preferences;
-  const game = useGameController(settings, soundEnabled, shortcutKeys, showSettings);
+  const game = useGameController(
+    settings,
+    soundEnabled,
+    shortcutKeys,
+    showSettings || showLeaderboard,
+    leaderboard.recordResult,
+  );
   const {
     phase,
     round,
@@ -47,6 +57,7 @@ export default function Home() {
   };
 
   const closeSettings = useCallback(() => setShowSettings(false), []);
+  const closeLeaderboard = useCallback(() => setShowLeaderboard(false), []);
   const updateHomeSettingsHeight = useCallback((height: number) => {
     setHomeSettingsHeight((current) => current === height ? current : height);
   }, []);
@@ -62,6 +73,11 @@ export default function Home() {
   const editHomeSettings = () => {
     goHome();
     setHomeSettingsOpen(true);
+  };
+
+  const openLeaderboard = () => {
+    pauseGame();
+    setShowLeaderboard(true);
   };
 
   return (
@@ -130,6 +146,7 @@ export default function Home() {
             selectTrainingType={selectTrainingType}
             soundEnabled={soundEnabled}
             onToggleSound={toggleSound}
+            onOpenLeaderboard={openLeaderboard}
             homeSettingsOpen={homeSettingsOpen}
             homeSettingsHeight={homeSettingsHeight}
             onHomeSettingsOpenChange={setHomeSettingsOpen}
@@ -146,6 +163,15 @@ export default function Home() {
           onToggleSound={toggleSound}
           onUpdateShortcutKeys={updateShortcutKeys}
           onClose={closeSettings}
+        />
+      )}
+
+      {showLeaderboard && !isFlipMode && (
+        <LeaderboardModal
+          data={leaderboard.data}
+          initialTrainingType={isCardMode ? "cards" : "grid"}
+          initialMode={settings.mode}
+          onClose={closeLeaderboard}
         />
       )}
     </main>

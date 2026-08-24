@@ -19,6 +19,7 @@ export function GameHome({
   onSelectTrainingType,
   soundEnabled,
   onToggleSound,
+  onOpenLeaderboard,
   settingsOpen,
   settingsHeight,
   onSettingsOpenChange,
@@ -35,6 +36,7 @@ export function GameHome({
   onSelectTrainingType: (trainingType: TrainingType) => void;
   soundEnabled: boolean;
   onToggleSound: () => void;
+  onOpenLeaderboard?: () => void;
   settingsOpen: boolean;
   settingsHeight: number;
   onSettingsOpenChange: (open: boolean) => void;
@@ -130,7 +132,10 @@ export function GameHome({
 
       <div className="idle-launch">
         <button className="start-button" onClick={startGame}>{startLabel} <span>→</span></button>
-        <SoundToggle enabled={soundEnabled} onToggle={onToggleSound} />
+        <div className="home-utility-row">
+          <SoundToggle enabled={soundEnabled} onToggle={onToggleSound} />
+          {onOpenLeaderboard && <button type="button" className="leaderboard-entry" onClick={onOpenLeaderboard}>排行榜 <span>→</span></button>}
+        </div>
       </div>
     </div>
   );

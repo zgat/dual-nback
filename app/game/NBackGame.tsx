@@ -36,6 +36,7 @@ type NBackGameProps = {
   selectTrainingType: (trainingType: TrainingType) => void;
   soundEnabled: boolean;
   onToggleSound: () => void;
+  onOpenLeaderboard: () => void;
   homeSettingsOpen: boolean;
   homeSettingsHeight: number;
   onHomeSettingsOpenChange: (open: boolean) => void;
@@ -64,6 +65,7 @@ export function NBackGame({
   selectTrainingType,
   soundEnabled,
   onToggleSound,
+  onOpenLeaderboard,
   homeSettingsOpen,
   homeSettingsHeight,
   onHomeSettingsOpenChange,
@@ -118,6 +120,7 @@ export function NBackGame({
           onSelectTrainingType={selectTrainingType}
           soundEnabled={soundEnabled}
           onToggleSound={onToggleSound}
+          onOpenLeaderboard={onOpenLeaderboard}
           settingsOpen={homeSettingsOpen}
           settingsHeight={homeSettingsHeight}
           onSettingsOpenChange={onHomeSettingsOpenChange}
@@ -169,6 +172,7 @@ export function NBackGame({
               <button className="secondary-button" onClick={beginCountdown}>再练一轮</button>
               <button className="primary-button" onClick={editSettings}>修改设置 <span>→</span></button>
             </div>
+            <button type="button" className="result-leaderboard-link" onClick={onOpenLeaderboard}>查看排行榜 <span>→</span></button>
           </div>
         </section>
       ) : (

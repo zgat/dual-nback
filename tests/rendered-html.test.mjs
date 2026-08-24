@@ -207,7 +207,42 @@ test("supports persistent web-only custom N-Back keyboard mappings", async () =>
   assert.match(settingsModal, /showKeyboardShortcuts &&/);
   assert.match(shortcutSettings, /点击键位后按下新按键/);
   assert.match(shortcutSettings, /恢复默认/);
-  assert.match(page, /useGameController\(settings, soundEnabled, shortcutKeys, showSettings\)/);
+  assert.match(page, /showSettings \|\| showLeaderboard/);
+  assert.match(page, /useGameController\([\s\S]*shortcutKeys,[\s\S]*showSettings \|\| showLeaderboard/);
+});
+
+test("adds donation switching and local N-Back leaderboard entry points", async () => {
+  const [page, settingsModal, donationPanel, leaderboardModal, controller, gameHome, nback, wechat, alipay] = await Promise.all([
+    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/game/SettingsModal.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/game/DonationPanel.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/game/LeaderboardModal.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/game/useGameController.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/game/GameHome.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/game/NBackGame.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../public/donation/wechat.png", import.meta.url)),
+    readFile(new URL("../public/donation/alipay.jpg", import.meta.url)),
+  ]);
+
+  assert.match(settingsModal, /捐赠支持/);
+  assert.match(settingsModal, /<DonationPanel/);
+  assert.match(donationPanel, /payment-switch/);
+  assert.match(donationPanel, />微信</);
+  assert.match(donationPanel, />支付宝</);
+  assert.match(donationPanel, /\/donation\/wechat\.png/);
+  assert.match(donationPanel, /\/donation\/alipay\.jpg/);
+  assert.equal(wechat.subarray(1, 4).toString(), "PNG");
+  assert.deepEqual([...alipay.subarray(0, 2)], [0xff, 0xd8]);
+
+  assert.match(page, /showLeaderboard/);
+  assert.match(page, /<LeaderboardModal/);
+  assert.match(controller, /onSessionFinishedRef\.current\?\.\(/);
+  assert.match(gameHome, /leaderboard-entry/);
+  assert.match(nback, /result-leaderboard-link/);
+  assert.match(leaderboardModal, /leaderboard-game-switch/);
+  assert.match(leaderboardModal, /leaderboard-mode-switch/);
+  assert.match(leaderboardModal, /PRESET_INTERVALS\.map/);
+  assert.match(leaderboardModal, /仅记录当前设备/);
 });
 
 test("keeps the visible app version synchronized and auto-bumps APK builds", async () => {
