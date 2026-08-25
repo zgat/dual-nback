@@ -224,7 +224,7 @@ test("supports persistent web-only custom N-Back keyboard mappings", async () =>
 });
 
 test("adds donation switching and local history entry points for all games", async () => {
-  const [page, settingsModal, donationPanel, leaderboardModal, controller, gameHome, nback, flip, idleSettings, wechat, alipay] = await Promise.all([
+  const [page, settingsModal, donationPanel, leaderboardModal, controller, gameHome, nback, flip, idleSettings, css, wechat, alipay] = await Promise.all([
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/game/SettingsModal.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/game/DonationPanel.tsx", import.meta.url), "utf8"),
@@ -234,6 +234,7 @@ test("adds donation switching and local history entry points for all games", asy
     readFile(new URL("../app/game/NBackGame.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/game/FlipMemoryGame.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/game/IdleSettings.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
     readFile(new URL("../public/donation/wechat.png", import.meta.url)),
     readFile(new URL("../public/donation/alipay.jpg", import.meta.url)),
   ]);
@@ -270,7 +271,11 @@ test("adds donation switching and local history entry points for all games", asy
   assert.match(leaderboardModal, /entry\.suitCount/);
   assert.match(leaderboardModal, /rank-rounds/);
   assert.match(leaderboardModal, /entry\.cellCount}格 · \$\{entry\.colorCount}色 · \$\{entry\.n}-BACK/);
-  assert.match(leaderboardModal, /entry\.cellCount}点 · \$\{entry\.colorCount}花色 · \$\{entry\.n}-BACK/);
+  assert.match(leaderboardModal, /: `\$\{entry\.n}-BACK`/);
+  assert.doesNotMatch(leaderboardModal, /entry\.cellCount}点 · \$\{entry\.colorCount}花色/);
+  assert.match(leaderboardModal, /formatHistoryTimestamp\(entry\.createdAt\)/);
+  assert.match(leaderboardModal, /dateTime=\{new Date\(entry\.createdAt\)\.toISOString\(\)\}/);
+  assert.match(css, /\.rank-timing time \{[^}]*font-size: \.58rem/);
   assert.match(leaderboardModal, /PRESET_INTERVALS\.map/);
   assert.match(leaderboardModal, /固定 30 轮/);
   assert.match(leaderboardModal, /仅记录挑战成功的次数/);

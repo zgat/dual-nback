@@ -16,6 +16,12 @@ type LeaderboardModalProps = {
   onClose: () => void;
 };
 
+function formatHistoryTimestamp(timestamp: number) {
+  const date = new Date(timestamp);
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+}
+
 export function LeaderboardModal({ data, initialTrainingType, initialNBackMode, initialFlipMode, initialFlipDifficulty, onClose }: LeaderboardModalProps) {
   const [trainingType, setTrainingType] = useState(initialTrainingType);
   const [nBackMode, setNBackMode] = useState(initialNBackMode);
@@ -57,7 +63,10 @@ export function LeaderboardModal({ data, initialTrainingType, initialNBackMode, 
                       <strong>{entry.rounds}</strong>
                       <small>轮</small>
                     </span>
-                    <time>{formatDuration(entry.elapsedMs)}</time>
+                    <span className="rank-timing">
+                      <strong>{formatDuration(entry.elapsedMs)}</strong>
+                      <time dateTime={new Date(entry.createdAt).toISOString()}>{formatHistoryTimestamp(entry.createdAt)}</time>
+                    </span>
                   </li>
                 ))}
               </ol>
@@ -85,14 +94,17 @@ export function LeaderboardModal({ data, initialTrainingType, initialNBackMode, 
                     <small>
                       {nBackType === "grid"
                         ? `${entry.cellCount}格 · ${entry.colorCount}色 · ${entry.n}-BACK`
-                        : `${entry.cellCount}点 · ${entry.colorCount}花色 · ${entry.n}-BACK`}
+                        : `${entry.n}-BACK`}
                     </small>
                   </span>
                   <span className="rank-rounds" aria-label={`${entry.totalRounds} 轮`}>
                     <strong>{entry.totalRounds}</strong>
                     <small>轮</small>
                   </span>
-                  <time>{formatDuration(entry.elapsedMs)}</time>
+                  <span className="rank-timing">
+                    <strong>{formatDuration(entry.elapsedMs)}</strong>
+                    <time dateTime={new Date(entry.createdAt).toISOString()}>{formatHistoryTimestamp(entry.createdAt)}</time>
+                  </span>
                 </li>
               ))}
             </ol>
