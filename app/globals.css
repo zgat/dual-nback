@@ -1455,16 +1455,15 @@ h1 {
 .rank-number { color: var(--orange-deep); font-family: Georgia, serif; font-size: 1rem; text-align: center; }
 .rank-result { display: grid; gap: .12rem; min-width: 0; }
 .rank-result strong { font-size: .85rem; }
-.rank-result small { overflow: hidden; color: #756d63; font-size: .58rem; text-overflow: ellipsis; white-space: nowrap; }
-.rank-config { display: flex; min-width: 0; align-items: center; gap: .18rem; text-overflow: clip; }
-.rank-config-dimensions { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-.rank-config-separator, .rank-config-nback { flex: 0 0 auto; }
+.rank-result small { color: #756d63; font-size: .58rem; white-space: nowrap; }
+.rank-config { display: flex; min-width: max-content; align-items: center; gap: .18rem; }
+.rank-config-dimensions, .rank-config-separator, .rank-config-nback { flex: 0 0 auto; }
 .rank-rounds { display: flex; align-items: baseline; justify-content: center; gap: .12rem; color: #4f4942; }
 .rank-rounds strong { font-family: Georgia, serif; font-size: .82rem; }
 .rank-rounds small { color: #756d63; font-size: .56rem; }
 .rank-timing { display: grid; min-width: 0; justify-items: end; gap: .12rem; color: #4f4942; text-align: right; }
 .rank-timing strong { font-family: Georgia, serif; font-size: .78rem; }
-.rank-timing time { color: #756d63; font-size: .58rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.rank-timing time { display: flex; gap: .3rem; color: #756d63; font-size: .58rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
 
 .challenge-ranking li {
   display: flex;
@@ -1611,10 +1610,11 @@ h1 {
   .primary-button, .secondary-button { min-width: 0; padding-inline: .35rem; font-size: .66rem; }
   .settings-panel { padding: 1.25rem; }
   .timed-ranking li {
-    grid-template-columns: 24px minmax(56px, 1fr) 34px minmax(104px, auto);
+    grid-template-columns: 24px minmax(98px, 1fr) 34px minmax(58px, auto);
     gap: .35rem;
     padding-inline: .35rem;
   }
+  .rank-timing time { display: grid; gap: .05rem; }
 }
 
 @media (max-height: 700px) {
