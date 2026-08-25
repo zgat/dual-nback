@@ -204,8 +204,8 @@ test("balances three game sounds and avoids sticky touch hover feedback", async 
   assert.doesNotMatch(css, /\n\.restart-button:hover/);
   assert.doesNotMatch(css, /\n\.start-button:not\(:disabled\):hover/);
   assert.match(css, /\.pause-button\s*{[^}]*min-height:\s*50px[^}]*transform:\s*translateY\(0\)/s);
-  assert.match(page, /setRestartQuarterTurns\(\(turns\) => turns \+ 1\)/);
-  assert.match(page, /rotate\(\$\{restartQuarterTurns \* 90}deg\)/);
+  assert.match(page, /setRestartTurns\(\(turns\) => turns \+ 1\)/);
+  assert.match(page, /rotate\(\$\{restartTurns \* 360}deg\)/);
 });
 
 test("supports persistent web-only custom N-Back keyboard mappings", async () => {

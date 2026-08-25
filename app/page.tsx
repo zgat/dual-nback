@@ -16,7 +16,7 @@ export default function Home() {
   const [homeSettingsHeight, setHomeSettingsHeight] = useState(0);
   const [flipSessionActive, setFlipSessionActive] = useState(false);
   const [flipSessionKey, setFlipSessionKey] = useState(0);
-  const [restartQuarterTurns, setRestartQuarterTurns] = useState(0);
+  const [restartTurns, setRestartTurns] = useState(0);
   const preferences = usePreferences();
   const leaderboard = useLeaderboard();
   const { settings, soundEnabled, shortcutKeys, updateSettings, selectTrainingType, toggleSound, updateShortcutKeys } = preferences;
@@ -82,7 +82,7 @@ export default function Home() {
   };
 
   const restartNBack = () => {
-    setRestartQuarterTurns((turns) => turns + 1);
+    setRestartTurns((turns) => turns + 1);
     beginCountdown();
   };
 
@@ -103,7 +103,7 @@ export default function Home() {
         <div className="top-actions">
           {!isFlipMode && (phase === "countdown" || phase === "playing" || phase === "paused") && (
             <button className="restart-button" onClick={restartNBack} aria-label="重新开始本轮训练">
-              <span className="restart-icon" style={{ transform: `rotate(${restartQuarterTurns * 90}deg)` }} aria-hidden="true">↻</span>
+              <span className="restart-icon" style={{ transform: `rotate(${restartTurns * 360}deg)` }} aria-hidden="true">↻</span>
               <b>重新开始</b>
             </button>
           )}

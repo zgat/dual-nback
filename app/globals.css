@@ -140,7 +140,7 @@ button:disabled { cursor: not-allowed; }
 }
 
 .restart-button span { font-size: 1rem; }
-.restart-icon { display: inline-block; transition: transform .22s cubic-bezier(.22, 1, .36, 1); }
+.restart-icon { display: inline-block; transition: transform .36s cubic-bezier(.22, 1, .36, 1); }
 
 .icon-button, .close-button {
   display: grid;
