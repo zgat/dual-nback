@@ -255,6 +255,7 @@ test("adds donation switching and local history entry points for all games", asy
   assert.match(flip, /onSessionFinished\(\{/);
   assert.match(flip, /result-leaderboard-link[\s\S]*历史最佳/);
   assert.match(leaderboardModal, /leaderboard-game-switch/);
+  assert.match(leaderboardModal, /leaderboard-footer/);
   assert.match(leaderboardModal, /leaderboard-mode-switch/);
   assert.match(leaderboardModal, /leaderboard-flip-mode-switch/);
   assert.match(leaderboardModal, />翻牌记忆<\/button>/);

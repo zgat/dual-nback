@@ -1380,7 +1380,13 @@ h1 {
   color: var(--orange-deep);
 }
 
-.leaderboard-panel { width: min(100%, 500px); overflow: hidden; }
+.leaderboard-panel {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  width: min(100%, 500px);
+  height: min(620px, calc(100svh - 2rem));
+  overflow: hidden;
+}
 
 .segmented-slider {
   position: relative;
@@ -1430,8 +1436,7 @@ h1 {
 .leaderboard-game-switch.is-cards::before { transform: translateX(100%); }
 .leaderboard-game-switch.is-flip::before { transform: translateX(200%); }
 .leaderboard-list {
-  min-height: 250px;
-  max-height: min(49svh, 430px);
+  min-height: 0;
   overflow-y: auto;
   border-block: 1px solid #d8cebf;
 }
@@ -1469,13 +1474,14 @@ h1 {
 .challenge-ranking span b { color: var(--ink); font-family: Georgia, serif; font-size: 1.1rem; }
 .challenge-ranking strong { font-size: .75rem; }
 
-.leaderboard-empty { display: grid; min-height: 250px; place-content: center; gap: .35rem; text-align: center; }
+.leaderboard-empty { display: grid; min-height: 100%; place-content: center; gap: .35rem; text-align: center; }
 .leaderboard-empty b { font-size: .85rem; }
 .leaderboard-empty span, .leaderboard-device-note, .leaderboard-rule-note { color: #847b71; font-size: .62rem; }
 .leaderboard-mode-switch { width: 180px; margin: .7rem auto 0; }
 .leaderboard-mode-switch button { min-height: 26px; font-size: .62rem; }
 .leaderboard-device-note { margin: .35rem 0 0; text-align: center; }
 .leaderboard-rule-note { margin: .7rem 0 0; line-height: 1.5; text-align: center; }
+.leaderboard-rule-note.is-placeholder { visibility: hidden; }
 
 .result-panel {
   display: grid;

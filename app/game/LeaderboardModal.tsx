@@ -23,6 +23,11 @@ export function LeaderboardModal({ data, initialTrainingType, initialMode, initi
   const nBackType: NBackTrainingType = trainingType === "cards" ? "cards" : "grid";
   const timedEntries = data.timed[nBackType];
   const flipEntries = rankFlipEntries(data.flip[flipDifficulty]);
+  const ruleNote = isFlip
+    ? "经典与移动分别保留最佳 10 次，依次比较正确率、轮数和用时。"
+    : mode === "challenge"
+      ? "仅记录挑战成功的次数。"
+      : null;
 
   return (
     <ModalFrame eyebrow="LOCAL TOP 10" title="历史最佳" className="leaderboard-panel" closeLabel="关闭历史最佳" onClose={onClose}>
@@ -91,22 +96,23 @@ export function LeaderboardModal({ data, initialTrainingType, initialMode, initi
         )}
       </div>
 
-      {isFlip ? (
-        <>
+      <div className="leaderboard-footer">
+        {isFlip ? (
           <div className={`segmented-slider leaderboard-mode-switch leaderboard-flip-mode-switch is-${flipDifficulty}`} role="tablist" aria-label="切换翻牌记忆模式">
             <button type="button" role="tab" aria-selected={flipDifficulty === "classic"} onClick={() => setFlipDifficulty("classic")}>经典</button>
             <button type="button" role="tab" aria-selected={flipDifficulty === "moving"} onClick={() => setFlipDifficulty("moving")}>移动</button>
           </div>
-          <p className="leaderboard-rule-note">经典与移动分别保留最佳 10 次，依次比较正确率、轮数和用时。</p>
-        </>
-      ) : (
-        <div className={`segmented-slider leaderboard-mode-switch is-${mode}`} role="tablist" aria-label="切换历史最佳模式">
-          <button type="button" role="tab" aria-selected={mode === "self-paced"} onClick={() => setMode("self-paced")}>计时</button>
-          <button type="button" role="tab" aria-selected={mode === "challenge"} onClick={() => setMode("challenge")}>挑战</button>
-        </div>
-      )}
-      {!isFlip && mode === "challenge" && <p className="leaderboard-rule-note">仅记录挑战成功的次数。</p>}
-      <p className="leaderboard-device-note">仅记录当前设备</p>
+        ) : (
+          <div className={`segmented-slider leaderboard-mode-switch is-${mode}`} role="tablist" aria-label="切换历史最佳模式">
+            <button type="button" role="tab" aria-selected={mode === "self-paced"} onClick={() => setMode("self-paced")}>计时</button>
+            <button type="button" role="tab" aria-selected={mode === "challenge"} onClick={() => setMode("challenge")}>挑战</button>
+          </div>
+        )}
+        <p className={`leaderboard-rule-note ${ruleNote ? "" : "is-placeholder"}`} aria-hidden={!ruleNote}>
+          {ruleNote ?? "\u00a0"}
+        </p>
+        <p className="leaderboard-device-note">仅记录当前设备</p>
+      </div>
     </ModalFrame>
   );
 }
