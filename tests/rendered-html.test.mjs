@@ -263,8 +263,10 @@ test("adds donation switching and local history entry points for all games", asy
   assert.match(leaderboardModal, />翻牌记忆<\/button>/);
   assert.match(leaderboardModal, />经典<\/button>/);
   assert.match(leaderboardModal, />移动<\/button>/);
-  assert.match(leaderboardModal, /计时与挑战、经典与移动分别保留最佳 10 次，依次比较正确率、轮数和用时/);
-  assert.match(leaderboardModal, /data\.flip\[flipMode\]\[flipDifficulty\]/);
+  assert.match(leaderboardModal, /计时模式保留最佳 10 次，依次比较正确率、轮数和用时/);
+  assert.match(leaderboardModal, /挑战模式仅累计无误完成次数，经典与移动分别统计/);
+  assert.match(leaderboardModal, /FLIP_CARD_COUNTS\.map/);
+  assert.match(leaderboardModal, /data\.flip\.challenge\[flipDifficulty\]\[String\(cardCount\)\]/);
   assert.match(leaderboardModal, /entry\.suitCount/);
   assert.match(leaderboardModal, /rank-rounds/);
   assert.match(leaderboardModal, /entry\.cellCount}格 · \$\{entry\.colorCount}色 · \$\{entry\.n}-BACK/);
@@ -275,6 +277,7 @@ test("adds donation switching and local history entry points for all games", asy
   assert.match(leaderboardModal, /仅记录当前设备/);
   assert.match(nback, /isChallengeSuccess \? "挑战成功" : "训练完成"/);
   assert.match(nback, /isChallengeSuccess \? "再次挑战" : "再练一轮"/);
+  assert.match(flip, /challengeSuccess \? "挑战成功" : "训练完成"/);
   assert.match(flip, /settings\.flipMode === "self-paced"/);
   assert.match(flip, /if \(!timed\) timers\.schedule\("main", finishPreview, previewMs\)/);
   assert.match(flip, /记住了，盖牌/);

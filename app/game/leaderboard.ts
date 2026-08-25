@@ -28,10 +28,13 @@ export type FlipHistoryEntry = {
   rounds: number;
 };
 
-export type FlipHistoryGroups = Record<GameMode, Record<FlipDifficulty, FlipHistoryEntry[]>>;
+export type FlipHistoryGroups = {
+  "self-paced": Record<FlipDifficulty, FlipHistoryEntry[]>;
+  challenge: Record<FlipDifficulty, Record<string, number>>;
+};
 
 export type LeaderboardData = {
-  version: 6;
+  version: 7;
   timed: Record<NBackTrainingType, TimedLeaderboardEntry[]>;
   challenge: Record<NBackTrainingType, Record<string, number>>;
   flip: FlipHistoryGroups;
@@ -60,13 +63,13 @@ const FLIP_HISTORY_CARD_COUNTS: FlipCardCount[] = [6, 8, 9, 12, 16];
 function createEmptyFlipHistory(): FlipHistoryGroups {
   return {
     "self-paced": { classic: [], moving: [] },
-    challenge: { classic: [], moving: [] },
+    challenge: { classic: {}, moving: {} },
   };
 }
 
 export function createEmptyLeaderboard(): LeaderboardData {
   return {
-    version: 6,
+    version: 7,
     timed: { grid: [], cards: [] },
     challenge: { grid: {}, cards: {} },
     flip: createEmptyFlipHistory(),
@@ -139,14 +142,34 @@ function normalizeFlipEntries(value: unknown, fallbackMode: GameMode, fallbackDi
   return rankFlipEntries(entries).slice(0, 10);
 }
 
+function countFlipChallengeEntries(entries: FlipHistoryEntry[]) {
+  return entries.reduce<Record<string, number>>((counts, entry) => {
+    if (entry.mode !== "challenge" || entry.accuracy !== 100) return counts;
+    const cardCount = String(entry.cardCount);
+    counts[cardCount] = (counts[cardCount] ?? 0) + 1;
+    return counts;
+  }, {});
+}
+
+function normalizeFlipChallengeCounts(value: unknown) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return Object.fromEntries(
+    Object.entries(value).filter(([cardCount, count]) => (
+      FLIP_HISTORY_CARD_COUNTS.includes(Number(cardCount) as FlipCardCount)
+      && Number.isFinite(count)
+      && Number(count) >= 0
+    )),
+  ) as Record<string, number>;
+}
+
 function groupFlipEntries(entries: FlipHistoryEntry[]): FlipHistoryGroups {
   const groups = createEmptyFlipHistory();
-  for (const mode of ["self-paced", "challenge"] as const) {
-    for (const difficulty of ["classic", "moving"] as const) {
-      groups[mode][difficulty] = rankFlipEntries(
-        entries.filter((entry) => entry.mode === mode && entry.difficulty === difficulty),
-      ).slice(0, 10);
-    }
+  for (const difficulty of ["classic", "moving"] as const) {
+    const difficultyEntries = entries.filter((entry) => entry.difficulty === difficulty);
+    groups["self-paced"][difficulty] = rankFlipEntries(
+      difficultyEntries.filter((entry) => entry.mode === "self-paced"),
+    ).slice(0, 10);
+    groups.challenge[difficulty] = countFlipChallengeEntries(difficultyEntries);
   }
   return groups;
 }
@@ -157,15 +180,23 @@ function normalizeFlipHistory(value: unknown): FlipHistoryGroups {
 
   const groups = value as Partial<Record<GameMode | FlipDifficulty, unknown>>;
   if (groups["self-paced"] || groups.challenge) {
-    const entries = (["self-paced", "challenge"] as const).flatMap((mode) => {
-      const modeGroup = groups[mode];
-      if (!modeGroup || typeof modeGroup !== "object" || Array.isArray(modeGroup)) return [];
-      const difficultyGroups = modeGroup as Partial<Record<FlipDifficulty, unknown>>;
-      return (["classic", "moving"] as const).flatMap((difficulty) => (
-        normalizeFlipEntries(difficultyGroups[difficulty], mode, difficulty)
-      ));
-    });
-    return groupFlipEntries(entries);
+    const normalized = createEmptyFlipHistory();
+    const timedGroup = groups["self-paced"] && typeof groups["self-paced"] === "object" && !Array.isArray(groups["self-paced"])
+      ? groups["self-paced"] as Partial<Record<FlipDifficulty, unknown>>
+      : {};
+    const challengeGroup = groups.challenge && typeof groups.challenge === "object" && !Array.isArray(groups.challenge)
+      ? groups.challenge as Partial<Record<FlipDifficulty, unknown>>
+      : {};
+
+    for (const difficulty of ["classic", "moving"] as const) {
+      normalized["self-paced"][difficulty] = normalizeFlipEntries(timedGroup[difficulty], "self-paced", difficulty)
+        .filter((entry) => entry.mode === "self-paced");
+      const challengeValue = challengeGroup[difficulty];
+      normalized.challenge[difficulty] = Array.isArray(challengeValue)
+        ? countFlipChallengeEntries(normalizeFlipEntries(challengeValue, "challenge", difficulty))
+        : normalizeFlipChallengeCounts(challengeValue);
+    }
+    return normalized;
   }
 
   const legacyEntries = (["classic", "moving"] as const).flatMap((difficulty) => (
@@ -189,9 +220,9 @@ export function normalizeLeaderboard(value: unknown): LeaderboardData {
     challenge?: Partial<Record<NBackTrainingType, unknown>>;
     flip?: unknown;
   };
-  const usesChallengeSuccessCounts = candidate.version === 5 || candidate.version === 6;
+  const usesChallengeSuccessCounts = candidate.version === 5 || candidate.version === 6 || candidate.version === 7;
   return {
-    version: 6,
+    version: 7,
     timed: {
       grid: normalizeTimedEntries(candidate.timed?.grid),
       cards: normalizeTimedEntries(candidate.timed?.cards),
@@ -252,6 +283,24 @@ export function recordFlipLeaderboardResult(data: LeaderboardData, result: FlipS
   if (result.mode !== "self-paced" && result.mode !== "challenge") return data;
   if (result.difficulty !== "classic" && result.difficulty !== "moving") return data;
   const attempts = result.found + result.mistakes;
+  if (result.mode === "challenge") {
+    if (attempts === 0 || result.mistakes !== 0) return data;
+    const cardCount = String(result.cardCount);
+    return {
+      ...data,
+      flip: {
+        ...data.flip,
+        challenge: {
+          ...data.flip.challenge,
+          [result.difficulty]: {
+            ...data.flip.challenge[result.difficulty],
+            [cardCount]: (data.flip.challenge[result.difficulty][cardCount] ?? 0) + 1,
+          },
+        },
+      },
+    };
+  }
+
   const entry: FlipHistoryEntry = {
     id: `${now}-${Math.random().toString(36).slice(2, 8)}`,
     accuracy: attempts === 0 ? 0 : Math.round((result.found / attempts) * 100),
@@ -267,9 +316,9 @@ export function recordFlipLeaderboardResult(data: LeaderboardData, result: FlipS
     ...data,
     flip: {
       ...data.flip,
-      [result.mode]: {
-        ...data.flip[result.mode],
-        [result.difficulty]: rankFlipEntries([entry, ...data.flip[result.mode][result.difficulty]]).slice(0, 10),
+      "self-paced": {
+        ...data.flip["self-paced"],
+        [result.difficulty]: rankFlipEntries([entry, ...data.flip["self-paced"][result.difficulty]]).slice(0, 10),
       },
     },
   };

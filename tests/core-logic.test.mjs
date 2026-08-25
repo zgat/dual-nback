@@ -111,11 +111,11 @@ test("ranks the ten best timed sessions by accuracy, rounds, then elapsed time",
   );
 });
 
-test("keeps separate flip best tens ranked by accuracy, rounds, then time", () => {
+test("keeps timed flip best tens and counts challenge successes by card count", () => {
   let leaderboard = createEmptyLeaderboard();
-  const add = (mode, difficulty, found, mistakes, rounds, elapsedMs, now) => {
+  const add = (mode, difficulty, found, mistakes, rounds, elapsedMs, now, cardCount = 16) => {
     leaderboard = recordFlipLeaderboardResult(leaderboard, {
-      cardCount: 16,
+      cardCount,
       suitCount: 4,
       mode,
       difficulty,
@@ -131,16 +131,16 @@ test("keeps separate flip best tens ranked by accuracy, rounds, then time", () =
   add("self-paced", "classic", 9, 1, 5, 1000, 4);
   for (let index = 0; index < 8; index += 1) add("self-paced", "classic", 5, 5, 8, 5000 + index, 10 + index);
   add("self-paced", "moving", 8, 2, 8, 4000, 20);
-  add("challenge", "classic", 9, 1, 5, 1000, 21);
-  add("challenge", "classic", 9, 1, 8, 9000, 22);
+  add("challenge", "classic", 10, 0, 5, 1000, 21);
+  add("challenge", "classic", 10, 0, 8, 9000, 22);
   add("challenge", "classic", 9, 1, 8, 6000, 23);
+  add("challenge", "classic", 10, 0, 5, 4000, 24, 9);
+  add("challenge", "moving", 10, 0, 5, 3500, 25);
 
   assert.equal(leaderboard.flip["self-paced"].classic.length, 10);
   assert.equal(leaderboard.flip["self-paced"].moving.length, 1);
-  assert.deepEqual(
-    leaderboard.flip.challenge.classic.map(({ accuracy, rounds, elapsedMs }) => [accuracy, rounds, elapsedMs]),
-    [[90, 8, 6000], [90, 8, 9000], [90, 5, 1000]],
-  );
+  assert.deepEqual(leaderboard.flip.challenge.classic, { "9": 1, "16": 2 });
+  assert.deepEqual(leaderboard.flip.challenge.moving, { "16": 1 });
   const ranked = rankFlipEntries(leaderboard.flip["self-paced"].classic);
   assert.deepEqual(
     ranked.slice(0, 4).map(({ accuracy, rounds, elapsedMs }) => [accuracy, rounds, elapsedMs]),
@@ -152,8 +152,7 @@ test("keeps separate flip best tens ranked by accuracy, rounds, then time", () =
   delete oldPerfect.mode;
   delete oldPerfect.suitCount;
   const migrated = normalizeLeaderboard({ ...leaderboard, version: 5, flip: { classic: [oldPerfect], moving: [] } });
-  assert.equal(migrated.flip.challenge.classic[0].accuracy, 100);
-  assert.equal(migrated.flip.challenge.classic[0].suitCount, 4);
+  assert.equal(migrated.flip.challenge.classic["16"], 1);
 });
 
 test("fixes challenge sessions at 30 rounds and allows 5 or 8 flip rounds", () => {

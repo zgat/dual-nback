@@ -80,6 +80,7 @@ export function FlipMemoryGame({
   const previewFinishedRef = useRef(false);
   const timers = usePausableTimers();
   const score = stats.found === 0 ? 0 : Math.round((stats.found / (stats.found + stats.mistakes)) * 100);
+  const challengeSuccess = !timed && stats.found > 0 && stats.mistakes === 0;
 
   const finishPreview = useCallback(() => {
     if (previewFinishedRef.current) return;
@@ -206,7 +207,7 @@ export function FlipMemoryGame({
       <div className={`flip-game flip-phase-${flipPhase} flip-count-${cardCount}`}>
         <div className="stage-heading flip-heading">
           <span className="eyebrow">翻牌记忆 · {timed ? "计时模式" : "挑战模式"} · {moving ? "移动" : "经典"}</span>
-          <h1>训练完成</h1>
+          <h1>{challengeSuccess ? "挑战成功" : "训练完成"}</h1>
         </div>
         <section className="result-panel" aria-label="翻牌记忆结果">
           <div className="score-ring" style={{ "--score": `${score * 3.6}deg` } as CSSProperties}>

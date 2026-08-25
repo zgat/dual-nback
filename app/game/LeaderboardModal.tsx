@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { PRESET_INTERVALS, formatDuration } from "./core";
+import { FLIP_CARD_COUNTS, PRESET_INTERVALS, formatDuration } from "./core";
 import type { FlipDifficulty, GameMode } from "./core";
 import { rankFlipEntries } from "./leaderboard";
 import type { HistoryGameType, LeaderboardData, NBackTrainingType } from "./leaderboard";
@@ -24,9 +24,11 @@ export function LeaderboardModal({ data, initialTrainingType, initialNBackMode, 
   const isFlip = trainingType === "flip";
   const nBackType: NBackTrainingType = trainingType === "cards" ? "cards" : "grid";
   const timedEntries = data.timed[nBackType];
-  const flipEntries = rankFlipEntries(data.flip[flipMode][flipDifficulty]);
+  const flipEntries = rankFlipEntries(data.flip["self-paced"][flipDifficulty]);
   const ruleNote = isFlip
-    ? "计时与挑战、经典与移动分别保留最佳 10 次，依次比较正确率、轮数和用时。"
+    ? flipMode === "self-paced"
+      ? "计时模式保留最佳 10 次，依次比较正确率、轮数和用时。"
+      : "挑战模式仅累计无误完成次数，经典与移动分别统计。"
     : nBackMode === "challenge"
       ? "仅记录挑战成功的次数。"
       : null;
@@ -41,25 +43,36 @@ export function LeaderboardModal({ data, initialTrainingType, initialNBackMode, 
 
       <div className="leaderboard-list" aria-live="polite">
         {isFlip ? (
-          flipEntries.length > 0 ? (
-            <ol className="timed-ranking flip-ranking">
-              {flipEntries.map((entry, index) => (
-                <li key={entry.id}>
-                  <b className="rank-number">{index + 1}</b>
-                  <span className="rank-result">
-                    <strong>{entry.accuracy}%</strong>
-                    <small>{entry.cardCount} 张 · {entry.suitCount} 花色</small>
-                  </span>
-                  <span className="rank-rounds" aria-label={`${entry.rounds} 轮`}>
-                    <strong>{entry.rounds}</strong>
-                    <small>轮</small>
-                  </span>
-                  <time>{formatDuration(entry.elapsedMs)}</time>
+          flipMode === "self-paced" ? (
+            flipEntries.length > 0 ? (
+              <ol className="timed-ranking flip-ranking">
+                {flipEntries.map((entry, index) => (
+                  <li key={entry.id}>
+                    <b className="rank-number">{index + 1}</b>
+                    <span className="rank-result">
+                      <strong>{entry.accuracy}%</strong>
+                      <small>{entry.cardCount} 张 · {entry.suitCount} 花色</small>
+                    </span>
+                    <span className="rank-rounds" aria-label={`${entry.rounds} 轮`}>
+                      <strong>{entry.rounds}</strong>
+                      <small>轮</small>
+                    </span>
+                    <time>{formatDuration(entry.elapsedMs)}</time>
+                  </li>
+                ))}
+              </ol>
+            ) : (
+              <div className="leaderboard-empty"><b>暂无计时记录</b><span>完成一次翻牌记忆计时训练后显示</span></div>
+            )
+          ) : (
+            <ul className="challenge-ranking flip-challenge-ranking">
+              {FLIP_CARD_COUNTS.map((cardCount) => (
+                <li key={cardCount}>
+                  <span><b>{cardCount}</b> 张牌</span>
+                  <strong>成功 {data.flip.challenge[flipDifficulty][String(cardCount)] ?? 0} 次</strong>
                 </li>
               ))}
-            </ol>
-          ) : (
-            <div className="leaderboard-empty"><b>暂无{flipMode === "self-paced" ? "计时" : "挑战"}记录</b><span>完成一次对应模式训练后显示</span></div>
+            </ul>
           )
         ) : nBackMode === "self-paced" ? (
           timedEntries.length > 0 ? (
