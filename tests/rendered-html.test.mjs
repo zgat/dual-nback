@@ -270,12 +270,14 @@ test("adds donation switching and local history entry points for all games", asy
   assert.match(leaderboardModal, /data\.flip\.challenge\[flipDifficulty\]\[String\(cardCount\)\]/);
   assert.match(leaderboardModal, /entry\.suitCount/);
   assert.match(leaderboardModal, /rank-rounds/);
-  assert.match(leaderboardModal, /entry\.cellCount}格 · \$\{entry\.colorCount}色 · \$\{entry\.n}-BACK/);
-  assert.match(leaderboardModal, /: `\$\{entry\.n}-BACK`/);
+  assert.match(leaderboardModal, /rank-config-dimensions[^\n]*\{entry\.cellCount}格 · \{entry\.colorCount}色/);
+  assert.match(leaderboardModal, /rank-config-nback[^\n]*\{entry\.n}-BACK/);
   assert.doesNotMatch(leaderboardModal, /entry\.cellCount}点 · \$\{entry\.colorCount}花色/);
   assert.match(leaderboardModal, /formatHistoryTimestamp\(entry\.createdAt\)/);
   assert.match(leaderboardModal, /dateTime=\{new Date\(entry\.createdAt\)\.toISOString\(\)\}/);
   assert.match(css, /\.rank-timing time \{[^}]*font-size: \.58rem/);
+  assert.match(css, /\.rank-config-separator, \.rank-config-nback \{ flex: 0 0 auto; \}/);
+  assert.match(css, /@media \(max-width: 700px\)[\s\S]*\.timed-ranking li \{[\s\S]*minmax\(56px, 1fr\)/);
   assert.match(leaderboardModal, /PRESET_INTERVALS\.map/);
   assert.match(leaderboardModal, /固定 30 轮/);
   assert.match(leaderboardModal, /仅记录挑战成功的次数/);

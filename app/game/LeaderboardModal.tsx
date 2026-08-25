@@ -91,10 +91,14 @@ export function LeaderboardModal({ data, initialTrainingType, initialNBackMode, 
                   <b className="rank-number">{index + 1}</b>
                   <span className="rank-result">
                     <strong>{entry.accuracy}%</strong>
-                    <small>
-                      {nBackType === "grid"
-                        ? `${entry.cellCount}格 · ${entry.colorCount}色 · ${entry.n}-BACK`
-                        : `${entry.n}-BACK`}
+                    <small className="rank-config">
+                      {nBackType === "grid" && (
+                        <>
+                          <span className="rank-config-dimensions">{entry.cellCount}格 · {entry.colorCount}色</span>
+                          <span className="rank-config-separator" aria-hidden="true">·</span>
+                        </>
+                      )}
+                      <span className="rank-config-nback">{entry.n}-BACK</span>
                     </small>
                   </span>
                   <span className="rank-rounds" aria-label={`${entry.totalRounds} 轮`}>

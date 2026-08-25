@@ -1456,6 +1456,9 @@ h1 {
 .rank-result { display: grid; gap: .12rem; min-width: 0; }
 .rank-result strong { font-size: .85rem; }
 .rank-result small { overflow: hidden; color: #756d63; font-size: .58rem; text-overflow: ellipsis; white-space: nowrap; }
+.rank-config { display: flex; min-width: 0; align-items: center; gap: .18rem; text-overflow: clip; }
+.rank-config-dimensions { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.rank-config-separator, .rank-config-nback { flex: 0 0 auto; }
 .rank-rounds { display: flex; align-items: baseline; justify-content: center; gap: .12rem; color: #4f4942; }
 .rank-rounds strong { font-family: Georgia, serif; font-size: .82rem; }
 .rank-rounds small { color: #756d63; font-size: .56rem; }
@@ -1607,6 +1610,11 @@ h1 {
   .result-actions { gap: .4rem; }
   .primary-button, .secondary-button { min-width: 0; padding-inline: .35rem; font-size: .66rem; }
   .settings-panel { padding: 1.25rem; }
+  .timed-ranking li {
+    grid-template-columns: 24px minmax(56px, 1fr) 34px minmax(104px, auto);
+    gap: .35rem;
+    padding-inline: .35rem;
+  }
 }
 
 @media (max-height: 700px) {
