@@ -1610,11 +1610,10 @@ h1 {
   .primary-button, .secondary-button { min-width: 0; padding-inline: .35rem; font-size: .66rem; }
   .settings-panel { padding: 1.25rem; }
   .timed-ranking li {
-    grid-template-columns: 24px minmax(98px, 1fr) 34px minmax(58px, auto);
-    gap: .35rem;
-    padding-inline: .35rem;
+    grid-template-columns: 24px minmax(96px, 1fr) 34px minmax(104px, auto);
+    gap: .25rem;
+    padding-inline: .3rem;
   }
-  .rank-timing time { display: grid; gap: .05rem; }
 }
 
 @media (max-height: 700px) {

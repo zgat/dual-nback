@@ -278,8 +278,8 @@ test("adds donation switching and local history entry points for all games", asy
   assert.match(css, /\.rank-timing time \{[^}]*font-size: \.58rem/);
   assert.match(css, /\.rank-config \{[^}]*min-width: max-content/);
   assert.doesNotMatch(css, /\.rank-config-dimensions[^}]*text-overflow: ellipsis/);
-  assert.match(css, /@media \(max-width: 700px\)[\s\S]*\.timed-ranking li \{[\s\S]*minmax\(98px, 1fr\)/);
-  assert.match(css, /@media \(max-width: 700px\)[\s\S]*\.rank-timing time \{ display: grid/);
+  assert.match(css, /@media \(max-width: 700px\)[\s\S]*\.timed-ranking li \{[\s\S]*minmax\(96px, 1fr\)[\s\S]*minmax\(104px, auto\)/);
+  assert.doesNotMatch(css, /@media \(max-width: 700px\)[\s\S]*\.rank-timing time \{ display: grid/);
   assert.match(leaderboardModal, /PRESET_INTERVALS\.map/);
   assert.match(leaderboardModal, /固定 30 轮/);
   assert.match(leaderboardModal, /仅记录挑战成功的次数/);
