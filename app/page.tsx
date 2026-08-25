@@ -16,6 +16,7 @@ export default function Home() {
   const [homeSettingsHeight, setHomeSettingsHeight] = useState(0);
   const [flipSessionActive, setFlipSessionActive] = useState(false);
   const [flipSessionKey, setFlipSessionKey] = useState(0);
+  const [restartQuarterTurns, setRestartQuarterTurns] = useState(0);
   const preferences = usePreferences();
   const leaderboard = useLeaderboard();
   const { settings, soundEnabled, shortcutKeys, updateSettings, selectTrainingType, toggleSound, updateShortcutKeys } = preferences;
@@ -80,6 +81,11 @@ export default function Home() {
     setShowLeaderboard(true);
   };
 
+  const restartNBack = () => {
+    setRestartQuarterTurns((turns) => turns + 1);
+    beginCountdown();
+  };
+
   return (
     <main className="app-shell">
       <header className="topbar">
@@ -96,8 +102,8 @@ export default function Home() {
         )}
         <div className="top-actions">
           {!isFlipMode && (phase === "countdown" || phase === "playing" || phase === "paused") && (
-            <button className="restart-button" onClick={beginCountdown} aria-label="重新开始本轮训练">
-              <span aria-hidden="true">↻</span>
+            <button className="restart-button" onClick={restartNBack} aria-label="重新开始本轮训练">
+              <span className="restart-icon" style={{ transform: `rotate(${restartQuarterTurns * 90}deg)` }} aria-hidden="true">↻</span>
               <b>重新开始</b>
             </button>
           )}

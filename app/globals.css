@@ -28,7 +28,7 @@ body {
 }
 
 button, input, select { font: inherit; }
-button { color: inherit; }
+button { color: inherit; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
 button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid rgba(31,103,97,.28); outline-offset: 3px; }
 button:disabled { cursor: not-allowed; }
 
@@ -115,7 +115,6 @@ button:disabled { cursor: not-allowed; }
   letter-spacing: .02em;
   transition: background .15s ease, transform .15s ease;
 }
-.round-home:hover { transform: translateY(-1px); background: rgba(255,255,255,.72); }
 
 .top-actions {
   justify-self: end;
@@ -141,7 +140,7 @@ button:disabled { cursor: not-allowed; }
 }
 
 .restart-button span { font-size: 1rem; }
-.restart-button:hover { transform: translateY(-1px); background: rgba(255,255,255,.65); }
+.restart-icon { display: inline-block; transition: transform .22s cubic-bezier(.22, 1, .36, 1); }
 
 .icon-button, .close-button {
   display: grid;
@@ -160,7 +159,6 @@ button:disabled { cursor: not-allowed; }
   transition: background .18s ease, transform .18s ease;
 }
 
-.icon-button:hover { transform: rotate(12deg); background: rgba(255,255,255,.55); }
 
 .game-stage {
   width: min(100%, 720px);
@@ -218,7 +216,10 @@ button:disabled { cursor: not-allowed; }
 .nback-game.phase-paused > .response-area,
 .nback-game.phase-countdown > .warmup-next,
 .nback-game.phase-playing > .warmup-next,
-.nback-game.phase-paused > .warmup-next {
+.nback-game.phase-paused > .warmup-next,
+.nback-game.phase-countdown > .answer-transition,
+.nback-game.phase-playing > .answer-transition,
+.nback-game.phase-paused > .answer-transition {
   margin: 0;
 }
 
@@ -353,7 +354,6 @@ h1 {
   transition: border-color .16s ease, background .16s ease;
 }
 
-.sound-toggle:hover { border-color: #ad9f8d; background: rgba(255,255,255,.72); }
 .sound-toggle:focus-visible { outline: 3px solid rgba(233,101,45,.24); outline-offset: 2px; }
 .sound-toggle-compact { width: min(100%, 180px); justify-content: space-between; }
 .sound-toggle-copy { display: flex; align-items: center; }
@@ -721,7 +721,6 @@ h1 {
   text-align: center;
 }
 
-.custom-select-menu button:hover,
 .custom-select-menu button:focus-visible {
   background: var(--paper-deep);
 }
@@ -952,7 +951,6 @@ h1 {
   perspective: 700px;
   transition: transform .18s ease, filter .18s ease;
 }
-.memory-card:not(:disabled):hover { transform: translateY(-3px); }
 .memory-card:disabled { cursor: default; }
 .memory-card.is-found { filter: drop-shadow(0 0 8px rgba(31,103,97,.3)); }
 .memory-card.is-mistake { filter: drop-shadow(0 0 8px rgba(166,61,47,.24)); }
@@ -1096,6 +1094,42 @@ h1 {
 
 .response-area.four-options { gap: 8px; margin-top: 1rem; }
 
+.answer-transition {
+  display: grid;
+  width: 100%;
+  min-height: 116px;
+}
+
+.answer-transition > .warmup-next,
+.answer-transition > .response-area {
+  grid-area: 1 / 1;
+  margin: 0;
+  transition: opacity .18s ease, transform .18s cubic-bezier(.22, 1, .36, 1), visibility 0s linear .18s;
+}
+
+.answer-transition.is-warmup > .warmup-next,
+.answer-transition.is-options > .response-area {
+  visibility: visible;
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+  transition-delay: 0s;
+}
+
+.answer-transition.is-warmup > .response-area {
+  visibility: hidden;
+  opacity: 0;
+  transform: translateY(8px) scale(.985);
+  pointer-events: none;
+}
+
+.answer-transition.is-options > .warmup-next {
+  visibility: hidden;
+  opacity: 0;
+  transform: translateY(-6px) scale(.985);
+  pointer-events: none;
+}
+
 .warmup-next {
   display: grid;
   width: 100%;
@@ -1162,10 +1196,20 @@ h1 {
   transition: transform .18s ease, box-shadow .18s ease;
 }
 
-.start-button:not(:disabled):hover { transform: translateY(-2px); box-shadow: 0 14px 28px rgba(37,34,31,.24); }
 .start-button span { color: #f59a72; font-size: 1.15rem; }
 .start-button.is-muted { opacity: .65; }
-.pause-button { background: #393531; }
+.pause-button { min-height: 50px; background: #393531; transform: translateY(0); }
+.pause-button span { display: inline-grid; width: 1.15rem; place-items: center; line-height: 1; }
+
+@media (hover: hover) and (pointer: fine) {
+  .round-home:hover { transform: translateY(-1px); background: rgba(255,255,255,.72); }
+  .restart-button:hover { transform: translateY(-1px); background: rgba(255,255,255,.65); }
+  .icon-button:hover { transform: rotate(12deg); background: rgba(255,255,255,.55); }
+  .sound-toggle:hover { border-color: #ad9f8d; background: rgba(255,255,255,.72); }
+  .custom-select-menu button:hover { background: var(--paper-deep); }
+  .memory-card:not(:disabled):hover { transform: translateY(-3px); }
+  .start-button:not(:disabled):hover { transform: translateY(-2px); box-shadow: 0 14px 28px rgba(37,34,31,.24); }
+}
 
 .modal-backdrop {
   position: fixed;
@@ -1554,7 +1598,7 @@ h1 {
   .playing-card { width: 170px; }
   .grid-cell { border-radius: 8px; }
   .match-button { min-height: 48px; }
-  .warmup-next { min-height: 104px; }
+  .warmup-next, .answer-transition { min-height: 104px; }
   .start-button { min-height: 44px; }
 }
 
@@ -1600,7 +1644,7 @@ h1 {
   .target-prompt { gap: .3rem; }
   .target-prompt > span { min-width: 41px; padding: .42rem .45rem; }
   .preview-timer { width: 100%; }
-  .warmup-next { min-height: 116px; }
+  .warmup-next, .answer-transition { min-height: 116px; }
   .result-panel { grid-template-columns: 106px minmax(0, 1fr); gap: .8rem; min-height: 0; padding: .9rem; text-align: left; }
   .score-ring { width: 106px; margin: 0; }
   .score-ring::before { width: 86px; }
@@ -1635,7 +1679,7 @@ h1 {
   .mode-switch button { min-height: 36px; }
   .nback-game { --nback-board-size: min(72vw, 280px, calc(100dvh - 19rem)); }
   .match-button { min-height: 44px; }
-  .warmup-next { min-height: 96px; }
+  .warmup-next, .answer-transition { min-height: 96px; }
   .start-button { min-height: 42px; }
   .flip-heading h1 { font-size: 1.75rem; }
   .target-prompt { min-height: 38px; }
@@ -1676,12 +1720,9 @@ h1 {
   .nback-game.phase-paused > .card-board {
     grid-row: 1 / 3;
   }
-  .nback-game.phase-countdown > .response-area,
-  .nback-game.phase-playing > .response-area,
-  .nback-game.phase-paused > .response-area,
-  .nback-game.phase-countdown > .warmup-next,
-  .nback-game.phase-playing > .warmup-next,
-  .nback-game.phase-paused > .warmup-next { grid-column: 2; grid-row: 1; align-self: end; }
+  .nback-game.phase-countdown > .answer-transition,
+  .nback-game.phase-playing > .answer-transition,
+  .nback-game.phase-paused > .answer-transition { grid-column: 2; grid-row: 1; align-self: end; }
   .nback-game.phase-countdown > .start-button,
   .nback-game.phase-playing > .start-button,
   .nback-game.phase-paused > .start-button { grid-column: 2; grid-row: 2; }

@@ -69,6 +69,9 @@ test("keeps game screens inside the dynamic viewport", async () => {
   assert.match(css, /@media \(max-height: 600px\) and \(min-aspect-ratio: 4 \/ 3\)/);
   assert.match(css, /\.warmup-next\s*{[^}]*display:\s*grid[^}]*place-items:\s*center[^}]*text-align:\s*center/s);
   assert.match(nback, />\s*记住了，下一轮\s*<\/button>/);
+  assert.match(nback, /answer-transition \$\{showWarmupPrompt \? "is-warmup" : "is-options"\}/);
+  assert.match(css, /\.answer-transition\.is-options > \.warmup-next\s*{[^}]*opacity:\s*0[^}]*translateY\(-6px\)/s);
+  assert.match(css, /\.answer-transition\.is-warmup > \.response-area\s*{[^}]*opacity:\s*0[^}]*translateY\(8px\)/s);
   assert.doesNotMatch(nback, /Enter ↵/);
 });
 
@@ -193,8 +196,16 @@ test("balances three game sounds and avoids sticky touch hover feedback", async 
   assert.match(sound, /compressor\.threshold\.setValueAtTime\(-18/);
 
   const css = await readFile(new URL("../app/globals.css", import.meta.url), "utf8");
+  const page = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
+  assert.match(css, /button\s*{[^}]*touch-action:\s*manipulation[^}]*-webkit-tap-highlight-color:\s*transparent/s);
   assert.match(css, /\.match-button\s*{[^}]*touch-action:\s*manipulation[^}]*-webkit-tap-highlight-color:\s*transparent/s);
   assert.match(css, /@media \(hover: hover\) and \(pointer: fine\)\s*{\s*\.warmup-next:hover\s*{[^}]*}\s*\.match-button:not\(:disabled\):hover/s);
+  assert.match(css, /@media \(hover: hover\) and \(pointer: fine\)[\s\S]*\.restart-button:hover[\s\S]*\.start-button:not\(:disabled\):hover/);
+  assert.doesNotMatch(css, /\n\.restart-button:hover/);
+  assert.doesNotMatch(css, /\n\.start-button:not\(:disabled\):hover/);
+  assert.match(css, /\.pause-button\s*{[^}]*min-height:\s*50px[^}]*transform:\s*translateY\(0\)/s);
+  assert.match(page, /setRestartQuarterTurns\(\(turns\) => turns \+ 1\)/);
+  assert.match(page, /rotate\(\$\{restartQuarterTurns \* 90}deg\)/);
 });
 
 test("supports persistent web-only custom N-Back keyboard mappings", async () => {

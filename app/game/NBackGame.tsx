@@ -73,7 +73,8 @@ export function NBackGame({
 }: NBackGameProps) {
   const accuracy = scorePercent(stats);
   const isChallengeSuccess = settings.mode === "challenge" && accuracy === 100;
-  const warmup = phase === "playing" && round < settings.n;
+  const warmup = (phase === "playing" || phase === "paused") && round >= 0 && round < settings.n;
+  const showWarmupPrompt = settings.mode === "self-paced" && warmup;
   const responseDisabled = phase !== "playing" || warmup || selected !== null;
   const wrongAnswers = Math.max(0, stats.total - stats.correct - stats.misses);
   const gridColumns = settings.cellCount <= 4 ? 2 : settings.cellCount <= 9 ? 3 : 4;
@@ -222,12 +223,16 @@ export function NBackGame({
             </div>
           )}
 
-          {warmup && settings.mode === "self-paced" ? (
-            <button className="warmup-next" onClick={advanceWarmup}>
+          <div className={`answer-transition ${showWarmupPrompt ? "is-warmup" : "is-options"}`}>
+            <button
+              className="warmup-next"
+              onClick={advanceWarmup}
+              disabled={!showWarmupPrompt}
+              aria-hidden={!showWarmupPrompt}
+            >
               记住了，下一轮
             </button>
-          ) : (
-            <div className="response-area four-options" aria-label="选择与 N 轮前的关系">
+            <div className="response-area four-options" aria-label="选择与 N 轮前的关系" aria-hidden={showWarmupPrompt}>
               {OPTIONS.map((option) => (
                 <button
                   className={`match-button relation-button ${optionClass(option.id)}`}
@@ -240,7 +245,7 @@ export function NBackGame({
                 </button>
               ))}
             </div>
-          )}
+          </div>
 
           {phase === "countdown" ? (
             <button className="start-button is-muted" disabled>准备开始…</button>
