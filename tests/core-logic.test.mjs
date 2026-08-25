@@ -113,9 +113,11 @@ test("ranks the ten best timed sessions by accuracy, rounds, then elapsed time",
 
 test("keeps separate flip best tens ranked by accuracy, rounds, then time", () => {
   let leaderboard = createEmptyLeaderboard();
-  const add = (difficulty, found, mistakes, rounds, elapsedMs, now) => {
+  const add = (mode, difficulty, found, mistakes, rounds, elapsedMs, now) => {
     leaderboard = recordFlipLeaderboardResult(leaderboard, {
       cardCount: 16,
+      suitCount: 4,
+      mode,
       difficulty,
       rounds,
       found,
@@ -123,16 +125,23 @@ test("keeps separate flip best tens ranked by accuracy, rounds, then time", () =
       elapsedMs,
     }, now);
   };
-  add("classic", 10, 0, 5, 20000, 1);
-  add("classic", 9, 1, 8, 9000, 2);
-  add("classic", 9, 1, 8, 6000, 3);
-  add("classic", 9, 1, 5, 1000, 4);
-  for (let index = 0; index < 8; index += 1) add("classic", 5, 5, 8, 5000 + index, 10 + index);
-  add("moving", 8, 2, 8, 4000, 20);
+  add("self-paced", "classic", 10, 0, 5, 20000, 1);
+  add("self-paced", "classic", 9, 1, 8, 9000, 2);
+  add("self-paced", "classic", 9, 1, 8, 6000, 3);
+  add("self-paced", "classic", 9, 1, 5, 1000, 4);
+  for (let index = 0; index < 8; index += 1) add("self-paced", "classic", 5, 5, 8, 5000 + index, 10 + index);
+  add("self-paced", "moving", 8, 2, 8, 4000, 20);
+  add("challenge", "classic", 9, 1, 5, 1000, 21);
+  add("challenge", "classic", 9, 1, 8, 9000, 22);
+  add("challenge", "classic", 9, 1, 8, 6000, 23);
 
-  assert.equal(leaderboard.flip.classic.length, 10);
-  assert.equal(leaderboard.flip.moving.length, 1);
-  const ranked = rankFlipEntries(leaderboard.flip.classic);
+  assert.equal(leaderboard.flip["self-paced"].classic.length, 10);
+  assert.equal(leaderboard.flip["self-paced"].moving.length, 1);
+  assert.deepEqual(
+    leaderboard.flip.challenge.classic.map(({ accuracy, rounds, elapsedMs }) => [accuracy, rounds, elapsedMs]),
+    [[90, 8, 6000], [90, 8, 9000], [90, 5, 1000]],
+  );
+  const ranked = rankFlipEntries(leaderboard.flip["self-paced"].classic);
   assert.deepEqual(
     ranked.slice(0, 4).map(({ accuracy, rounds, elapsedMs }) => [accuracy, rounds, elapsedMs]),
     [[100, 5, 20000], [90, 8, 6000], [90, 8, 9000], [90, 5, 1000]],
@@ -140,13 +149,18 @@ test("keeps separate flip best tens ranked by accuracy, rounds, then time", () =
 
   const oldPerfect = { ...ranked[0] };
   delete oldPerfect.accuracy;
-  const migrated = normalizeLeaderboard({ ...leaderboard, version: 3, flip: { classic: [oldPerfect], moving: [] } });
-  assert.equal(migrated.flip.classic[0].accuracy, 100);
+  delete oldPerfect.mode;
+  delete oldPerfect.suitCount;
+  const migrated = normalizeLeaderboard({ ...leaderboard, version: 5, flip: { classic: [oldPerfect], moving: [] } });
+  assert.equal(migrated.flip.challenge.classic[0].accuracy, 100);
+  assert.equal(migrated.flip.challenge.classic[0].suitCount, 4);
 });
 
 test("fixes challenge sessions at 30 rounds and allows 5 or 8 flip rounds", () => {
   assert.equal(normalizeSettings({ ...DEFAULT_SETTINGS, mode: "challenge", total: 20 }).total, 30);
   assert.equal(normalizeSettings({ ...DEFAULT_SETTINGS, mode: "self-paced", total: 20 }).total, 20);
+  assert.equal(normalizeSettings({ ...DEFAULT_SETTINGS, flipMode: "challenge" }).flipMode, "challenge");
+  assert.equal(normalizeSettings({ ...DEFAULT_SETTINGS, flipSuitCount: 2 }).flipSuitCount, 2);
   assert.equal(normalizeSettings({ ...DEFAULT_SETTINGS, flipRounds: 5 }).flipRounds, 5);
   assert.equal(normalizeSettings({ ...DEFAULT_SETTINGS, flipRounds: 8 }).flipRounds, 8);
 });
@@ -172,11 +186,14 @@ test("counts challenge successes separately for every interval and game", () => 
 });
 
 test("creates unique flip cards, exact target counts, and visible shuffle steps", () => {
-  const cards = makeFlipCards(16, 5, seededRandom(23));
-  assert.equal(new Set(cards.map((card) => card.id)).size, 16);
-  assert.equal(cards.filter((card) => card.isTarget).length, 5);
+  const twoSuitCards = makeFlipCards(16, 5, 2, seededRandom(23));
+  const fourSuitCards = makeFlipCards(16, 5, 4, seededRandom(29));
+  assert.equal(new Set(twoSuitCards.map((card) => card.id)).size, 16);
+  assert.equal(twoSuitCards.filter((card) => card.isTarget).length, 5);
+  assert.equal(new Set(twoSuitCards.map((card) => card.suit.name)).size, 2);
+  assert.equal(new Set(fourSuitCards.map((card) => card.suit.name)).size, 4);
 
-  const steps = makeVisibleShuffleSteps(9, seededRandom(29));
+  const steps = makeVisibleShuffleSteps(9, seededRandom(31));
   assert.ok(steps.length >= 4);
   assert.ok(steps.every(([from, to]) => from !== to && from >= 0 && to < 9));
   assert.equal(new Set(steps.flat()).size, 9);

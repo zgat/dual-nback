@@ -4,6 +4,7 @@ export type GameMode = "self-paced" | "challenge";
 export type TrainingType = "grid" | "cards" | "flip";
 export type FlipDifficulty = "classic" | "moving";
 export type FlipCardCount = 6 | 8 | 9 | 12 | 16;
+export type FlipSuitCount = 2 | 4;
 export type FlipPhase = "idle" | "preview" | "shuffling" | "selecting" | "round-complete" | "finished";
 
 export type ColorToken = {
@@ -49,8 +50,10 @@ export type GameSettings = {
   colorCount: number;
   mode: GameMode;
   trainingType: TrainingType;
+  flipMode: GameMode;
   flipDifficulty: FlipDifficulty;
   flipCardCount: FlipCardCount;
+  flipSuitCount: FlipSuitCount;
   flipRounds: number;
 };
 
@@ -99,6 +102,7 @@ export const OPTIONS: Array<{ id: MatchType }> = [
 ];
 
 export const FLIP_CARD_COUNTS: FlipCardCount[] = [6, 8, 9, 12, 16];
+export const FLIP_SUIT_COUNTS: FlipSuitCount[] = [2, 4];
 export const FLIP_CONFIG: Record<FlipCardCount, { columns: number; targets: number; previewSeconds: number; boardWidth: number; layout: string }> = {
   6: { columns: 3, targets: 2, previewSeconds: 5, boardWidth: 430, layout: "3 × 2" },
   8: { columns: 4, targets: 3, previewSeconds: 6, boardWidth: 520, layout: "4 × 2" },
@@ -117,8 +121,10 @@ export const DEFAULT_SETTINGS: GameSettings = {
   colorCount: 4,
   mode: "self-paced",
   trainingType: "grid",
+  flipMode: "self-paced",
   flipDifficulty: "classic",
   flipCardCount: 6,
+  flipSuitCount: 4,
   flipRounds: 5,
 };
 
@@ -186,14 +192,22 @@ export function makeVisibleShuffleSteps(cardCount: number, random: RandomSource 
   return steps;
 }
 
-export function makeFlipCards(cardCount: number, targetCount: number, random: RandomSource = Math.random): FlipCard[] {
-  const pool = CARD_SUITS.flatMap((suit) => CARD_RANKS.map((rank) => ({
+export function makeFlipCards(cardCount: number, targetCount: number, suitCount: FlipSuitCount = 4, random: RandomSource = Math.random): FlipCard[] {
+  const selectedSuits = CARD_SUITS.slice(0, suitCount === 2 ? 2 : 4);
+  const pool = selectedSuits.flatMap((suit) => CARD_RANKS.map((rank) => ({
     type: "cards" as const,
     id: `${suit.name}-${rank.name}`,
     rank,
     suit,
   })));
-  const cards = shuffle(pool, random).slice(0, cardCount);
+  const requiredCards = selectedSuits.map((suit) => {
+    const rank = CARD_RANKS[Math.floor(random() * CARD_RANKS.length)];
+    return { type: "cards" as const, id: `${suit.name}-${rank.name}`, rank, suit };
+  });
+  const requiredIds = new Set(requiredCards.map((card) => card.id));
+  const remainingCards = shuffle(pool.filter((card) => !requiredIds.has(card.id)), random)
+    .slice(0, Math.max(0, cardCount - requiredCards.length));
+  const cards = shuffle([...requiredCards, ...remainingCards], random);
   const targetIds = new Set(shuffle(cards, random).slice(0, targetCount).map((card) => card.id));
   return cards.map((card) => ({ ...card, isTarget: targetIds.has(card.id) }));
 }
@@ -297,8 +311,10 @@ export function normalizeSettings(value: Partial<GameSettings>): GameSettings {
     colorCount: Math.min(7, Math.max(2, Math.round(value.colorCount ?? DEFAULT_SETTINGS.colorCount))),
     mode,
     trainingType,
+    flipMode: value.flipMode === "challenge" ? "challenge" : "self-paced",
     flipDifficulty: value.flipDifficulty === "moving" ? "moving" : "classic",
     flipCardCount,
+    flipSuitCount: value.flipSuitCount === 2 ? 2 : 4,
     flipRounds: value.flipRounds === 8 ? 8 : 5,
   };
 }

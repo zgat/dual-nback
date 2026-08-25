@@ -80,7 +80,7 @@ test("removes flip-memory instructions once play begins", async () => {
 
   assert.doesNotMatch(source, /请依次点出|牌位正在移动|记住全部牌位/);
   assert.match(source, /flipPhase === "idle" \?/);
-  assert.match(source, /<GameHome[\s\S]*description="记住牌面与位置，盖牌后找出目标牌。"[\s\S]*onUpdateSettings={onUpdateSettings}/);
+  assert.match(source, /<GameHome[\s\S]*description=\{timed \? "自己决定何时盖牌，全部找出后进入下一轮。" : "限时记牌，盖牌后不限时找完全部目标牌。"\}[\s\S]*onUpdateSettings=\{onUpdateSettings\}/);
   assert.match(gameHome, /<IdleSettings settings={settings} onChange={onUpdateSettings}/);
   assert.match(source, /timers\.schedule\(`mistake-\$\{card\.id\}`,[\s\S]*}, 650\)/);
   assert.match(source, /if \(paused\) \{[\s\S]*timers\.pauseAll\(\)/);
@@ -224,7 +224,7 @@ test("supports persistent web-only custom N-Back keyboard mappings", async () =>
 });
 
 test("adds donation switching and local history entry points for all games", async () => {
-  const [page, settingsModal, donationPanel, leaderboardModal, controller, gameHome, nback, flip, wechat, alipay] = await Promise.all([
+  const [page, settingsModal, donationPanel, leaderboardModal, controller, gameHome, nback, flip, idleSettings, wechat, alipay] = await Promise.all([
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/game/SettingsModal.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/game/DonationPanel.tsx", import.meta.url), "utf8"),
@@ -233,6 +233,7 @@ test("adds donation switching and local history entry points for all games", asy
     readFile(new URL("../app/game/GameHome.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/game/NBackGame.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/game/FlipMemoryGame.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/game/IdleSettings.tsx", import.meta.url), "utf8"),
     readFile(new URL("../public/donation/wechat.png", import.meta.url)),
     readFile(new URL("../public/donation/alipay.jpg", import.meta.url)),
   ]);
@@ -257,11 +258,14 @@ test("adds donation switching and local history entry points for all games", asy
   assert.match(leaderboardModal, /leaderboard-game-switch/);
   assert.match(leaderboardModal, /leaderboard-footer/);
   assert.match(leaderboardModal, /leaderboard-mode-switch/);
+  assert.match(leaderboardModal, /leaderboard-flip-filters/);
   assert.match(leaderboardModal, /leaderboard-flip-mode-switch/);
   assert.match(leaderboardModal, />翻牌记忆<\/button>/);
   assert.match(leaderboardModal, />经典<\/button>/);
   assert.match(leaderboardModal, />移动<\/button>/);
-  assert.match(leaderboardModal, /经典与移动分别保留最佳 10 次，依次比较正确率、轮数和用时/);
+  assert.match(leaderboardModal, /计时与挑战、经典与移动分别保留最佳 10 次，依次比较正确率、轮数和用时/);
+  assert.match(leaderboardModal, /data\.flip\[flipMode\]\[flipDifficulty\]/);
+  assert.match(leaderboardModal, /entry\.suitCount/);
   assert.match(leaderboardModal, /rank-rounds/);
   assert.match(leaderboardModal, /entry\.cellCount}格 · \$\{entry\.colorCount}色 · \$\{entry\.n}-BACK/);
   assert.match(leaderboardModal, /entry\.cellCount}点 · \$\{entry\.colorCount}花色 · \$\{entry\.n}-BACK/);
@@ -271,6 +275,15 @@ test("adds donation switching and local history entry points for all games", asy
   assert.match(leaderboardModal, /仅记录当前设备/);
   assert.match(nback, /isChallengeSuccess \? "挑战成功" : "训练完成"/);
   assert.match(nback, /isChallengeSuccess \? "再次挑战" : "再练一轮"/);
+  assert.match(flip, /settings\.flipMode === "self-paced"/);
+  assert.match(flip, /if \(!timed\) timers\.schedule\("main", finishPreview, previewMs\)/);
+  assert.match(flip, /记住了，盖牌/);
+  assert.match(flip, /记牌中 · \{flipConfig\.previewSeconds\} 秒/);
+  assert.match(idleSettings, /flipMode: "self-paced"/);
+  assert.match(idleSettings, /flipMode: "challenge"/);
+  assert.match(idleSettings, /花色数量/);
+  assert.match(idleSettings, /FLIP_SUIT_COUNTS/);
+  assert.match(page, /initialFlipMode=\{settings\.flipMode\}/);
   assert.doesNotMatch(page, /showLeaderboard && !isFlipMode/);
 });
 

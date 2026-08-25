@@ -10,22 +10,24 @@ import { ModalFrame } from "./ModalFrame";
 type LeaderboardModalProps = {
   data: LeaderboardData;
   initialTrainingType: HistoryGameType;
-  initialMode: GameMode;
+  initialNBackMode: GameMode;
+  initialFlipMode: GameMode;
   initialFlipDifficulty: FlipDifficulty;
   onClose: () => void;
 };
 
-export function LeaderboardModal({ data, initialTrainingType, initialMode, initialFlipDifficulty, onClose }: LeaderboardModalProps) {
+export function LeaderboardModal({ data, initialTrainingType, initialNBackMode, initialFlipMode, initialFlipDifficulty, onClose }: LeaderboardModalProps) {
   const [trainingType, setTrainingType] = useState(initialTrainingType);
-  const [mode, setMode] = useState(initialMode);
+  const [nBackMode, setNBackMode] = useState(initialNBackMode);
+  const [flipMode, setFlipMode] = useState(initialFlipMode);
   const [flipDifficulty, setFlipDifficulty] = useState(initialFlipDifficulty);
   const isFlip = trainingType === "flip";
   const nBackType: NBackTrainingType = trainingType === "cards" ? "cards" : "grid";
   const timedEntries = data.timed[nBackType];
-  const flipEntries = rankFlipEntries(data.flip[flipDifficulty]);
+  const flipEntries = rankFlipEntries(data.flip[flipMode][flipDifficulty]);
   const ruleNote = isFlip
-    ? "经典与移动分别保留最佳 10 次，依次比较正确率、轮数和用时。"
-    : mode === "challenge"
+    ? "计时与挑战、经典与移动分别保留最佳 10 次，依次比较正确率、轮数和用时。"
+    : nBackMode === "challenge"
       ? "仅记录挑战成功的次数。"
       : null;
 
@@ -46,7 +48,7 @@ export function LeaderboardModal({ data, initialTrainingType, initialMode, initi
                   <b className="rank-number">{index + 1}</b>
                   <span className="rank-result">
                     <strong>{entry.accuracy}%</strong>
-                    <small>{entry.cardCount} 张牌</small>
+                    <small>{entry.cardCount} 张 · {entry.suitCount} 花色</small>
                   </span>
                   <span className="rank-rounds" aria-label={`${entry.rounds} 轮`}>
                     <strong>{entry.rounds}</strong>
@@ -57,9 +59,9 @@ export function LeaderboardModal({ data, initialTrainingType, initialMode, initi
               ))}
             </ol>
           ) : (
-            <div className="leaderboard-empty"><b>暂无训练记录</b><span>完成一次翻牌记忆后显示</span></div>
+            <div className="leaderboard-empty"><b>暂无{flipMode === "self-paced" ? "计时" : "挑战"}记录</b><span>完成一次对应模式训练后显示</span></div>
           )
-        ) : mode === "self-paced" ? (
+        ) : nBackMode === "self-paced" ? (
           timedEntries.length > 0 ? (
             <ol className="timed-ranking">
               {timedEntries.map((entry, index) => (
@@ -98,14 +100,20 @@ export function LeaderboardModal({ data, initialTrainingType, initialMode, initi
 
       <div className="leaderboard-footer">
         {isFlip ? (
-          <div className={`segmented-slider leaderboard-mode-switch leaderboard-flip-mode-switch is-${flipDifficulty}`} role="tablist" aria-label="切换翻牌记忆模式">
-            <button type="button" role="tab" aria-selected={flipDifficulty === "classic"} onClick={() => setFlipDifficulty("classic")}>经典</button>
-            <button type="button" role="tab" aria-selected={flipDifficulty === "moving"} onClick={() => setFlipDifficulty("moving")}>移动</button>
+          <div className="leaderboard-flip-filters">
+            <div className={`segmented-slider leaderboard-mode-switch is-${flipMode}`} role="tablist" aria-label="切换翻牌记忆计时或挑战模式">
+              <button type="button" role="tab" aria-selected={flipMode === "self-paced"} onClick={() => setFlipMode("self-paced")}>计时</button>
+              <button type="button" role="tab" aria-selected={flipMode === "challenge"} onClick={() => setFlipMode("challenge")}>挑战</button>
+            </div>
+            <div className={`segmented-slider leaderboard-mode-switch leaderboard-flip-mode-switch is-${flipDifficulty}`} role="tablist" aria-label="切换翻牌记忆经典或移动难度">
+              <button type="button" role="tab" aria-selected={flipDifficulty === "classic"} onClick={() => setFlipDifficulty("classic")}>经典</button>
+              <button type="button" role="tab" aria-selected={flipDifficulty === "moving"} onClick={() => setFlipDifficulty("moving")}>移动</button>
+            </div>
           </div>
         ) : (
-          <div className={`segmented-slider leaderboard-mode-switch is-${mode}`} role="tablist" aria-label="切换历史最佳模式">
-            <button type="button" role="tab" aria-selected={mode === "self-paced"} onClick={() => setMode("self-paced")}>计时</button>
-            <button type="button" role="tab" aria-selected={mode === "challenge"} onClick={() => setMode("challenge")}>挑战</button>
+          <div className={`segmented-slider leaderboard-mode-switch is-${nBackMode}`} role="tablist" aria-label="切换历史最佳模式">
+            <button type="button" role="tab" aria-selected={nBackMode === "self-paced"} onClick={() => setNBackMode("self-paced")}>计时</button>
+            <button type="button" role="tab" aria-selected={nBackMode === "challenge"} onClick={() => setNBackMode("challenge")}>挑战</button>
           </div>
         )}
         <p className={`leaderboard-rule-note ${ruleNote ? "" : "is-placeholder"}`} aria-hidden={!ruleNote}>

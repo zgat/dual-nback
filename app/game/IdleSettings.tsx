@@ -1,6 +1,6 @@
 "use client";
 
-import { FLIP_CARD_COUNTS, PRESET_INTERVALS } from "./core";
+import { FLIP_CARD_COUNTS, FLIP_CONFIG, FLIP_SUIT_COUNTS, PRESET_INTERVALS } from "./core";
 import type { GameSettings } from "./core";
 import { SelectMenu } from "./SelectMenu";
 
@@ -60,6 +60,13 @@ export function IdleSettings({ settings, onChange }: IdleSettingsProps) {
     return (
       <section className="inline-settings flip-inline-settings" aria-label="翻牌记忆设置">
         <div className="quick-setting">
+          <span className="quick-setting-label">模式</span>
+          <div className="quick-options two-options">
+            <button className={settings.flipMode === "self-paced" ? "is-selected" : ""} onClick={() => onChange({ flipMode: "self-paced" })}>计时</button>
+            <button className={settings.flipMode === "challenge" ? "is-selected" : ""} onClick={() => onChange({ flipMode: "challenge" })}>挑战 · {FLIP_CONFIG[settings.flipCardCount].previewSeconds} 秒</button>
+          </div>
+        </div>
+        <div className="quick-setting">
           <span className="quick-setting-label">翻牌难度</span>
           <div className="quick-options two-options">
             <button className={settings.flipDifficulty === "classic" ? "is-selected" : ""} onClick={() => onChange({ flipDifficulty: "classic" })}>经典</button>
@@ -75,6 +82,14 @@ export function IdleSettings({ settings, onChange }: IdleSettingsProps) {
             ariaLabel="选择牌阵数量"
             onChange={(flipCardCount) => onChange({ flipCardCount })}
           />
+        </div>
+        <div className="quick-setting">
+          <span className="quick-setting-label">花色数量</span>
+          <div className="quick-options two-options">
+            {FLIP_SUIT_COUNTS.map((flipSuitCount) => (
+              <button className={settings.flipSuitCount === flipSuitCount ? "is-selected" : ""} onClick={() => onChange({ flipSuitCount })} key={flipSuitCount}>{flipSuitCount} 花色</button>
+            ))}
+          </div>
         </div>
         <div className="quick-setting is-full">
           <span className="quick-setting-label">训练长度</span>

@@ -57,14 +57,16 @@ export function FlipMemoryGame({
   onHomeSettingsOpenChange,
   onHomeSettingsHeightChange,
 }: FlipMemoryGameProps) {
+  const timed = settings.flipMode === "self-paced";
   const moving = settings.flipDifficulty === "moving";
   const cardCount = settings.flipCardCount;
+  const suitCount = settings.flipSuitCount;
   const flipConfig = FLIP_CONFIG[cardCount];
   const targetCount = flipConfig.targets;
-  const previewMs = (flipConfig.previewSeconds + (moving ? 2 : 0)) * 1000;
+  const previewMs = flipConfig.previewSeconds * 1000;
   const [flipPhase, setFlipPhase] = useState<FlipPhase>("idle");
   const [round, setRound] = useState(0);
-  const [cards, setCards] = useState<FlipCard[]>(() => makeFlipCards(cardCount, targetCount));
+  const [cards, setCards] = useState<FlipCard[]>(() => makeFlipCards(cardCount, targetCount, suitCount));
   const [activeSwap, setActiveSwap] = useState<[number, number] | null>(null);
   const [shuffleProgress, setShuffleProgress] = useState({ current: 0, total: 0 });
   const [foundIds, setFoundIds] = useState<string[]>([]);
@@ -116,7 +118,7 @@ export function FlipMemoryGame({
 
   const dealRound = useCallback((roundIndex: number) => {
     timers.clearAll();
-    const nextCards = makeFlipCards(cardCount, targetCount);
+    const nextCards = makeFlipCards(cardCount, targetCount, suitCount);
     previewFinishedRef.current = false;
     cardsRef.current = nextCards;
     setRound(roundIndex);
@@ -126,8 +128,8 @@ export function FlipMemoryGame({
     setFoundIds([]);
     setMistakeIds([]);
     setFlipPhase("preview");
-    timers.schedule("main", finishPreview, previewMs);
-  }, [cardCount, finishPreview, previewMs, targetCount, timers]);
+    if (!timed) timers.schedule("main", finishPreview, previewMs);
+  }, [cardCount, finishPreview, previewMs, suitCount, targetCount, timed, timers]);
 
   const beginGame = useCallback(() => {
     if (soundEnabled) playFeedbackSound("advance");
@@ -146,13 +148,15 @@ export function FlipMemoryGame({
     setFlipPhase("finished");
     onSessionFinished({
       cardCount,
+      suitCount,
+      mode: settings.flipMode,
       difficulty: settings.flipDifficulty,
       rounds: settings.flipRounds,
       found: stats.found,
       mistakes: stats.mistakes,
       elapsedMs: duration,
     });
-  }, [cardCount, onSessionFinished, settings.flipDifficulty, settings.flipRounds, stats.found, stats.mistakes, timers]);
+  }, [cardCount, onSessionFinished, settings.flipDifficulty, settings.flipMode, settings.flipRounds, stats.found, stats.mistakes, suitCount, timers]);
 
   const advanceRound = () => {
     if (round + 1 >= settings.flipRounds) finishGame();
@@ -201,7 +205,7 @@ export function FlipMemoryGame({
     return (
       <div className={`flip-game flip-phase-${flipPhase} flip-count-${cardCount}`}>
         <div className="stage-heading flip-heading">
-          <span className="eyebrow">翻牌记忆 · {cardCount} 张 · {moving ? "移动进阶" : "经典模式"}</span>
+          <span className="eyebrow">翻牌记忆 · {timed ? "计时模式" : "挑战模式"} · {moving ? "移动" : "经典"}</span>
           <h1>训练完成</h1>
         </div>
         <section className="result-panel" aria-label="翻牌记忆结果">
@@ -211,12 +215,12 @@ export function FlipMemoryGame({
           <div className="result-copy">
             <div className="result-config">
               <span><b>{settings.flipRounds}</b> 轮训练</span>
-              <span><b>{cardCount}</b> 张牌 / 轮</span>
+              <span><b>{cardCount}</b> 张 · {suitCount} 花色</span>
             </div>
             <div className="result-time"><small>总用时</small><strong>{formatDuration(elapsedMs)}</strong></div>
             <p className="result-note">找对 {stats.found} 张 · 误点 {stats.mistakes} 张</p>
             <div className="result-actions">
-              <button className="secondary-button" onClick={beginGame}>再练一轮</button>
+              <button className="secondary-button" onClick={beginGame}>{timed ? "再练一轮" : "再次挑战"}</button>
               <button className="primary-button" onClick={onEditSettings}>修改设置 <span>→</span></button>
             </div>
             <button type="button" className="result-leaderboard-link" onClick={onOpenLeaderboard}>查看历史最佳 <span>→</span></button>
@@ -230,11 +234,11 @@ export function FlipMemoryGame({
     <div className={`flip-game flip-phase-${flipPhase} flip-count-${cardCount}`}>
       {flipPhase === "idle" ? (
         <GameHome
-          eyebrow={`翻牌记忆 · ${cardCount} 张 · ${moving ? "移动进阶" : "经典模式"}`}
+          eyebrow={`翻牌记忆 · ${timed ? "计时模式" : "挑战模式"} · ${moving ? "移动" : "经典"}`}
           title="看清每一张牌"
-          description="记住牌面与位置，盖牌后找出目标牌。"
+          description={timed ? "自己决定何时盖牌，全部找出后进入下一轮。" : "限时记牌，盖牌后不限时找完全部目标牌。"}
           settings={settings}
-          startLabel="开始翻牌记忆"
+          startLabel={timed ? "开始计时" : "开始挑战"}
           onStart={beginGame}
           onUpdateSettings={onUpdateSettings}
           onSelectTrainingType={onSelectTrainingType}
@@ -301,12 +305,16 @@ export function FlipMemoryGame({
             )}
           </div>
 
-          {flipPhase === "preview" && (
+          {flipPhase === "preview" && !timed && (
             <div className="preview-timer" style={{ "--preview-duration": `${previewMs}ms`, "--flip-board-width": `${flipConfig.boardWidth}px` } as CSSProperties}><i /></div>
           )}
 
           {flipPhase === "preview" ? (
-            <button className="start-button" onClick={finishPreview}>记住了，盖牌 <span>→</span></button>
+            timed ? (
+              <button className="start-button" onClick={finishPreview}>记住了，盖牌 <span>→</span></button>
+            ) : (
+              <button className="start-button is-muted" disabled>记牌中 · {flipConfig.previewSeconds} 秒</button>
+            )
           ) : flipPhase === "round-complete" ? (
             <button className="start-button" onClick={advanceRound}>{round + 1 >= settings.flipRounds ? "查看结果" : "下一轮"} <span>→</span></button>
           ) : (

@@ -109,7 +109,7 @@ export default function Home() {
       <section className="game-stage">
         {isFlipMode ? (
           <FlipMemoryGame
-            key={`${settings.flipDifficulty}-${settings.flipCardCount}-${settings.flipRounds}-${flipSessionKey}`}
+            key={`${settings.flipMode}-${settings.flipDifficulty}-${settings.flipCardCount}-${settings.flipSuitCount}-${settings.flipRounds}-${flipSessionKey}`}
             settings={settings}
             onSelectTrainingType={selectTrainingType}
             onEditSettings={editHomeSettings}
@@ -172,7 +172,8 @@ export default function Home() {
         <LeaderboardModal
           data={leaderboard.data}
           initialTrainingType={settings.trainingType}
-          initialMode={settings.mode}
+          initialNBackMode={settings.mode}
+          initialFlipMode={settings.flipMode}
           initialFlipDifficulty={settings.flipDifficulty}
           onClose={closeLeaderboard}
         />

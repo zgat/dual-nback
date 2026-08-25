@@ -1479,6 +1479,8 @@ h1 {
 .leaderboard-empty span, .leaderboard-device-note, .leaderboard-rule-note { color: #847b71; font-size: .62rem; }
 .leaderboard-mode-switch { width: 180px; margin: .7rem auto 0; }
 .leaderboard-mode-switch button { min-height: 26px; font-size: .62rem; }
+.leaderboard-flip-filters { display: flex; width: min(100%, 370px); gap: .5rem; margin: 0 auto; }
+.leaderboard-flip-filters .leaderboard-mode-switch { flex: 1; width: auto; }
 .leaderboard-device-note { margin: .35rem 0 0; text-align: center; }
 .leaderboard-rule-note { margin: .7rem 0 0; line-height: 1.5; text-align: center; }
 .leaderboard-rule-note.is-placeholder { visibility: hidden; }
