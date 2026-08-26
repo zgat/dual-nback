@@ -134,12 +134,12 @@ test("keeps timed flip best tens and counts challenge successes by card count", 
   add("challenge", "classic", 10, 0, 5, 1000, 21);
   add("challenge", "classic", 10, 0, 8, 9000, 22);
   add("challenge", "classic", 9, 1, 8, 6000, 23);
-  add("challenge", "classic", 10, 0, 5, 4000, 24, 9);
-  add("challenge", "moving", 10, 0, 5, 3500, 25);
+  add("challenge", "classic", 10, 0, 8, 4000, 24, 9);
+  add("challenge", "moving", 10, 0, 8, 3500, 25);
 
   assert.equal(leaderboard.flip["self-paced"].classic.length, 10);
   assert.equal(leaderboard.flip["self-paced"].moving.length, 1);
-  assert.deepEqual(leaderboard.flip.challenge.classic, { "9": 1, "16": 2 });
+  assert.deepEqual(leaderboard.flip.challenge.classic, { "9": 1, "16": 1 });
   assert.deepEqual(leaderboard.flip.challenge.moving, { "16": 1 });
   const ranked = rankFlipEntries(leaderboard.flip["self-paced"].classic);
   assert.deepEqual(
@@ -155,13 +155,14 @@ test("keeps timed flip best tens and counts challenge successes by card count", 
   assert.equal(migrated.flip.challenge.classic["16"], 1);
 });
 
-test("fixes challenge sessions at 30 rounds and allows 5 or 8 flip rounds", () => {
+test("fixes N-Back challenges at 30 rounds and flip-memory challenges at 8 rounds", () => {
   assert.equal(normalizeSettings({ ...DEFAULT_SETTINGS, mode: "challenge", total: 20 }).total, 30);
   assert.equal(normalizeSettings({ ...DEFAULT_SETTINGS, mode: "self-paced", total: 20 }).total, 20);
   assert.equal(normalizeSettings({ ...DEFAULT_SETTINGS, flipMode: "challenge" }).flipMode, "challenge");
+  assert.equal(normalizeSettings({ ...DEFAULT_SETTINGS, flipMode: "challenge", flipRounds: 5 }).flipRounds, 8);
   assert.equal(normalizeSettings({ ...DEFAULT_SETTINGS, flipSuitCount: 2 }).flipSuitCount, 2);
-  assert.equal(normalizeSettings({ ...DEFAULT_SETTINGS, flipRounds: 5 }).flipRounds, 5);
-  assert.equal(normalizeSettings({ ...DEFAULT_SETTINGS, flipRounds: 8 }).flipRounds, 8);
+  assert.equal(normalizeSettings({ ...DEFAULT_SETTINGS, flipMode: "self-paced", flipRounds: 5 }).flipRounds, 5);
+  assert.equal(normalizeSettings({ ...DEFAULT_SETTINGS, flipMode: "self-paced", flipRounds: 8 }).flipRounds, 8);
 });
 
 test("counts challenge successes separately for every interval and game", () => {

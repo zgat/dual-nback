@@ -91,13 +91,17 @@ export function IdleSettings({ settings, onChange }: IdleSettingsProps) {
             ))}
           </div>
         </div>
-        <div className="quick-setting is-full">
+        <div className={`quick-setting is-full ${settings.flipMode === "challenge" ? "fixed-round-setting" : ""}`}>
           <span className="quick-setting-label">训练长度</span>
-          <div className="quick-options two-options">
-            {[5, 8].map((flipRounds) => (
-              <button className={settings.flipRounds === flipRounds ? "is-selected" : ""} onClick={() => onChange({ flipRounds })} key={flipRounds}>{flipRounds} 轮</button>
-            ))}
-          </div>
+          {settings.flipMode === "challenge" ? (
+            <strong>8 轮（固定）</strong>
+          ) : (
+            <div className="quick-options two-options">
+              {[5, 8].map((flipRounds) => (
+                <button className={settings.flipRounds === flipRounds ? "is-selected" : ""} onClick={() => onChange({ flipRounds })} key={flipRounds}>{flipRounds} 轮</button>
+              ))}
+            </div>
+          )}
         </div>
       </section>
     );

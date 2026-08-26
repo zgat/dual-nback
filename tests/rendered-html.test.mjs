@@ -136,6 +136,7 @@ test("uses the requested compact home-setting layouts", async () => {
   assert.match(idleSettings, /value={settings\.mode === "challenge" \? settings\.interval : null}/);
   assert.match(idleSettings, /onChange=\{\(interval\) => onChange\(\{ mode: "challenge", interval \}\)\}/);
   assert.match(idleSettings, /30 轮（固定）/);
+  assert.match(idleSettings, /8 轮（固定）/);
   assert.match(idleSettings, /\[5, 8\]\.map\(\(flipRounds\)/);
   assert.doesNotMatch(idleSettings, /<select|<option/);
   assert.match(selectMenu, /aria-haspopup="listbox"/);

@@ -284,6 +284,7 @@ export function recordFlipLeaderboardResult(data: LeaderboardData, result: FlipS
   if (result.difficulty !== "classic" && result.difficulty !== "moving") return data;
   const attempts = result.found + result.mistakes;
   if (result.mode === "challenge") {
+    if (result.rounds !== 8) return data;
     if (attempts === 0 || result.mistakes !== 0) return data;
     const cardCount = String(result.cardCount);
     return {

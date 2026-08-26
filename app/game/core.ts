@@ -303,6 +303,7 @@ export function normalizeSettings(value: Partial<GameSettings>): GameSettings {
   const trainingType = value.trainingType === "cards" || value.trainingType === "flip" ? value.trainingType : "grid";
   const flipCardCount = FLIP_CARD_COUNTS.includes(value.flipCardCount as FlipCardCount) ? value.flipCardCount as FlipCardCount : DEFAULT_SETTINGS.flipCardCount;
   const mode = value.mode === "challenge" ? "challenge" : "self-paced";
+  const flipMode = value.flipMode === "challenge" ? "challenge" : "self-paced";
   return {
     n: Math.min(5, Math.max(1, Math.round(value.n ?? DEFAULT_SETTINGS.n))),
     total: mode === "challenge" || value.total === 30 ? 30 : 20,
@@ -311,11 +312,11 @@ export function normalizeSettings(value: Partial<GameSettings>): GameSettings {
     colorCount: Math.min(7, Math.max(2, Math.round(value.colorCount ?? DEFAULT_SETTINGS.colorCount))),
     mode,
     trainingType,
-    flipMode: value.flipMode === "challenge" ? "challenge" : "self-paced",
+    flipMode,
     flipDifficulty: value.flipDifficulty === "moving" ? "moving" : "classic",
     flipCardCount,
     flipSuitCount: value.flipSuitCount === 2 ? 2 : 4,
-    flipRounds: value.flipRounds === 8 ? 8 : 5,
+    flipRounds: flipMode === "challenge" || value.flipRounds === 8 ? 8 : 5,
   };
 }
 
