@@ -1,6 +1,7 @@
 {
   "name": "site-creator-vinext-starter",
   "version": "2.1.9",
+  "license": "SEE LICENSE IN LICENSE",
   "private": true,
   "engines": {
     "node": ">=22.13.0"

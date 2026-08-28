@@ -1,100 +1,106 @@
-# vinext-starter
+# 双重记忆 · Dual N-Back
 
-A clean full-stack starter running on
-[vinext](https://github.com/cloudflare/vinext), with optional Cloudflare D1 and
-Drizzle support.
+一个面向网页与 Android 的工作记忆训练游戏，包含彩色方格 N-Back、扑克牌 N-Back 和翻牌记忆三种玩法。
 
-## Prerequisites
+[在线体验](https://dual-nback-studio.urzga321877.chatgpt.site/) · [下载最新版 APK](https://github.com/zgat/dual-nback/releases/latest)
 
-- Node.js `>=22.13.0`
+## 游戏玩法
 
-## Quick Start
+### 彩色方格 N-Back
+
+同时比较当前色块与 N 轮前的：
+
+- 位置和颜色都相同
+- 位置相同、颜色不同
+- 颜色相同、位置不同
+- 位置和颜色都不同
+
+位置方块数、颜色数和 N-Back 难度均可调整。
+
+### 扑克牌 N-Back
+
+比较当前扑克牌与 N 轮前的点数和花色关系。N-Back 难度可以自定义。
+
+### 翻牌记忆
+
+先记住牌面，再从牌背中找出目标牌：
+
+- 经典模式：牌的位置保持不变
+- 移动模式：盖牌后会展示牌的移动过程
+- 计时模式：自己决定何时盖牌，可选择 5 或 8 轮
+- 挑战模式：限时记牌，固定 8 轮
+
+## 功能
+
+- 计时模式与挑战模式
+- 本地历史最佳记录
+- 网页端自定义键盘快捷键
+- 可选作答音效，设置保存在当前设备
+- 响应式网页布局
+- Android 16 兼容 APK
+- 所有训练记录只保存在浏览器或应用的本地存储中
+
+## 本地开发
+
+需要 Node.js 22.13 或更高版本。
 
 ```bash
-npm install
+npm ci
 npm run dev
-npm run build
 ```
 
-This starter does not use `wrangler.jsonc`.
+常用命令：
 
-## Included Shape
-
-- edit site code under `app/`
-- `.openai/hosting.json` declares optional Sites D1 and R2 bindings
-- `vite.config.ts` simulates declared bindings for local development
-- `db/schema.ts` starts intentionally empty
-- `examples/d1/` contains an optional D1 example surface
-- `drizzle.config.ts` supports local migration generation when needed
-
-## Workspace Auth Headers
-
-Signed-in visitors receive both `oai-authenticated-user-id` and `oai-authenticated-user-email`. Private Sites require every visitor to sign in; public Sites may also have anonymous visitors, for whom neither header is present.
-
-The user ID is stable for the same user on the same Site and different across Sites. Email and name are intended for display or contact purposes.
-
-SIWC-authenticated workspace sites may also receive
-`oai-authenticated-user-full-name` when the user's SIWC profile has a non-empty
-`name` claim. The full-name value is percent-encoded UTF-8 and is accompanied by
-`oai-authenticated-user-full-name-encoding: percent-encoded-utf-8`.
-
-Treat the full name as optional and fall back to email when it is absent:
-
-```tsx
-import { headers } from "next/headers";
-
-export default async function Home() {
-  const requestHeaders = await headers();
-  const userId = requestHeaders.get("oai-authenticated-user-id");
-  const email = requestHeaders.get("oai-authenticated-user-email");
-  const encodedFullName = requestHeaders.get("oai-authenticated-user-full-name");
-  const fullName =
-    encodedFullName &&
-    requestHeaders.get("oai-authenticated-user-full-name-encoding") ===
-      "percent-encoded-utf-8"
-      ? decodeURIComponent(encodedFullName)
-      : null;
-
-  const displayName = fullName ?? email;
-  // ...
-}
+```bash
+npm run lint          # 代码检查
+npm test              # 构建并运行测试
+npm run mobile:build  # 构建移动端静态资源
 ```
 
-## Optional Dispatch-Owned ChatGPT Sign-In
+## Android 构建
 
-Import the ready-to-use helpers from `app/chatgpt-auth.ts` when the site needs
-optional or required ChatGPT sign-in:
+需要 JDK 21 和 Android SDK 36。
 
-- Use `getChatGPTUser()` for optional signed-in UI.
-- Use `requireChatGPTUser(returnTo)` for server-rendered pages that should send
-  anonymous visitors through Sign in with ChatGPT.
-- Use `chatGPTSignInPath(returnTo)` and `chatGPTSignOutPath(returnTo)` for
-  browser links or actions.
-- Pass a same-origin relative `returnTo` path for the destination after sign-in
-  or sign-out. The helper validates and safely encodes it.
-- Mark protected pages with `export const dynamic = "force-dynamic"` because
-  they depend on per-request identity headers.
+```bash
+npm ci
+npm run android:apk
+```
 
-Dispatch owns `/signin-with-chatgpt`, `/signout-with-chatgpt`, `/callback`, the
-OAuth cookies, and identity header injection. Do not implement app routes for
-those reserved paths. Routes that do not import and call the helper remain
-anonymous-compatible.
+该命令会自动递增补丁版本号和 Android `versionCode`，然后生成 Debug APK。输出位于：
 
-SIWC establishes identity only; it does not prove workspace membership. Use the
-Sites hosting platform's access policy controls for workspace-wide restrictions,
-or enforce explicit server-side membership or allowlist checks.
+```text
+android/app/build/outputs/apk/debug/app-debug.apk
+```
 
-Use SIWC for account pages, user-specific dashboards, saved records, and write
-actions tied to the current ChatGPT user. Leave public content anonymous.
+## 项目结构
 
-## Useful Commands
+```text
+app/                 网页与游戏界面
+app/game/            游戏组件、状态和核心逻辑
+mobile/              Capacitor 移动端入口
+android/             Android 工程
+tests/               核心逻辑与渲染测试
+scripts/             版本管理脚本
+```
 
-- `npm run dev`: start local development
-- `npm run build`: verify the vinext build output
-- `npm test`: build the starter and verify its rendered loading skeleton
-- `npm run db:generate`: generate Drizzle migrations after schema changes
+## 贡献
 
-## Learn More
+请从 `main` 创建功能分支，通过 Pull Request 合并。提交前运行：
 
-- [vinext Documentation](https://github.com/cloudflare/vinext)
-- [Drizzle D1 Guide](https://orm.drizzle.team/docs/get-started/d1-new)
+```bash
+npm run lint
+npm test
+npm run mobile:build
+```
+
+详细约定见 [CONTRIBUTING.md](CONTRIBUTING.md)。
+
+## 使用许可
+
+本项目以 [PolyForm Noncommercial License 1.0.0](LICENSE) 提供源代码：
+
+- 仅允许非商业目的使用、修改和分发。
+- 分发原项目或修改版本时，必须保留许可证及项目来源声明。
+- 商业使用需要另行取得作者书面授权。
+
+由于包含非商业用途限制，本项目属于“源码公开”，并非 OSI 定义的开源软件。
