@@ -6,9 +6,10 @@ import {
   readLeaderboard,
   recordFlipLeaderboardResult,
   recordLeaderboardResult,
+  recordReactionLeaderboardResult,
   writeLeaderboard,
 } from "./leaderboard";
-import type { FlipSessionResult, NBackSessionResult } from "./leaderboard";
+import type { FlipSessionResult, NBackSessionResult, ReactionSessionResult } from "./leaderboard";
 
 export function useLeaderboard() {
   const [data, setData] = useState(createEmptyLeaderboard);
@@ -34,5 +35,9 @@ export function useLeaderboard() {
     updateAndPersist((current) => recordFlipLeaderboardResult(current, result));
   }, [updateAndPersist]);
 
-  return { data, recordResult, recordFlipResult };
+  const recordReactionResult = useCallback((result: ReactionSessionResult) => {
+    updateAndPersist((current) => recordReactionLeaderboardResult(current, result));
+  }, [updateAndPersist]);
+
+  return { data, recordResult, recordFlipResult, recordReactionResult };
 }

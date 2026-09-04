@@ -1,11 +1,12 @@
 export type Phase = "idle" | "countdown" | "playing" | "paused" | "finished";
 export type MatchType = "exact" | "position" | "color" | "different";
 export type GameMode = "self-paced" | "challenge";
-export type TrainingType = "grid" | "cards" | "flip";
+export type TrainingType = "grid" | "cards" | "flip" | "reaction";
 export type FlipDifficulty = "classic" | "moving";
 export type FlipCardCount = 6 | 8 | 9 | 12 | 16;
 export type FlipSuitCount = 2 | 4;
 export type FlipPhase = "idle" | "preview" | "shuffling" | "selecting" | "round-complete" | "finished";
+export type ReactionPhase = "idle" | "waiting" | "target" | "feedback" | "finished";
 
 export type ColorToken = {
   name: string;
@@ -55,6 +56,7 @@ export type GameSettings = {
   flipCardCount: FlipCardCount;
   flipSuitCount: FlipSuitCount;
   flipRounds: number;
+  reactionRounds: number;
 };
 
 export type Stats = {
@@ -126,6 +128,7 @@ export const DEFAULT_SETTINGS: GameSettings = {
   flipCardCount: 6,
   flipSuitCount: 4,
   flipRounds: 5,
+  reactionRounds: 5,
 };
 
 export const PRESET_INTERVALS = [3000, 2400, 1800, 1200];
@@ -300,7 +303,9 @@ function normalizeInterval(value: number) {
 }
 
 export function normalizeSettings(value: Partial<GameSettings>): GameSettings {
-  const trainingType = value.trainingType === "cards" || value.trainingType === "flip" ? value.trainingType : "grid";
+  const trainingType = value.trainingType === "cards" || value.trainingType === "flip" || value.trainingType === "reaction"
+    ? value.trainingType
+    : "grid";
   const flipCardCount = FLIP_CARD_COUNTS.includes(value.flipCardCount as FlipCardCount) ? value.flipCardCount as FlipCardCount : DEFAULT_SETTINGS.flipCardCount;
   const mode = value.mode === "challenge" ? "challenge" : "self-paced";
   const flipMode = value.flipMode === "challenge" ? "challenge" : "self-paced";
@@ -317,6 +322,7 @@ export function normalizeSettings(value: Partial<GameSettings>): GameSettings {
     flipCardCount,
     flipSuitCount: value.flipSuitCount === 2 ? 2 : 4,
     flipRounds: flipMode === "challenge" || value.flipRounds === 8 ? 8 : 5,
+    reactionRounds: value.reactionRounds === 10 ? 10 : 5,
   };
 }
 

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { FLIP_CARD_COUNTS, PRESET_INTERVALS, formatDuration } from "./core";
 import type { FlipDifficulty, GameMode } from "./core";
-import { rankFlipEntries } from "./leaderboard";
+import { rankFlipEntries, rankReactionEntries } from "./leaderboard";
 import type { HistoryGameType, LeaderboardData, NBackTrainingType } from "./leaderboard";
 import { ModalFrame } from "./ModalFrame";
 
@@ -16,20 +16,25 @@ type LeaderboardModalProps = {
   onClose: () => void;
 };
 
-function HistoryTiming({ elapsedMs, createdAt }: { elapsedMs: number; createdAt: number }) {
+function HistoryDate({ createdAt }: { createdAt: number }) {
   const date = new Date(createdAt);
   const pad = (value: number) => String(value).padStart(2, "0");
   const calendarDate = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
   const clockTime = `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
   return (
-    <span className="rank-timing">
-      <strong>{formatDuration(elapsedMs)}</strong>
-      <time dateTime={date.toISOString()} aria-label={`${calendarDate} ${clockTime}`}>
-        <span>{calendarDate}</span>
-        <span>{clockTime}</span>
-      </time>
-    </span>
+    <time dateTime={date.toISOString()} aria-label={`${calendarDate} ${clockTime}`}>
+      <span>{calendarDate}</span>
+      <span>{clockTime}</span>
+    </time>
   );
+}
+
+function HistoryTiming({ elapsedMs, createdAt }: { elapsedMs: number; createdAt: number }) {
+  return <span className="rank-timing"><strong>{formatDuration(elapsedMs)}</strong><HistoryDate createdAt={createdAt} /></span>;
+}
+
+function ReactionTiming({ bestMs, createdAt }: { bestMs: number; createdAt: number }) {
+  return <span className="rank-timing"><strong>最快 {bestMs} ms</strong><HistoryDate createdAt={createdAt} /></span>;
 }
 
 export function LeaderboardModal({ data, initialTrainingType, initialNBackMode, initialFlipMode, initialFlipDifficulty, onClose }: LeaderboardModalProps) {
@@ -38,10 +43,14 @@ export function LeaderboardModal({ data, initialTrainingType, initialNBackMode, 
   const [flipMode, setFlipMode] = useState(initialFlipMode);
   const [flipDifficulty, setFlipDifficulty] = useState(initialFlipDifficulty);
   const isFlip = trainingType === "flip";
+  const isReaction = trainingType === "reaction";
   const nBackType: NBackTrainingType = trainingType === "cards" ? "cards" : "grid";
   const timedEntries = data.timed[nBackType];
   const flipEntries = rankFlipEntries(data.flip["self-paced"][flipDifficulty]);
-  const ruleNote = isFlip
+  const reactionEntries = rankReactionEntries(data.reaction);
+  const ruleNote = isReaction
+    ? "保留平均反应最快的 10 次；平均相同则依次比较误触、轮数和最快反应。"
+    : isFlip
     ? flipMode === "self-paced"
       ? "计时模式保留最佳 10 次，依次比较正确率、轮数和用时。"
       : "挑战模式仅累计无误完成次数，经典与移动分别统计。"
@@ -55,10 +64,32 @@ export function LeaderboardModal({ data, initialTrainingType, initialNBackMode, 
         <button type="button" role="tab" aria-selected={trainingType === "grid"} onClick={() => setTrainingType("grid")}>彩色方格</button>
         <button type="button" role="tab" aria-selected={trainingType === "cards"} onClick={() => setTrainingType("cards")}>扑克牌</button>
         <button type="button" role="tab" aria-selected={isFlip} onClick={() => setTrainingType("flip")}>翻牌记忆</button>
+        <button type="button" role="tab" aria-selected={isReaction} onClick={() => setTrainingType("reaction")}>反应力</button>
       </div>
 
       <div className="leaderboard-list" aria-live="polite">
-        {isFlip ? (
+        {isReaction ? (
+          reactionEntries.length > 0 ? (
+            <ol className="timed-ranking reaction-ranking">
+              {reactionEntries.map((entry, index) => (
+                <li key={entry.id}>
+                  <b className="rank-number">{index + 1}</b>
+                  <span className="rank-result">
+                    <strong>{entry.averageMs} ms</strong>
+                    <small>平均 · 误触 {entry.falseStarts} 次</small>
+                  </span>
+                  <span className="rank-rounds" aria-label={`${entry.rounds} 轮`}>
+                    <strong>{entry.rounds}</strong>
+                    <small>轮</small>
+                  </span>
+                  <ReactionTiming bestMs={entry.bestMs} createdAt={entry.createdAt} />
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <div className="leaderboard-empty"><b>暂无反应力记录</b><span>完成一次反应力测试后显示</span></div>
+          )
+        ) : isFlip ? (
           flipMode === "self-paced" ? (
             flipEntries.length > 0 ? (
               <ol className="timed-ranking flip-ranking">
@@ -132,7 +163,7 @@ export function LeaderboardModal({ data, initialTrainingType, initialNBackMode, 
       </div>
 
       <div className="leaderboard-footer">
-        {isFlip ? (
+        {isReaction ? null : isFlip ? (
           <div className="leaderboard-flip-filters">
             <div className={`segmented-slider leaderboard-mode-switch is-${flipMode}`} role="tablist" aria-label="切换翻牌记忆计时或挑战模式">
               <button type="button" role="tab" aria-selected={flipMode === "self-paced"} onClick={() => setFlipMode("self-paced")}>计时</button>

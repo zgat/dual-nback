@@ -56,6 +56,27 @@ export function IdleSettings({ settings, onChange }: IdleSettingsProps) {
   const isFlipMode = settings.trainingType === "flip";
   const isCardMode = settings.trainingType === "cards";
 
+  if (settings.trainingType === "reaction") {
+    return (
+      <section className="inline-settings reaction-inline-settings" aria-label="反应力测试设置">
+        <div className="quick-setting is-full">
+          <span className="quick-setting-label">测试轮数</span>
+          <div className="quick-options two-options">
+            {[5, 10].map((reactionRounds) => (
+              <button
+                className={settings.reactionRounds === reactionRounds ? "is-selected" : ""}
+                onClick={() => onChange({ reactionRounds })}
+                key={reactionRounds}
+              >
+                {reactionRounds} 轮
+              </button>
+            ))}
+          </div>
+        </div>
+      </section>
+    );
+  }
+
   if (isFlipMode) {
     return (
       <section className="inline-settings flip-inline-settings" aria-label="翻牌记忆设置">

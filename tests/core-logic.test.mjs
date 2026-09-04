@@ -22,8 +22,10 @@ import {
   createEmptyLeaderboard,
   normalizeLeaderboard,
   rankFlipEntries,
+  rankReactionEntries,
   recordFlipLeaderboardResult,
   recordLeaderboardResult,
+  recordReactionLeaderboardResult,
 } from "../app/game/leaderboard.ts";
 
 function seededRandom(seed = 1) {
@@ -163,6 +165,30 @@ test("fixes N-Back challenges at 30 rounds and flip-memory challenges at 8 round
   assert.equal(normalizeSettings({ ...DEFAULT_SETTINGS, flipSuitCount: 2 }).flipSuitCount, 2);
   assert.equal(normalizeSettings({ ...DEFAULT_SETTINGS, flipMode: "self-paced", flipRounds: 5 }).flipRounds, 5);
   assert.equal(normalizeSettings({ ...DEFAULT_SETTINGS, flipMode: "self-paced", flipRounds: 8 }).flipRounds, 8);
+  assert.equal(normalizeSettings({ ...DEFAULT_SETTINGS, trainingType: "reaction", reactionRounds: 10 }).trainingType, "reaction");
+  assert.equal(normalizeSettings({ ...DEFAULT_SETTINGS, reactionRounds: 7 }).reactionRounds, 5);
+});
+
+test("keeps the ten fastest reaction tests with stable tie breakers", () => {
+  let leaderboard = createEmptyLeaderboard();
+  const add = (averageMs, bestMs, falseStarts, rounds, now) => {
+    leaderboard = recordReactionLeaderboardResult(leaderboard, { averageMs, bestMs, falseStarts, rounds }, now);
+  };
+
+  add(240, 210, 1, 5, 1);
+  add(240, 215, 0, 5, 2);
+  add(240, 205, 0, 10, 3);
+  add(220, 200, 2, 5, 4);
+  for (let index = 0; index < 8; index += 1) add(300 + index, 250, 0, 5, 10 + index);
+
+  assert.equal(leaderboard.reaction.length, 10);
+  assert.deepEqual(
+    rankReactionEntries(leaderboard.reaction).slice(0, 4).map(({ averageMs, falseStarts, rounds, bestMs }) => [averageMs, falseStarts, rounds, bestMs]),
+    [[220, 2, 5, 200], [240, 0, 10, 205], [240, 0, 5, 215], [240, 1, 5, 210]],
+  );
+
+  const migrated = normalizeLeaderboard({ version: 7, timed: leaderboard.timed, challenge: leaderboard.challenge, flip: leaderboard.flip });
+  assert.deepEqual(migrated.reaction, []);
 });
 
 test("counts challenge successes separately for every interval and game", () => {

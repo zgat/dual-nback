@@ -1,7 +1,7 @@
 import type { FlipCardCount, FlipDifficulty, FlipSuitCount, GameMode, GameSettings, Stats } from "./core";
 
 export type NBackTrainingType = "grid" | "cards";
-export type HistoryGameType = NBackTrainingType | "flip";
+export type HistoryGameType = NBackTrainingType | "flip" | "reaction";
 
 export type TimedLeaderboardEntry = {
   id: string;
@@ -33,11 +33,21 @@ export type FlipHistoryGroups = {
   challenge: Record<FlipDifficulty, Record<string, number>>;
 };
 
+export type ReactionHistoryEntry = {
+  id: string;
+  averageMs: number;
+  bestMs: number;
+  falseStarts: number;
+  rounds: number;
+  createdAt: number;
+};
+
 export type LeaderboardData = {
-  version: 7;
+  version: 8;
   timed: Record<NBackTrainingType, TimedLeaderboardEntry[]>;
   challenge: Record<NBackTrainingType, Record<string, number>>;
   flip: FlipHistoryGroups;
+  reaction: ReactionHistoryEntry[];
 };
 
 export type NBackSessionResult = {
@@ -57,6 +67,13 @@ export type FlipSessionResult = {
   elapsedMs: number;
 };
 
+export type ReactionSessionResult = {
+  averageMs: number;
+  bestMs: number;
+  falseStarts: number;
+  rounds: number;
+};
+
 const LEADERBOARD_KEY = "dual-nback-leaderboard";
 const FLIP_HISTORY_CARD_COUNTS: FlipCardCount[] = [6, 8, 9, 12, 16];
 
@@ -69,10 +86,11 @@ function createEmptyFlipHistory(): FlipHistoryGroups {
 
 export function createEmptyLeaderboard(): LeaderboardData {
   return {
-    version: 7,
+    version: 8,
     timed: { grid: [], cards: [] },
     challenge: { grid: {}, cards: {} },
     flip: createEmptyFlipHistory(),
+    reaction: [],
   };
 }
 
@@ -92,6 +110,34 @@ export function rankFlipEntries(entries: FlipHistoryEntry[]) {
     || left.elapsedMs - right.elapsedMs
     || right.createdAt - left.createdAt
   ));
+}
+
+export function rankReactionEntries(entries: ReactionHistoryEntry[]) {
+  return [...entries].sort((left, right) => (
+    left.averageMs - right.averageMs
+    || left.falseStarts - right.falseStarts
+    || right.rounds - left.rounds
+    || left.bestMs - right.bestMs
+    || right.createdAt - left.createdAt
+  ));
+}
+
+function normalizeReactionEntries(value: unknown): ReactionHistoryEntry[] {
+  if (!Array.isArray(value)) return [];
+  const entries = value.filter((entry): entry is ReactionHistoryEntry => {
+    if (!entry || typeof entry !== "object") return false;
+    const candidate = entry as Partial<ReactionHistoryEntry>;
+    return typeof candidate.id === "string"
+      && Number.isFinite(candidate.averageMs)
+      && Number(candidate.averageMs) > 0
+      && Number.isFinite(candidate.bestMs)
+      && Number(candidate.bestMs) > 0
+      && Number.isFinite(candidate.falseStarts)
+      && Number(candidate.falseStarts) >= 0
+      && (candidate.rounds === 5 || candidate.rounds === 10)
+      && Number.isFinite(candidate.createdAt);
+  });
+  return rankReactionEntries(entries).slice(0, 10);
 }
 
 function normalizeTimedEntries(value: unknown): TimedLeaderboardEntry[] {
@@ -219,10 +265,11 @@ export function normalizeLeaderboard(value: unknown): LeaderboardData {
     timed?: Partial<Record<NBackTrainingType, unknown>>;
     challenge?: Partial<Record<NBackTrainingType, unknown>>;
     flip?: unknown;
+    reaction?: unknown;
   };
-  const usesChallengeSuccessCounts = candidate.version === 5 || candidate.version === 6 || candidate.version === 7;
+  const usesChallengeSuccessCounts = candidate.version === 5 || candidate.version === 6 || candidate.version === 7 || candidate.version === 8;
   return {
-    version: 7,
+    version: 8,
     timed: {
       grid: normalizeTimedEntries(candidate.timed?.grid),
       cards: normalizeTimedEntries(candidate.timed?.cards),
@@ -232,6 +279,7 @@ export function normalizeLeaderboard(value: unknown): LeaderboardData {
       cards: usesChallengeSuccessCounts ? normalizeChallengeCounts(candidate.challenge?.cards) : {},
     },
     flip: normalizeFlipHistory(candidate.flip),
+    reaction: normalizeReactionEntries(candidate.reaction),
   };
 }
 
@@ -322,6 +370,27 @@ export function recordFlipLeaderboardResult(data: LeaderboardData, result: FlipS
         [result.difficulty]: rankFlipEntries([entry, ...data.flip["self-paced"][result.difficulty]]).slice(0, 10),
       },
     },
+  };
+}
+
+export function recordReactionLeaderboardResult(data: LeaderboardData, result: ReactionSessionResult, now = Date.now()): LeaderboardData {
+  if (result.rounds !== 5 && result.rounds !== 10) return data;
+  if (!Number.isFinite(result.averageMs) || result.averageMs <= 0) return data;
+  if (!Number.isFinite(result.bestMs) || result.bestMs <= 0) return data;
+  if (!Number.isFinite(result.falseStarts) || result.falseStarts < 0) return data;
+
+  const entry: ReactionHistoryEntry = {
+    id: `${now}-${Math.random().toString(36).slice(2, 8)}`,
+    averageMs: Math.round(result.averageMs),
+    bestMs: Math.round(result.bestMs),
+    falseStarts: Math.round(result.falseStarts),
+    rounds: result.rounds,
+    createdAt: now,
+  };
+
+  return {
+    ...data,
+    reaction: rankReactionEntries([entry, ...data.reaction]).slice(0, 10),
   };
 }
 

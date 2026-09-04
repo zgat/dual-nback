@@ -28,6 +28,7 @@ test("server-renders the Dual N-Back game", async () => {
   assert.match(html, /彩色方格/);
   assert.match(html, /扑克牌/);
   assert.match(html, /翻牌记忆/);
+  assert.match(html, /反应力测试/);
   assert.match(html, /N-Back/);
   assert.match(html, /位置方块/);
   assert.match(html, /颜色数量/);
@@ -43,7 +44,7 @@ test("server-renders the Dual N-Back game", async () => {
   assert.doesNotMatch(html, /位置 ✓ · 颜色 ×/);
   assert.doesNotMatch(html, /位置 × · 颜色 ✓/);
   assert.doesNotMatch(html, /位置 × · 颜色 ×/);
-  assert.match(html, /包含彩色方格 N-Back、扑克牌 N-Back 和翻牌记忆训练/);
+  assert.match(html, /包含彩色方格 N-Back、扑克牌 N-Back、翻牌记忆和反应力测试/);
   assert.doesNotMatch(html, /<footer|statusbar/);
   assert.doesNotMatch(html, /四色关系判断|codex-preview|react-loading-skeleton/);
 });
@@ -64,7 +65,7 @@ test("keeps game screens inside the dynamic viewport", async () => {
   assert.doesNotMatch(css, /\.sound-toggle\[aria-checked="true"\][^}]*var\(--teal\)/s);
   assert.match(css, /--nback-board-size:/);
   assert.match(css, /--flip-block-scale:/);
-  assert.match(css, /\.nback-game\.phase-finished,\s*\.flip-game\.flip-phase-finished\s*{[^}]*align-content:\s*center[^}]*overflow-y:\s*auto/s);
+  assert.match(css, /\.nback-game\.phase-finished,\s*\.flip-game\.flip-phase-finished,\s*\.reaction-game\.reaction-phase-finished\s*{[^}]*align-content:\s*center[^}]*overflow-y:\s*auto/s);
   assert.doesNotMatch(css, /translateY\(clamp\(-6rem, -10dvh, -2\.5rem\)\)/);
   assert.match(css, /@media \(max-height: 600px\) and \(min-aspect-ratio: 4 \/ 3\)/);
   assert.match(css, /\.warmup-next\s*{[^}]*display:\s*grid[^}]*place-items:\s*center[^}]*text-align:\s*center/s);
@@ -120,7 +121,7 @@ test("uses the requested compact home-setting layouts", async () => {
 
   assert.match(page, /const \[homeSettingsOpen, setHomeSettingsOpen\] = useState\(false\)/);
   assert.match(page, /const \[homeSettingsHeight, setHomeSettingsHeight\] = useState\(0\)/);
-  assert.equal((page.match(/homeSettingsOpen={homeSettingsOpen}/g) ?? []).length, 2);
+  assert.equal((page.match(/homeSettingsOpen={homeSettingsOpen}/g) ?? []).length, 3);
   assert.doesNotMatch(gameHome, /const \[settingsOpen[^\n]*useState/);
   assert.match(gameHome, /new ResizeObserver\(measure\)/);
   assert.match(gameHome, /style=\{\{ height: settingsOpen \? `\$\{settingsHeight\}px` : 0 \}\}/);
@@ -169,7 +170,7 @@ test("uses the requested compact home-setting layouts", async () => {
   assert.match(css, /@media \(hover: hover\) and \(pointer: fine\)\s*{\s*\.settings-disclosure-toggle:hover/s);
   assert.match(css, /\.settings-disclosure-line i\s*{[^}]*background:\s*currentColor/s);
   assert.match(css, /\.home-intro\s*{[^}]*grid-template-rows:\s*1\.4rem 1\.25rem/s);
-  assert.match(css, /\.nback-game\.phase-idle,\s*\.flip-game\.flip-phase-idle\s*{[^}]*align-content:\s*start/s);
+  assert.match(css, /\.nback-game\.phase-idle,\s*\.flip-game\.flip-phase-idle,\s*\.reaction-game\.reaction-phase-idle\s*{[^}]*align-content:\s*start/s);
   assert.match(css, /\.game-home\s*{[^}]*padding-top:\s*clamp\(2\.25rem, 7\.5dvh, 4\.5rem\)/s);
   assert.match(css, /\.nback-game\.phase-countdown,[\s\S]*grid-template-rows:\s*auto auto auto/s);
 });
@@ -309,6 +310,43 @@ test("adds donation switching and local history entry points for all games", asy
   assert.match(idleSettings, /FLIP_SUIT_COUNTS/);
   assert.match(page, /initialFlipMode=\{settings\.flipMode\}/);
   assert.doesNotMatch(page, /showLeaderboard && !isFlipMode/);
+});
+
+test("adds a responsive reaction test and local top-ten history", async () => {
+  const [page, core, reaction, homeSwitch, idleSettings, leaderboard, leaderboardModal, css] = await Promise.all([
+    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/game/core.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/game/ReactionGame.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/game/TrainingTypeSwitch.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/game/IdleSettings.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/game/leaderboard.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/game/LeaderboardModal.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(core, /TrainingType = "grid" \| "cards" \| "flip" \| "reaction"/);
+  assert.match(core, /reactionRounds:\s*5/);
+  assert.match(core, /value\.reactionRounds === 10 \? 10 : 5/);
+  assert.match(homeSwitch, /反应力测试/);
+  assert.match(homeSwitch, /training-switch four-games/);
+  assert.match(idleSettings, /settings\.trainingType === "reaction"/);
+  assert.match(idleSettings, /测试轮数/);
+  assert.match(page, /<ReactionGame/);
+  assert.match(page, /recordReactionResult/);
+  assert.match(reaction, /MIN_WAIT_MS = 1400/);
+  assert.match(reaction, /targetShownAtRef\.current = performance\.now\(\)/);
+  assert.match(reaction, /phase === "waiting"/);
+  assert.match(reaction, /提前点击会记为误触/);
+  assert.match(reaction, /onPointerDown={handlePointerDown}/);
+  assert.match(reaction, /onClick={handleClick}/);
+  assert.match(reaction, /查看历史最佳/);
+  assert.match(leaderboard, /rankReactionEntries/);
+  assert.match(leaderboard, /reaction:\s*rankReactionEntries/);
+  assert.match(leaderboardModal, />反应力<\/button>/);
+  assert.match(leaderboardModal, /平均反应最快的 10 次/);
+  assert.match(css, /\.reaction-pad\.is-target/);
+  assert.match(css, /\.leaderboard-game-switch\.is-reaction::before/);
+  assert.match(css, /@media \(max-width: 700px\)[\s\S]*\.reaction-pad/);
 });
 
 test("keeps the visible app version synchronized and auto-bumps APK builds", async () => {
