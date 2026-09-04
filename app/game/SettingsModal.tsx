@@ -27,11 +27,12 @@ export function SettingsModal({
   onClose,
 }: SettingsModalProps) {
   const [showDonation, setShowDonation] = useState(false);
-  const showKeyboardShortcuts = !Capacitor.isNativePlatform();
+  const showKeyboardShortcuts = !Capacitor.isNativePlatform()
+    && (trainingType === "grid" || trainingType === "cards");
 
   return (
     <ModalFrame
-      eyebrow={showDonation ? "DONATE" : "VERSION 2.1.9"}
+      eyebrow={showDonation ? "DONATE" : "VERSION 2.2.0"}
       title={showDonation ? "支持开发" : "偏好设置"}
       className={showDonation ? "donation-panel" : "preferences-panel"}
       closeLabel={showDonation ? "关闭捐赠页面" : "关闭偏好设置"}

@@ -4,6 +4,7 @@ import { useCallback, useState } from "react";
 import { FlipMemoryGame } from "./game/FlipMemoryGame";
 import { LeaderboardModal } from "./game/LeaderboardModal";
 import { NBackGame } from "./game/NBackGame";
+import { ReactionGame } from "./game/ReactionGame";
 import { SettingsModal } from "./game/SettingsModal";
 import { useGameController } from "./game/useGameController";
 import { useLeaderboard } from "./game/useLeaderboard";
@@ -16,6 +17,8 @@ export default function Home() {
   const [homeSettingsHeight, setHomeSettingsHeight] = useState(0);
   const [flipSessionActive, setFlipSessionActive] = useState(false);
   const [flipSessionKey, setFlipSessionKey] = useState(0);
+  const [reactionSessionActive, setReactionSessionActive] = useState(false);
+  const [reactionSessionKey, setReactionSessionKey] = useState(0);
   const [restartTurns, setRestartTurns] = useState(0);
   const preferences = usePreferences();
   const leaderboard = useLeaderboard();
@@ -50,7 +53,12 @@ export default function Home() {
   const progress = round < 0 ? 0 : ((round + 1) / settings.total) * 100;
   const isCardMode = settings.trainingType === "cards";
   const isFlipMode = settings.trainingType === "flip";
-  const showHomeButton = isFlipMode ? flipSessionActive : phase !== "idle";
+  const isReactionMode = settings.trainingType === "reaction";
+  const showHomeButton = isFlipMode
+    ? flipSessionActive
+    : isReactionMode
+      ? reactionSessionActive
+      : phase !== "idle";
 
   const openSettings = () => {
     pauseGame();
@@ -68,6 +76,10 @@ export default function Home() {
     if (flipSessionActive) {
       setFlipSessionKey((value) => value + 1);
       setFlipSessionActive(false);
+    }
+    if (reactionSessionActive) {
+      setReactionSessionKey((value) => value + 1);
+      setReactionSessionActive(false);
     }
   };
 
@@ -97,11 +109,11 @@ export default function Home() {
           <button className="round-pill round-home" onClick={goHome} aria-label="结束当前游戏并回到首页">← 回到首页</button>
         ) : (
           <div className="round-pill" aria-live="polite">
-            {isFlipMode ? "翻牌记忆" : `${isCardMode ? "扑克 · " : ""}${settings.n}-BACK`}
+            {isFlipMode ? "翻牌记忆" : isReactionMode ? "反应力测试" : `${isCardMode ? "扑克 · " : ""}${settings.n}-BACK`}
           </div>
         )}
         <div className="top-actions">
-          {!isFlipMode && (phase === "countdown" || phase === "playing" || phase === "paused") && (
+          {!isFlipMode && !isReactionMode && (phase === "countdown" || phase === "playing" || phase === "paused") && (
             <button className="restart-button" onClick={restartNBack} aria-label="重新开始本轮训练">
               <span className="restart-icon" style={{ transform: `rotate(${restartTurns * 360}deg)` }} aria-hidden="true">↻</span>
               <b>重新开始</b>
@@ -109,11 +121,29 @@ export default function Home() {
           )}
           <button className="icon-button" onClick={openSettings} aria-label="打开偏好设置">⚙</button>
         </div>
-        <div className="top-progress" style={{ width: `${isFlipMode ? 0 : progress}%` }} />
+        <div className="top-progress" style={{ width: `${isFlipMode || isReactionMode ? 0 : progress}%` }} />
       </header>
 
       <section className="game-stage">
-        {isFlipMode ? (
+        {isReactionMode ? (
+          <ReactionGame
+            key={`${settings.reactionRounds}-${reactionSessionKey}`}
+            settings={settings}
+            onSelectTrainingType={selectTrainingType}
+            onEditSettings={editHomeSettings}
+            onUpdateSettings={updateSettings}
+            onSessionActiveChange={setReactionSessionActive}
+            onSessionFinished={leaderboard.recordReactionResult}
+            onOpenLeaderboard={openLeaderboard}
+            soundEnabled={soundEnabled}
+            onToggleSound={toggleSound}
+            paused={showSettings || showLeaderboard}
+            homeSettingsOpen={homeSettingsOpen}
+            homeSettingsHeight={homeSettingsHeight}
+            onHomeSettingsOpenChange={setHomeSettingsOpen}
+            onHomeSettingsHeightChange={updateHomeSettingsHeight}
+          />
+        ) : isFlipMode ? (
           <FlipMemoryGame
             key={`${settings.flipMode}-${settings.flipDifficulty}-${settings.flipCardCount}-${settings.flipSuitCount}-${settings.flipRounds}-${flipSessionKey}`}
             settings={settings}

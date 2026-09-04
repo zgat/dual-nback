@@ -6,6 +6,7 @@ const TRAINING_TYPES: Array<{ id: TrainingType; icon: string; label: string }> =
   { id: "grid", icon: "▦", label: "彩色方格" },
   { id: "cards", icon: "♠", label: "扑克 N-Back" },
   { id: "flip", icon: "▤", label: "翻牌记忆" },
+  { id: "reaction", icon: "◎", label: "反应力测试" },
 ];
 
 export function TrainingTypeSwitch({ selected, onSelect }: {
@@ -14,7 +15,7 @@ export function TrainingTypeSwitch({ selected, onSelect }: {
 }) {
   return (
     <div className="idle-switches">
-      <div className="training-switch three-options" role="group" aria-label="选择训练内容">
+      <div className="training-switch four-games" role="group" aria-label="选择训练内容">
         {TRAINING_TYPES.map((trainingType) => (
           <button
             className={selected === trainingType.id ? "is-selected" : ""}
