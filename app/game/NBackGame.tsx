@@ -5,74 +5,31 @@ import { ResultPanel } from "./ResultPanel";
 import type { CSSProperties } from "react";
 import {
   CARD_FLIP_DURATION_MS,
-  CARD_SUITS,
-  COLORS,
   OPTIONS,
   formatDuration,
   relationDetail,
   relationLabel,
   scorePercent,
 } from "./core";
-import type { GameSettings, MatchType, Phase, Stats, TrainingType, Trial } from "./core";
-import { GameHome } from "./GameHome";
+import type { GameSettings } from "./core";
+import type { useGameController } from "./useGameController";
 
 type NBackGameProps = {
   settings: GameSettings;
-  phase: Phase;
-  round: number;
-  current: Trial | null;
-  stimulusVisible: boolean;
-  countdown: number;
-  countdownExiting: boolean;
-  onCountdownExitComplete: () => void;
-  selected: MatchType | null;
-  stats: Stats;
-  elapsedMs: number;
-  beginCountdown: () => void;
-  togglePause: () => void;
-  respond: (answer: MatchType) => void;
-  advanceWarmup: () => void;
-  optionClass: (id: MatchType) => string;
+  game: ReturnType<typeof useGameController>;
   editSettings: () => void;
-  updateSettings: (patch: Partial<GameSettings>) => void;
-  selectTrainingType: (trainingType: TrainingType) => void;
-  soundEnabled: boolean;
-  onToggleSound: () => void;
   onOpenLeaderboard: () => void;
-  homeSettingsOpen: boolean;
-  homeSettingsHeight: number;
-  onHomeSettingsOpenChange: (open: boolean) => void;
-  onHomeSettingsHeightChange: (height: number) => void;
 };
 
 export function NBackGame({
   settings,
-  phase,
-  round,
-  current,
-  stimulusVisible,
-  countdown,
-  countdownExiting,
-  onCountdownExitComplete,
-  selected,
-  stats,
-  elapsedMs,
-  beginCountdown,
-  togglePause,
-  respond,
-  advanceWarmup,
-  optionClass,
+  game,
   editSettings,
-  updateSettings,
-  selectTrainingType,
-  soundEnabled,
-  onToggleSound,
   onOpenLeaderboard,
-  homeSettingsOpen,
-  homeSettingsHeight,
-  onHomeSettingsOpenChange,
-  onHomeSettingsHeightChange,
 }: NBackGameProps) {
+  const {phase, round, current, stimulusVisible, countdown, countdownExiting,
+    completeCountdown: onCountdownExitComplete, selected, stats, elapsedMs,
+    beginCountdown, togglePause, respond, advanceWarmup, optionClass} = game;
   const accuracy = scorePercent(stats);
   const isChallengeSuccess = settings.mode === "challenge" && accuracy === 100;
   const warmup = (phase === "playing" || phase === "paused") && round >= 0 && round < settings.n;
@@ -83,7 +40,6 @@ export function NBackGame({
   const modeLabel = settings.mode === "self-paced" ? "计时模式" : "挑战模式";
   const isCardMode = settings.trainingType === "cards";
   const trainingLabel = isCardMode ? "扑克牌" : "彩色方格";
-  const memoryDimensions = isCardMode ? "点数与花色" : "位置与颜色";
   const currentCard = current?.type === "cards" ? current : null;
   const currentGrid = current?.type === "grid" ? current : null;
   const countdownOverlay = phase === "countdown" ? (
@@ -99,38 +55,7 @@ export function NBackGame({
 
   return (
     <div className={`nback-game phase-${phase} ${isCardMode ? "is-card-mode" : "is-grid-mode"}`}>
-      {phase === "idle" ? (
-        <GameHome
-          eyebrow={`${trainingLabel} · ${modeLabel} · ${settings.n}-BACK`}
-          title={`记住${memoryDimensions}`}
-          description={settings.mode === "self-paced"
-            ? "不限时思考，作答后进入下一轮。"
-            : isCardMode
-              ? `牌面完整显示 ${(settings.interval / 1000).toFixed(1)} 秒，再翻回牌背。`
-              : `比较当前色块与 ${settings.n} 轮前的位置和颜色。`}
-          introVisual={isCardMode ? (
-            <div className="suit-legend" aria-label="黑桃、红桃、梅花、方块四种花色">
-              {CARD_SUITS.map((suit) => <i className={suit.color === "red" ? "is-red" : ""} key={suit.name} title={suit.name}>{suit.symbol}</i>)}
-            </div>
-          ) : (
-            <div className="color-legend" aria-label={`${settings.colorCount}种训练颜色`}>
-              {COLORS.slice(0, settings.colorCount).map((color) => <i key={color.name} title={color.name} style={{ backgroundColor: color.value }} />)}
-            </div>
-          )}
-          settings={settings}
-          startLabel={settings.mode === "self-paced" ? "开始计时" : "开始挑战"}
-          onStart={beginCountdown}
-          onUpdateSettings={updateSettings}
-          onSelectTrainingType={selectTrainingType}
-          soundEnabled={soundEnabled}
-          onToggleSound={onToggleSound}
-          onOpenLeaderboard={onOpenLeaderboard}
-          settingsOpen={homeSettingsOpen}
-          settingsHeight={homeSettingsHeight}
-          onSettingsOpenChange={onHomeSettingsOpenChange}
-          onSettingsHeightChange={onHomeSettingsHeightChange}
-        />
-      ) : phase === "finished" && (
+      {phase === "finished" && (
         <div className="stage-heading">
           <span className="eyebrow">{trainingLabel} · {modeLabel} · {settings.n}-BACK</span>
           <h1>{isChallengeSuccess ? "挑战成功" : "训练完成"}</h1>

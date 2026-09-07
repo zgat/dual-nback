@@ -10,9 +10,10 @@ type ModalFrameProps = {
   closeLabel: string;
   onClose: () => void;
   children: ReactNode;
+  exiting?: boolean;
 };
 
-export function ModalFrame({ eyebrow, title, className = "", closeLabel, onClose, children }: ModalFrameProps) {
+export function ModalFrame({ eyebrow, title, className = "", closeLabel, onClose, children, exiting = false }: ModalFrameProps) {
   const titleId = useId();
   const dialogRef = useRef<HTMLElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
@@ -50,7 +51,7 @@ export function ModalFrame({ eyebrow, title, className = "", closeLabel, onClose
   }, [onClose]);
 
   return (
-    <div className="modal-backdrop">
+    <div className="modal-backdrop" data-exiting={exiting}>
       <button className="modal-dismiss" onClick={onClose} aria-label={closeLabel} tabIndex={-1} />
       <section
         className={`settings-panel ${className}`}
@@ -59,6 +60,7 @@ export function ModalFrame({ eyebrow, title, className = "", closeLabel, onClose
         aria-labelledby={titleId}
         tabIndex={-1}
         ref={dialogRef}
+        onKeyDownCapture={exiting ? (event) => { event.preventDefault(); event.stopPropagation(); } : undefined}
       >
         <div className="settings-header">
           <div><span className="eyebrow">{eyebrow}</span><h2 id={titleId}>{title}</h2></div>

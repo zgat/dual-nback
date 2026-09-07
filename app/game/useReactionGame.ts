@@ -14,11 +14,10 @@ const WAIT_SPREAD_MS = 2200;
 const FEEDBACK_MS = 720;
 const average = (values: number[]) => values.length === 0 ? 0 : Math.round(values.reduce((sum, value) => sum + value, 0) / values.length);
 
-export function useReactionGame({settings, soundEnabled, paused, onSessionActiveChange, onSessionFinished}: {
+export function useReactionGame({settings, soundEnabled, paused, onSessionFinished}: {
   settings: GameSettings;
   soundEnabled: boolean;
   paused: boolean;
-  onSessionActiveChange: (active: boolean) => void;
   onSessionFinished: (result: ReactionSessionResult) => void;
 }) {
   const [phase, setPhase] = useState<ReactionPhase>("idle");
@@ -61,6 +60,12 @@ export function useReactionGame({settings, soundEnabled, paused, onSessionActive
     setFalseStarts(0);
     prepareRound(0);
   }, [prepareRound, soundEnabled, timers]);
+
+  const goHome = useCallback(() => {
+    timers.clearAll();
+    clock.finish();
+    changePhase("idle");
+  }, [changePhase, clock, timers]);
 
   const activatePad = useCallback((eventTime?: number) => {
     if (paused || (phaseRef.current !== "waiting" && phaseRef.current !== "target")) return;
@@ -115,9 +120,6 @@ export function useReactionGame({settings, soundEnabled, paused, onSessionActive
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [activatePad, paused, phase]);
 
-  useEffect(() => { onSessionActiveChange(phase !== "idle"); }, [onSessionActiveChange, phase]);
-  useEffect(() => () => onSessionActiveChange(false), [onSessionActiveChange]);
-
   const handlePointerDown = (event: PointerEvent<HTMLButtonElement>) => {
     if (event.button === 0 && event.isPrimary !== false) activatePad(event.timeStamp);
   };
@@ -128,5 +130,5 @@ export function useReactionGame({settings, soundEnabled, paused, onSessionActive
   const bestMs = times.length > 0 ? Math.min(...times) : 0;
   const status = phase === "waiting" ? "等待变色" : phase === "target" ? "现在点击" : feedbackMs === null ? "太早了" : `${feedbackMs} ms`;
 
-  return { phase, round, times, falseStarts, feedbackMs, averageMs, bestMs, status, beginTest, handlePointerDown, handleClick, padRef };
+  return { phase, round, times, falseStarts, feedbackMs, averageMs, bestMs, status, beginTest, handlePointerDown, handleClick, padRef, goHome };
 }

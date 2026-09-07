@@ -16,6 +16,7 @@ export function TrainingTypeSwitch({ selected, onSelect }: {
   return (
     <div className="idle-switches">
       <div className="training-switch four-games" role="group" aria-label="选择训练内容">
+        <i className="training-switch-indicator" style={{transform: `translateX(${TRAINING_TYPES.findIndex(type => type.id === selected) * 100}%)`}} aria-hidden="true" />
         {TRAINING_TYPES.map((trainingType) => (
           <button
             className={selected === trainingType.id ? "is-selected" : ""}

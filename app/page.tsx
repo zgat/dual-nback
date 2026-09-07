@@ -2,99 +2,60 @@
 
 import { useCallback, useState } from "react";
 import { FlipMemoryGame } from "./game/FlipMemoryGame";
+import { GameHome } from "./game/GameHome";
 import { LeaderboardModal } from "./game/LeaderboardModal";
 import { NBackGame } from "./game/NBackGame";
 import { ReactionGame } from "./game/ReactionGame";
 import { SettingsModal } from "./game/SettingsModal";
+import { useFlipMemoryGame } from "./game/useFlipMemoryGame";
 import { useGameController } from "./game/useGameController";
 import { useLeaderboard } from "./game/useLeaderboard";
 import { usePreferences } from "./game/usePreferences";
+import { usePresence } from "./game/usePresence";
+import { useReactionGame } from "./game/useReactionGame";
 
 export default function Home() {
   const [showSettings, setShowSettings] = useState(false);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const settingsPresence = usePresence(showSettings);
+  const leaderboardPresence = usePresence(showLeaderboard);
+  const modalVisible = settingsPresence.mounted || leaderboardPresence.mounted;
   const [homeSettingsOpen, setHomeSettingsOpen] = useState(false);
   const [homeSettingsHeight, setHomeSettingsHeight] = useState(0);
-  const [flipSessionActive, setFlipSessionActive] = useState(false);
-  const [flipSessionKey, setFlipSessionKey] = useState(0);
-  const [reactionSessionActive, setReactionSessionActive] = useState(false);
-  const [reactionSessionKey, setReactionSessionKey] = useState(0);
   const [restartTurns, setRestartTurns] = useState(0);
   const preferences = usePreferences();
   const leaderboard = useLeaderboard();
   const { settings, soundEnabled, shortcutKeys, updateSettings, selectTrainingType, toggleSound, updateShortcutKeys } = preferences;
-  const game = useGameController(
-    settings,
-    soundEnabled,
-    shortcutKeys,
-    showSettings || showLeaderboard,
-    leaderboard.recordResult,
-  );
-  const {
-    phase,
-    round,
-    current,
-    stimulusVisible,
-    countdown,
-    countdownExiting,
-    selected,
-    stats,
-    elapsedMs,
-    beginCountdown,
-    completeCountdown,
-    pauseGame,
-    togglePause,
-    respond,
-    advanceWarmup,
-    optionClass,
-    goHome: resetNBack,
-  } = game;
-
-  const progress = round < 0 ? 0 : ((round + 1) / settings.total) * 100;
+  const game = useGameController(settings, soundEnabled, shortcutKeys, modalVisible, leaderboard.recordResult);
+  const flipGame = useFlipMemoryGame({settings, soundEnabled, paused: modalVisible, onSessionFinished: leaderboard.recordFlipResult});
+  const reactionGame = useReactionGame({settings, soundEnabled, paused: modalVisible, onSessionFinished: leaderboard.recordReactionResult});
+  const { phase, round, beginCountdown, pauseGame } = game;
   const isCardMode = settings.trainingType === "cards";
   const isFlipMode = settings.trainingType === "flip";
   const isReactionMode = settings.trainingType === "reaction";
-  const showHomeButton = isFlipMode
-    ? flipSessionActive
-    : isReactionMode
-      ? reactionSessionActive
-      : phase !== "idle";
+  const isHome = isFlipMode ? flipGame.flipPhase === "idle" : isReactionMode ? reactionGame.phase === "idle" : phase === "idle";
+  const progress = isHome || isFlipMode || isReactionMode || round < 0 ? 0 : (round + 1) / settings.total;
 
-  const openSettings = () => {
-    pauseGame();
-    setShowSettings(true);
-  };
-
+  const openSettings = () => { pauseGame(); setShowSettings(true); };
+  const openLeaderboard = () => { pauseGame(); setShowLeaderboard(true); };
   const closeSettings = useCallback(() => setShowSettings(false), []);
   const closeLeaderboard = useCallback(() => setShowLeaderboard(false), []);
   const updateHomeSettingsHeight = useCallback((height: number) => {
-    setHomeSettingsHeight((current) => current === height ? current : height);
+    setHomeSettingsHeight(current => current === height ? current : height);
   }, []);
-
   const goHome = () => {
-    resetNBack();
-    if (flipSessionActive) {
-      setFlipSessionKey((value) => value + 1);
-      setFlipSessionActive(false);
-    }
-    if (reactionSessionActive) {
-      setReactionSessionKey((value) => value + 1);
-      setReactionSessionActive(false);
-    }
+    game.goHome();
+    flipGame.goHome();
+    reactionGame.goHome();
   };
-
-  const editHomeSettings = () => {
-    goHome();
-    setHomeSettingsOpen(true);
+  const editHomeSettings = () => { goHome(); setHomeSettingsOpen(true); };
+  const startGame = () => {
+    if (isFlipMode) flipGame.beginGame();
+    else if (isReactionMode) reactionGame.beginTest();
+    else beginCountdown();
   };
-
-  const openLeaderboard = () => {
-    pauseGame();
-    setShowLeaderboard(true);
-  };
-
   const restartNBack = () => {
-    setRestartTurns((turns) => turns + 1);
+    setRestartTurns(turns => turns + 1);
     beginCountdown();
   };
 
@@ -108,10 +69,9 @@ export default function Home() {
       )}
       <header className="topbar">
         <button className="brand" onClick={goHome} aria-label="回到游戏首页">
-          <span className="brand-mark">N²</span>
-          <span>双重记忆</span>
+          <span className="brand-mark">N²</span><span>双重记忆</span>
         </button>
-        {showHomeButton ? (
+        {!isHome ? (
           <button className="round-pill round-home" onClick={goHome} aria-label="结束当前游戏并回到首页">← 回到首页</button>
         ) : (
           <div className="round-pill" aria-live="polite">
@@ -127,97 +87,37 @@ export default function Home() {
           )}
           <button className="icon-button" onClick={openSettings} aria-label="打开偏好设置">⚙</button>
         </div>
-        <div className="top-progress" style={{ width: `${isFlipMode || isReactionMode ? 0 : progress}%` }} />
+        <div className="top-progress" style={{ transform: `scaleX(${progress})` }} />
       </header>
-
       <section className="game-stage">
-        {isReactionMode ? (
-          <ReactionGame
-            key={`${settings.reactionRounds}-${reactionSessionKey}`}
-            settings={settings}
-            onSelectTrainingType={selectTrainingType}
-            onEditSettings={editHomeSettings}
-            onUpdateSettings={updateSettings}
-            onSessionActiveChange={setReactionSessionActive}
-            onSessionFinished={leaderboard.recordReactionResult}
-            onOpenLeaderboard={openLeaderboard}
-            soundEnabled={soundEnabled}
-            onToggleSound={toggleSound}
-            paused={showSettings || showLeaderboard}
-            homeSettingsOpen={homeSettingsOpen}
-            homeSettingsHeight={homeSettingsHeight}
-            onHomeSettingsOpenChange={setHomeSettingsOpen}
-            onHomeSettingsHeightChange={updateHomeSettingsHeight}
+        {isHome ? (
+          <GameHome
+            settings={settings} onStart={startGame}
+            onSelectTrainingType={selectTrainingType} onUpdateSettings={updateSettings}
+            soundEnabled={soundEnabled} onToggleSound={toggleSound} onOpenLeaderboard={openLeaderboard}
+            settingsOpen={homeSettingsOpen} settingsHeight={homeSettingsHeight}
+            onSettingsOpenChange={setHomeSettingsOpen} onSettingsHeightChange={updateHomeSettingsHeight}
           />
+        ) : isReactionMode ? (
+          <ReactionGame settings={settings} game={reactionGame} onEditSettings={editHomeSettings} onOpenLeaderboard={openLeaderboard} paused={modalVisible} />
         ) : isFlipMode ? (
-          <FlipMemoryGame
-            key={`${settings.flipMode}-${settings.flipDifficulty}-${settings.flipCardCount}-${settings.flipSuitCount}-${settings.flipRounds}-${flipSessionKey}`}
-            settings={settings}
-            onSelectTrainingType={selectTrainingType}
-            onEditSettings={editHomeSettings}
-            onUpdateSettings={updateSettings}
-            onSessionActiveChange={setFlipSessionActive}
-            onSessionFinished={leaderboard.recordFlipResult}
-            onOpenLeaderboard={openLeaderboard}
-            soundEnabled={soundEnabled}
-            onToggleSound={toggleSound}
-            paused={showSettings || showLeaderboard}
-            homeSettingsOpen={homeSettingsOpen}
-            homeSettingsHeight={homeSettingsHeight}
-            onHomeSettingsOpenChange={setHomeSettingsOpen}
-            onHomeSettingsHeightChange={updateHomeSettingsHeight}
-          />
+          <FlipMemoryGame settings={settings} game={flipGame} onEditSettings={editHomeSettings} onOpenLeaderboard={openLeaderboard} paused={modalVisible} />
         ) : (
-          <NBackGame
-            settings={settings}
-            phase={phase}
-            round={round}
-            current={current}
-            stimulusVisible={stimulusVisible}
-            countdown={countdown}
-            countdownExiting={countdownExiting}
-            onCountdownExitComplete={completeCountdown}
-            selected={selected}
-            stats={stats}
-            elapsedMs={elapsedMs}
-            beginCountdown={beginCountdown}
-            togglePause={togglePause}
-            respond={respond}
-            advanceWarmup={advanceWarmup}
-            optionClass={optionClass}
-            editSettings={editHomeSettings}
-            updateSettings={updateSettings}
-            selectTrainingType={selectTrainingType}
-            soundEnabled={soundEnabled}
-            onToggleSound={toggleSound}
-            onOpenLeaderboard={openLeaderboard}
-            homeSettingsOpen={homeSettingsOpen}
-            homeSettingsHeight={homeSettingsHeight}
-            onHomeSettingsOpenChange={setHomeSettingsOpen}
-            onHomeSettingsHeightChange={updateHomeSettingsHeight}
-          />
+          <NBackGame settings={settings} game={game} editSettings={editHomeSettings} onOpenLeaderboard={openLeaderboard} />
         )}
       </section>
-
-      {showSettings && (
+      {settingsPresence.mounted && (
         <SettingsModal
-          soundEnabled={soundEnabled}
-          shortcutKeys={shortcutKeys}
-          trainingType={settings.trainingType}
-          onToggleSound={toggleSound}
-          onUpdateShortcutKeys={updateShortcutKeys}
-          onClose={closeSettings}
+          soundEnabled={soundEnabled} shortcutKeys={shortcutKeys} trainingType={settings.trainingType}
+          onToggleSound={toggleSound} onUpdateShortcutKeys={updateShortcutKeys}
+          onClose={closeSettings} exiting={settingsPresence.exiting}
         />
       )}
-
-      {showLeaderboard && (
+      {leaderboardPresence.mounted && (
         <LeaderboardModal
-          data={leaderboard.data}
-          initialTrainingType={settings.trainingType}
-          initialNBackMode={settings.mode}
-          initialFlipMode={settings.flipMode}
-          initialFlipDifficulty={settings.flipDifficulty}
-          onClose={closeLeaderboard}
+          data={leaderboard.data} initialTrainingType={settings.trainingType}
+          initialNBackMode={settings.mode} initialFlipMode={settings.flipMode} initialFlipDifficulty={settings.flipDifficulty}
+          onClose={closeLeaderboard} exiting={leaderboardPresence.exiting}
         />
       )}
     </main>

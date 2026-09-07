@@ -16,14 +16,15 @@ export function DonationPanel({ onBack }: { onBack: () => void }) {
       </div>
 
       <div className={`donation-image-frame ${isWechat ? "is-wechat" : "is-alipay"}`}>
-        {/* Native and web builds share these static assets, so a plain image element is required. */}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={isWechat ? "/donation/wechat.png" : "/donation/alipay.jpg"}
-          alt={isWechat ? "微信支付捐赠二维码" : "支付宝捐赠二维码"}
-          width={isWechat ? 1490 : 1440}
-          height={isWechat ? 2030 : 2160}
-        />
+        {(["wechat", "alipay"] as const).map(payment => (
+          // Static assets are shared with the offline native build.
+          // eslint-disable-next-line @next/next/no-img-element
+          <img key={payment} data-visible={method === payment} aria-hidden={method !== payment}
+            src={payment === "wechat" ? "/donation/wechat.png" : "/donation/alipay.jpg"}
+            alt={payment === "wechat" ? "微信支付捐赠二维码" : "支付宝捐赠二维码"}
+            width={payment === "wechat" ? 1490 : 1440} height={payment === "wechat" ? 2030 : 2160}
+          />
+        ))}
       </div>
 
       <button type="button" className="secondary-button donation-back" onClick={onBack}>← 返回偏好设置</button>

@@ -200,10 +200,12 @@ test("select menu portals out of clipped game layout and retains keyboard focus"
   assert.equal(menu.style.visibility,"visible");
   await h.key("ArrowDown",{},document.activeElement);
   assert.equal(document.activeElement.textContent,"第二项");
-  await h.run(()=>document.activeElement.click());await h.tick(16);await h.render();
+  await h.run(()=>document.activeElement.click());await h.tick(120);await h.render();
   assert.equal(selected,2);assert.equal(document.querySelector("[role=listbox]"),null);
   assert.equal(document.activeElement,trigger);
-  await h.run(()=>trigger.click());await h.key("Escape",{},document.activeElement);await h.tick(16);
+  await h.run(()=>trigger.click());await h.key("Escape",{},document.activeElement);
+  assert.equal(document.querySelector("[role=listbox]").getAttribute("aria-hidden"),"true");
+  await h.tick(120);
   assert.equal(document.querySelector("[role=listbox]"),null);
 });
 
