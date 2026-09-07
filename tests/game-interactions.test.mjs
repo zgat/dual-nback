@@ -5,7 +5,7 @@ import {renderToStaticMarkup} from "react-dom/server";
 import { loadGame } from "./helpers/load-game.mjs";
 import { mountHook } from "./helpers/react-harness.mjs";
 
-const {DEFAULT_SETTINGS, classify, FLIP_SWAP_DURATION_MS} = loadGame("core");
+const {DEFAULT_SETTINGS, classify, FLIP_SWAP_DURATION_MS, CARD_FLIP_DURATION_MS} = loadGame("core");
 const {DEFAULT_SHORTCUT_KEYS} = loadGame("shortcuts");
 const {useGameController} = loadGame("useGameController");
 const {useFlipMemoryGame} = loadGame("useFlipMemoryGame");
@@ -53,6 +53,73 @@ test("N-Back shortcuts preserve home, other games, editable controls and browser
     assert.equal((await h.key("1")).defaultPrevented,false);
   }
 });
+
+test("N-Back leaves Enter and mapped Space to the focused control",async t=>{
+  const h=await mountHook(t,()=>useGameController(DEFAULT_SETTINGS,false,{...DEFAULT_SHORTCUT_KEYS,advance:" "}));
+  await h.run(g=>g.beginCountdown());await h.tick(2600);
+  const button=document.createElement("button");document.body.appendChild(button);button.focus();
+  assert.equal((await h.key("Enter",{},button)).defaultPrevented,false);
+  assert.equal((await h.key(" ",{},button)).defaultPrevented,false);
+  assert.equal(h.value.round,0);
+  button.blur();await h.key(" ");assert.equal(h.value.round,1);
+});
+
+for(const interval of [1200,2400,3000]) for(const pauseAt of [80,240,1000]) {
+  test(`card ${interval} ms visible budget survives pause at ${pauseAt} ms`,async t=>{
+    const h=await mountHook(t,()=>useGameController({...DEFAULT_SETTINGS,trainingType:"cards",mode:"challenge",interval,total:30},false,DEFAULT_SHORTCUT_KEYS));
+    await h.run(g=>g.beginCountdown());await h.tick(2600);
+    await h.tick(interval+2*CARD_FLIP_DURATION_MS);assert.equal(h.value.round,1);
+    await h.tick(pauseAt);await h.run(g=>g.pauseGame());await h.tick(5000);
+    assert.equal(h.value.stimulusVisible,false);
+    await h.run(g=>g.resumeGame());
+    const fullyVisibleBefore=Math.max(0,pauseAt-CARD_FLIP_DURATION_MS);
+    const remaining=CARD_FLIP_DURATION_MS+interval-fullyVisibleBefore;
+    await h.tick(remaining-1);assert.equal(h.value.stimulusVisible,true);
+    await h.tick(1);assert.equal(h.value.stimulusVisible,false);
+    await h.run(g=>g.pauseGame());await h.tick(5000);await h.run(g=>g.resumeGame());
+    await h.tick(CARD_FLIP_DURATION_MS);assert.equal(h.value.round,2);
+  });
+}
+
+test("repeated card pauses compensate each fresh opening exactly once",async t=>{
+  const h=await mountHook(t,()=>useGameController({...DEFAULT_SETTINGS,trainingType:"cards",mode:"challenge"},false,DEFAULT_SHORTCUT_KEYS));
+  await h.run(g=>g.beginCountdown());await h.tick(2600);
+  for(const duration of [1000,80,500]) {
+    await h.tick(duration);await h.run(g=>g.pauseGame());await h.run(g=>g.pauseGame());
+    await h.tick(1);await h.run(g=>g.resumeGame());await h.run(g=>g.resumeGame());
+  }
+  // 760 + 0 + 260 ms of full face time consumed; 1380 ms plus a 240 ms opening remain.
+  await h.tick(1619);assert.equal(h.value.stimulusVisible,true);
+  await h.tick(1);assert.equal(h.value.stimulusVisible,false);
+});
+
+for(const flipMode of ["self-paced","challenge"]) {
+  test(`flip ${flipMode} saves at the last target, once per completed session`,async t=>{
+    const saved=[];
+    const settings={...DEFAULT_SETTINGS,trainingType:"flip",flipMode,flipRounds:flipMode==="challenge"?8:5};
+    const h=await mountHook(t,()=>useFlipMemoryGame({settings,soundEnabled:false,paused:false,onSessionActiveChange:noop,onSessionFinished:r=>saved.push(r)}));
+    await h.run(g=>g.beginGame());
+    for(let round=0;round<settings.flipRounds;round++) {
+      await h.tick(flipMode==="challenge"?5000:1000);
+      if(flipMode==="self-paced") await h.run(g=>g.finishPreview());
+      const targets=h.value.cards.filter(c=>c.isTarget);
+      for(const card of targets) {await h.tick(100);await h.run(g=>g.chooseCard(card));}
+      if(round+1<settings.flipRounds) {
+        assert.equal(saved.length,0);await h.run(g=>g.advanceRound());
+      } else {
+        assert.equal(saved.length,1);
+        assert.equal(saved[0].found,settings.flipRounds*2);
+        assert.equal(saved[0].mistakes,0);
+        await h.run(g=>g.chooseCard(targets.at(-1)));
+        await h.tick(60000);await h.run(g=>g.advanceRound());await h.run(g=>g.advanceRound());
+        assert.equal(saved.length,1);
+      }
+    }
+    assert.equal(h.value.elapsedMs,saved[0].elapsedMs);
+    await h.run(g=>g.beginGame());assert.equal(h.value.stats.found,0);
+    assert.equal(saved.length,1);
+  });
+}
 
 test("flip final target freezes elapsed time before waiting for results",async t=>{
   let saved,paused=false;
@@ -148,4 +215,31 @@ test("all score units use the shared result shell with the correct ring and acti
     if(unit==="ms") {assert.match(html,/score-ring reaction-score-ring/);assert.doesNotMatch(html,/--score/);}
     else assert.match(html,/--score:324deg/);
   }
+});
+
+test("history failure state recovers automatically and broadcasts replayed writes",async t=>{
+  const {IDBFactory}=await import("fake-indexeddb");
+  const {createHistoryStore}=loadGame("historyStore");
+  const {createEmptyLeaderboard}=loadGame("leaderboard");
+  const {useLeaderboard}=loadGame("useLeaderboard");
+  const db=new IDBFactory();
+  let available=false,now=1000;
+  t.mock.method(Date,"now",()=>now);
+  const store=createHistoryStore(()=>available?db:undefined,createEmptyLeaderboard);
+  const h=await mountHook(t,()=>useLeaderboard(store));
+  assert.equal(h.value.storageAvailable,false);
+  await h.run(async g=>{
+    g.recordReactionResult({rounds:5,averageMs:250,bestMs:210,falseStarts:0});
+    await store.read();
+  });
+  assert.equal(h.value.data.reaction.length,1);
+  assert.equal(window.localStorage.getItem("dual-nback-history-revision"),null);
+  available=true;now=6000;await h.tick(5000);
+  // Drain the real IndexedDB transaction queue used by the delayed retry.
+  await h.run(()=>store.read());
+  assert.equal(h.value.storageAvailable,true);
+  assert.equal(h.value.data.reaction[0].createdAt,1000);
+  assert.equal(window.localStorage.getItem("dual-nback-history-revision"),"1");
+  await h.run(g=>g.retrySaving());
+  assert.equal(h.value.data.reaction.length,1);
 });

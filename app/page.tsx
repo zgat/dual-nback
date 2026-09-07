@@ -100,6 +100,12 @@ export default function Home() {
 
   return (
     <main className="app-shell">
+      {!leaderboard.storageAvailable && (
+        <div className="history-storage-notice" role="status">
+          <span>历史记录暂时无法保存，关闭页面可能丢失。</span>
+          <button type="button" onClick={leaderboard.retrySaving}>重试保存</button>
+        </div>
+      )}
       <header className="topbar">
         <button className="brand" onClick={goHome} aria-label="回到游戏首页">
           <span className="brand-mark">N²</span>
