@@ -1,31 +1,47 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   createEmptyLeaderboard,
-  readLeaderboard,
   recordFlipLeaderboardResult,
   recordLeaderboardResult,
   recordReactionLeaderboardResult,
-  writeLeaderboard,
 } from "./leaderboard";
-import type { FlipSessionResult, NBackSessionResult, ReactionSessionResult } from "./leaderboard";
+import type { FlipSessionResult, LeaderboardData, NBackSessionResult, ReactionSessionResult } from "./leaderboard";
+import { historyStore } from "./historyStore";
+
+const HISTORY_SIGNAL = "dual-nback-history-revision";
 
 export function useLeaderboard() {
   const [data, setData] = useState(createEmptyLeaderboard);
+  const revision = useRef(-1);
+
+  const receive = useCallback((snapshot: Awaited<ReturnType<typeof historyStore.read>>) => {
+    if (snapshot.revision < revision.current) return;
+    revision.current = snapshot.revision;
+    setData(snapshot.data);
+  }, []);
 
   useEffect(() => {
-    const hydrateTimer = window.setTimeout(() => setData(readLeaderboard()), 0);
-    return () => window.clearTimeout(hydrateTimer);
-  }, []);
+    let active = true;
+    const refresh = () => { void historyStore.read().then((snapshot) => { if (active) receive(snapshot); }); };
+    const onStorage = (event: StorageEvent) => { if (event.key === HISTORY_SIGNAL) refresh(); };
+    refresh();
+    window.addEventListener("storage", onStorage);
+    window.addEventListener("focus", refresh);
+    return () => {
+      active = false;
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener("focus", refresh);
+    };
+  }, [receive]);
 
-  const updateAndPersist = useCallback((updater: Parameters<typeof setData>[0]) => {
-    setData((current) => {
-      const next = typeof updater === "function" ? updater(current) : updater;
-      writeLeaderboard(next);
-      return next;
+  const updateAndPersist = useCallback((updater: (current: LeaderboardData) => LeaderboardData) => {
+    void historyStore.update(updater).then((snapshot) => {
+      receive(snapshot);
+      try { window.localStorage.setItem(HISTORY_SIGNAL, String(snapshot.revision)); } catch { /* Device storage may be disabled. */ }
     });
-  }, []);
+  }, [receive]);
 
   const recordResult = useCallback((result: NBackSessionResult) => {
     updateAndPersist((current) => recordLeaderboardResult(current, result));

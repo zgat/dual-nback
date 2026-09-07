@@ -303,6 +303,7 @@ button:disabled { cursor: not-allowed; }
 }
 
 .reaction-pad.is-target {
+  transition: none;
   border-color: var(--orange-deep);
   background: var(--orange);
   color: #fff;
@@ -313,7 +314,6 @@ button:disabled { cursor: not-allowed; }
   border-color: #fff;
   background: #fff;
   box-shadow: 0 0 0 12px rgba(255,255,255,.2);
-  animation: reaction-target-in .14s cubic-bezier(.2, .8, .2, 1) both;
 }
 .reaction-pad.is-feedback { background: rgba(31,103,97,.1); border-color: rgba(31,103,97,.45); }
 .reaction-pad.is-false-start { background: rgba(166,61,47,.1); border-color: rgba(166,61,47,.48); }
@@ -329,13 +329,10 @@ button:disabled { cursor: not-allowed; }
   background: var(--orange);
   box-shadow: 0 0 0 4px rgba(233,101,45,.15);
 }
-.reaction-score-ring { background: var(--orange); }
-.reaction-score-ring strong { font-size: 2.45rem; letter-spacing: -.06em; }
-.reaction-score-ring span { margin-left: .12rem; color: var(--orange-deep); font-size: .68rem; }
+.score-ring.reaction-score-ring { background: var(--orange); }
+.score-ring.reaction-score-ring strong { font-size: 2.45rem; letter-spacing: -.06em; }
+.score-ring.reaction-score-ring span { margin-left: .12rem; color: var(--orange-deep); font-size: .68rem; }
 
-@keyframes reaction-target-in {
-  from { transform: scale(.72); opacity: .3; }
-}
 
 .flip-game > .stage-heading,
 .flip-game > .target-prompt,
@@ -787,13 +784,15 @@ h1 {
 }
 
 .custom-select-menu {
-  position: absolute;
+  position: fixed;
   top: calc(100% + 5px);
   left: 0;
-  z-index: 12;
+  z-index: 120;
   display: grid;
   width: 100%;
   min-width: 112px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   gap: 3px;
   padding: 5px;
   border: 1px solid #c8bcac;
@@ -1095,10 +1094,12 @@ h1 {
 .flip-board.is-shuffling .memory-card { pointer-events: none; }
 .flip-board.is-shuffling .memory-card.is-swapping {
   z-index: 2;
-  animation: memory-swap .68s cubic-bezier(.55,.03,.32,1) forwards;
+  animation: memory-swap var(--swap-duration, 680ms) cubic-bezier(.55,.03,.32,1) forwards;
   filter: drop-shadow(0 12px 14px rgba(50,39,29,.22));
 }
 .flip-board.is-shuffling .memory-card.is-swap-leading { z-index: 3; }
+.flip-game[data-paused="true"] .memory-card.is-swapping,
+.flip-game[data-paused="true"] .preview-timer i { animation-play-state: paused; }
 .shuffle-overlay {
   position: absolute;
   left: 50%;
@@ -1126,6 +1127,10 @@ h1 {
   from { transform: translate(0, 0) scale(1); }
   50% { transform: translate(var(--move-mid-x), var(--move-mid-y)) scale(1.05); }
   to { transform: translate(var(--move-x), var(--move-y)) scale(1); }
+}
+@keyframes memory-swap-reduced {
+  from { transform: translate(0, 0); }
+  to { transform: translate(var(--move-x), var(--move-y)); }
 }
 @keyframes preview-countdown { to { transform: scaleX(0); } }
 
@@ -1856,4 +1861,11 @@ h1 {
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+  /* These convey game state, not decoration: keep tracking readable without the scale/arc. */
+  .flip-board.is-shuffling .memory-card.is-swapping {
+    animation-name: memory-swap-reduced;
+    animation-duration: var(--swap-duration, 680ms) !important;
+    animation-timing-function: linear;
+  }
+  .preview-timer i { animation-duration: var(--preview-duration) !important; }
 }

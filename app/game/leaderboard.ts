@@ -19,6 +19,8 @@ export type TimedLeaderboardEntry = {
 export type FlipHistoryEntry = {
   id: string;
   accuracy: number;
+  correct?: number;
+  attempts?: number;
   elapsedMs: number;
   createdAt: number;
   cardCount: FlipCardCount;
@@ -96,7 +98,7 @@ export function createEmptyLeaderboard(): LeaderboardData {
 
 export function rankTimedEntries(entries: TimedLeaderboardEntry[]) {
   return [...entries].sort((left, right) => (
-    right.accuracy - left.accuracy
+    preciseAccuracy(right) - preciseAccuracy(left)
     || right.totalRounds - left.totalRounds
     || left.elapsedMs - right.elapsedMs
     || right.createdAt - left.createdAt
@@ -105,11 +107,17 @@ export function rankTimedEntries(entries: TimedLeaderboardEntry[]) {
 
 export function rankFlipEntries(entries: FlipHistoryEntry[]) {
   return [...entries].sort((left, right) => (
-    right.accuracy - left.accuracy
+    preciseAccuracy(right) - preciseAccuracy(left)
     || right.rounds - left.rounds
     || left.elapsedMs - right.elapsedMs
     || right.createdAt - left.createdAt
   ));
+}
+
+function preciseAccuracy(entry: { accuracy: number; correct?: number; attempts?: number }) {
+  // Older flip records contain only rounded percentages; retain their original precision.
+  return Number.isFinite(entry.correct) && Number.isFinite(entry.attempts) && entry.attempts! > 0
+    ? entry.correct! / entry.attempts! : entry.accuracy / 100;
 }
 
 export function rankReactionEntries(entries: ReactionHistoryEntry[]) {
@@ -176,6 +184,9 @@ function normalizeFlipEntries(value: unknown, fallbackMode: GameMode, fallbackDi
     return [{
       id: candidate.id!,
       accuracy: Math.min(100, Math.max(0, Math.round(candidate.accuracy ?? 100))),
+      ...(Number.isFinite(candidate.correct) && Number.isFinite(candidate.attempts)
+        && candidate.correct! >= 0 && candidate.attempts! >= candidate.correct!
+        ? { correct: candidate.correct, attempts: candidate.attempts } : {}),
       elapsedMs: candidate.elapsedMs!,
       createdAt: candidate.createdAt!,
       cardCount: candidate.cardCount as FlipCardCount,
@@ -353,6 +364,8 @@ export function recordFlipLeaderboardResult(data: LeaderboardData, result: FlipS
   const entry: FlipHistoryEntry = {
     id: `${now}-${Math.random().toString(36).slice(2, 8)}`,
     accuracy: attempts === 0 ? 0 : Math.round((result.found / attempts) * 100),
+    correct: result.found,
+    attempts,
     elapsedMs: result.elapsedMs,
     createdAt: now,
     cardCount: result.cardCount,

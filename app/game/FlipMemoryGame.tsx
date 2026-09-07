@@ -1,19 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { ResultPanel } from "./ResultPanel";
+
 import type { CSSProperties } from "react";
-import {
-  FLIP_CARD_GAP,
-  FLIP_CONFIG,
-  formatDuration,
-  makeFlipCards,
-  makeVisibleShuffleSteps,
-} from "./core";
-import type { FlipCard, FlipPhase, GameSettings, TrainingType } from "./core";
+import { FLIP_CARD_GAP, FLIP_SWAP_DURATION_MS, formatDuration } from "./core";
+import type { FlipCard, GameSettings, TrainingType } from "./core";
 import { GameHome } from "./GameHome";
 import type { FlipSessionResult } from "./leaderboard";
-import { playFeedbackSound } from "./sound";
-import { usePausableTimers } from "./usePausableTimers";
+import { useFlipMemoryGame } from "./useFlipMemoryGame";
 
 function FlipCardFace({ card }: { card: FlipCard }) {
   return (
@@ -57,146 +51,7 @@ export function FlipMemoryGame({
   onHomeSettingsOpenChange,
   onHomeSettingsHeightChange,
 }: FlipMemoryGameProps) {
-  const timed = settings.flipMode === "self-paced";
-  const moving = settings.flipDifficulty === "moving";
-  const cardCount = settings.flipCardCount;
-  const suitCount = settings.flipSuitCount;
-  const flipConfig = FLIP_CONFIG[cardCount];
-  const targetCount = flipConfig.targets;
-  const previewMs = flipConfig.previewSeconds * 1000;
-  const [flipPhase, setFlipPhase] = useState<FlipPhase>("idle");
-  const [round, setRound] = useState(0);
-  const [cards, setCards] = useState<FlipCard[]>(() => makeFlipCards(cardCount, targetCount, suitCount));
-  const [activeSwap, setActiveSwap] = useState<[number, number] | null>(null);
-  const [shuffleProgress, setShuffleProgress] = useState({ current: 0, total: 0 });
-  const [foundIds, setFoundIds] = useState<string[]>([]);
-  const [mistakeIds, setMistakeIds] = useState<string[]>([]);
-  const [stats, setStats] = useState({ found: 0, mistakes: 0 });
-  const [elapsedMs, setElapsedMs] = useState(0);
-  const startedAtRef = useRef(0);
-  const pausedAtRef = useRef(0);
-  const pausedDurationRef = useRef(0);
-  const cardsRef = useRef(cards);
-  const previewFinishedRef = useRef(false);
-  const timers = usePausableTimers();
-  const score = stats.found === 0 ? 0 : Math.round((stats.found / (stats.found + stats.mistakes)) * 100);
-  const challengeSuccess = !timed && stats.found > 0 && stats.mistakes === 0;
-
-  const finishPreview = useCallback(() => {
-    if (previewFinishedRef.current) return;
-    previewFinishedRef.current = true;
-    timers.clear("main");
-    if (moving) {
-      const steps = makeVisibleShuffleSteps(cardCount);
-      setFlipPhase("shuffling");
-      setShuffleProgress({ current: 0, total: steps.length });
-
-      const playStep = (stepIndex: number, currentCards: FlipCard[]) => {
-        if (stepIndex >= steps.length) {
-          setActiveSwap(null);
-          setFlipPhase("selecting");
-          return;
-        }
-
-        const swap = steps[stepIndex];
-        setActiveSwap(swap);
-        setShuffleProgress({ current: stepIndex + 1, total: steps.length });
-        timers.schedule("main", () => {
-          const nextCards = [...currentCards];
-          [nextCards[swap[0]], nextCards[swap[1]]] = [nextCards[swap[1]], nextCards[swap[0]]];
-          cardsRef.current = nextCards;
-          setCards(nextCards);
-          setActiveSwap(null);
-          timers.schedule("main", () => playStep(stepIndex + 1, nextCards), 180);
-        }, 680);
-      };
-
-      timers.schedule("main", () => playStep(0, cardsRef.current), 420);
-    } else {
-      setFlipPhase("selecting");
-    }
-  }, [cardCount, moving, timers]);
-
-  const dealRound = useCallback((roundIndex: number) => {
-    timers.clearAll();
-    const nextCards = makeFlipCards(cardCount, targetCount, suitCount);
-    previewFinishedRef.current = false;
-    cardsRef.current = nextCards;
-    setRound(roundIndex);
-    setCards(nextCards);
-    setActiveSwap(null);
-    setShuffleProgress({ current: 0, total: 0 });
-    setFoundIds([]);
-    setMistakeIds([]);
-    setFlipPhase("preview");
-    if (!timed) timers.schedule("main", finishPreview, previewMs);
-  }, [cardCount, finishPreview, previewMs, suitCount, targetCount, timed, timers]);
-
-  const beginGame = useCallback(() => {
-    if (soundEnabled) playFeedbackSound("advance");
-    setStats({ found: 0, mistakes: 0 });
-    setElapsedMs(0);
-    startedAtRef.current = Date.now();
-    pausedAtRef.current = 0;
-    pausedDurationRef.current = 0;
-    dealRound(0);
-  }, [dealRound, soundEnabled]);
-
-  const finishGame = useCallback(() => {
-    timers.clearAll();
-    const duration = Math.max(0, Date.now() - startedAtRef.current - pausedDurationRef.current);
-    setElapsedMs(duration);
-    setFlipPhase("finished");
-    onSessionFinished({
-      cardCount,
-      suitCount,
-      mode: settings.flipMode,
-      difficulty: settings.flipDifficulty,
-      rounds: settings.flipRounds,
-      found: stats.found,
-      mistakes: stats.mistakes,
-      elapsedMs: duration,
-    });
-  }, [cardCount, onSessionFinished, settings.flipDifficulty, settings.flipMode, settings.flipRounds, stats.found, stats.mistakes, suitCount, timers]);
-
-  const advanceRound = () => {
-    if (round + 1 >= settings.flipRounds) finishGame();
-    else dealRound(round + 1);
-  };
-
-  const chooseCard = (card: FlipCard) => {
-    if (flipPhase !== "selecting" || foundIds.includes(card.id) || mistakeIds.includes(card.id)) return;
-    if (soundEnabled) playFeedbackSound(card.isTarget ? "correct" : "wrong");
-    if (card.isTarget) {
-      const nextFound = [...foundIds, card.id];
-      setFoundIds(nextFound);
-      setStats((currentStats) => ({ ...currentStats, found: currentStats.found + 1 }));
-      if (nextFound.length === targetCount) setFlipPhase("round-complete");
-    } else {
-      setMistakeIds((currentIds) => [...currentIds, card.id]);
-      setStats((currentStats) => ({ ...currentStats, mistakes: currentStats.mistakes + 1 }));
-      timers.schedule(`mistake-${card.id}`, () => {
-        setMistakeIds((currentIds) => currentIds.filter((id) => id !== card.id));
-      }, 650);
-    }
-  };
-
-  useEffect(() => {
-    if (paused) {
-      timers.pauseAll();
-      if (flipPhase !== "idle" && flipPhase !== "finished" && !pausedAtRef.current) pausedAtRef.current = Date.now();
-    } else {
-      if (pausedAtRef.current) pausedDurationRef.current += Date.now() - pausedAtRef.current;
-      pausedAtRef.current = 0;
-      timers.resumeAll();
-    }
-  }, [flipPhase, paused, timers]);
-
-  useEffect(() => {
-    onSessionActiveChange(flipPhase !== "idle");
-  }, [flipPhase, onSessionActiveChange]);
-
-  useEffect(() => () => onSessionActiveChange(false), [onSessionActiveChange]);
+  const { timed, moving, cardCount, suitCount, flipConfig, targetCount, previewMs, flipPhase, round, cards, activeSwap, shuffleProgress, foundIds, mistakeIds, stats, elapsedMs, score, challengeSuccess, finishPreview, beginGame, advanceRound, chooseCard } = useFlipMemoryGame({settings, soundEnabled, paused, onSessionActiveChange, onSessionFinished});
 
   const showAllFaces = flipPhase === "preview" || flipPhase === "round-complete";
   const targets = cards.filter((card) => card.isTarget);
@@ -209,30 +64,20 @@ export function FlipMemoryGame({
           <span className="eyebrow">翻牌记忆 · {timed ? "计时模式" : "挑战模式"} · {moving ? "移动" : "经典"}</span>
           <h1>{challengeSuccess ? "挑战成功" : "训练完成"}</h1>
         </div>
-        <section className="result-panel" aria-label="翻牌记忆结果">
-          <div className="score-ring" style={{ "--score": `${score * 3.6}deg` } as CSSProperties}>
-            <div><strong>{score}</strong><span>%</span><small>选择正确率</small></div>
-          </div>
-          <div className="result-copy">
-            <div className="result-config">
-              <span><b>{settings.flipRounds}</b> 轮训练</span>
-              <span><b>{cardCount}</b> 张 · {suitCount} 花色</span>
-            </div>
-            <div className="result-time"><small>总用时</small><strong>{formatDuration(elapsedMs)}</strong></div>
-            <p className="result-note">找对 {stats.found} 张 · 误点 {stats.mistakes} 张</p>
-            <div className="result-actions">
-              <button className="secondary-button" onClick={beginGame}>{timed ? "再练一轮" : "再次挑战"}</button>
-              <button className="primary-button" onClick={onEditSettings}>修改设置 <span>→</span></button>
-            </div>
-            <button type="button" className="result-leaderboard-link" onClick={onOpenLeaderboard}>查看历史最佳 <span>→</span></button>
-          </div>
-        </section>
+        <ResultPanel
+          label="翻牌记忆结果" score={score} scoreLabel="选择正确率"
+          config={<><span><b>{settings.flipRounds}</b> 轮训练</span><span><b>{cardCount}</b> 张 · {suitCount} 花色</span></>}
+          time={{label: "总用时", value: formatDuration(elapsedMs)}}
+          note={<>找对 {stats.found} 张 · 误点 {stats.mistakes} 张</>}
+          retryLabel={timed ? "再练一轮" : "再次挑战"}
+          onRetry={beginGame} onEditSettings={onEditSettings} onOpenLeaderboard={onOpenLeaderboard}
+        />
       </div>
     );
   }
 
   return (
-    <div className={`flip-game flip-phase-${flipPhase} flip-count-${cardCount}`}>
+    <div className={`flip-game flip-phase-${flipPhase} flip-count-${cardCount}`} data-paused={paused} style={{ "--swap-duration": `${FLIP_SWAP_DURATION_MS}ms` } as CSSProperties}>
       {flipPhase === "idle" ? (
         <GameHome
           eyebrow={`翻牌记忆 · ${timed ? "计时模式" : "挑战模式"} · ${moving ? "移动" : "经典"}`}
@@ -285,7 +130,7 @@ export function FlipMemoryGame({
                 <button
                   className={`memory-card ${faceUp ? "is-face-up" : "is-face-down"} ${found ? "is-found" : ""} ${mistake ? "is-mistake" : ""} ${swapRole ? `is-swapping is-swap-${swapRole}` : ""}`}
                   onClick={() => chooseCard(card)}
-                  disabled={flipPhase !== "selecting" || found || mistake}
+                  disabled={paused || flipPhase !== "selecting" || found || mistake}
                   aria-label={faceUp ? `${card.suit.name}${card.rank.name}${found ? "，目标牌" : mistake ? "，不是目标" : ""}` : "盖住的扑克牌"}
                   style={swapRole ? {
                     "--move-x": `calc(${columnDelta * 100}% + ${columnDelta * FLIP_CARD_GAP}px)`,

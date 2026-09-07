@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import type { KeyboardEvent } from "react";
+import { placeSelectMenu } from "./menuPlacement";
 
 type SelectValue = string | number;
 
@@ -28,6 +30,7 @@ export function SelectMenu<T extends SelectValue>({
   const listboxId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const optionRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const selectedIndex = options.findIndex((option) => option.value === value);
   const [open, setOpen] = useState(false);
@@ -37,14 +40,46 @@ export function SelectMenu<T extends SelectValue>({
   useEffect(() => {
     if (!open) return;
     const onPointerDown = (event: PointerEvent) => {
-      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
+      if (!rootRef.current?.contains(event.target as Node) && !menuRef.current?.contains(event.target as Node)) setOpen(false);
     };
     document.addEventListener("pointerdown", onPointerDown);
     return () => document.removeEventListener("pointerdown", onPointerDown);
   }, [open]);
 
+  useLayoutEffect(() => {
+    if (!open) return;
+    const reposition = () => {
+      const anchor = triggerRef.current?.getBoundingClientRect();
+      const menu = menuRef.current;
+      if (!anchor || !menu) return;
+      const viewport = window.visualViewport;
+      const bounds = {width:viewport?.width ?? window.innerWidth,height:viewport?.height ?? window.innerHeight,left:viewport?.offsetLeft ?? 0,top:viewport?.offsetTop ?? 0};
+      menu.style.width = `${placeSelectMenu(anchor, bounds, 0).width}px`;
+      const placement = placeSelectMenu(anchor, bounds, menu.scrollHeight + 2);
+      Object.assign(menu.style, Object.fromEntries(Object.entries(placement).map(([key,value]) => [key, `${value}px`])));
+      menu.style.visibility = "visible";
+    };
+    reposition();
+    window.addEventListener("resize", reposition);
+    window.addEventListener("scroll", reposition, true);
+    window.visualViewport?.addEventListener("resize", reposition);
+    return () => {
+      window.removeEventListener("resize", reposition);
+      window.removeEventListener("scroll", reposition, true);
+      window.visualViewport?.removeEventListener("resize", reposition);
+    };
+  }, [open, options]);
+
   useEffect(() => {
-    if (open) optionRefs.current[activeIndex]?.focus();
+    if (open) {
+      const option = optionRefs.current[activeIndex];
+      const menu = menuRef.current;
+      option?.focus({preventScroll:true});
+      if (option && menu) {
+        if (option.offsetTop < menu.scrollTop) menu.scrollTop = option.offsetTop;
+        else if (option.offsetTop + option.offsetHeight > menu.scrollTop + menu.clientHeight) menu.scrollTop = option.offsetTop + option.offsetHeight - menu.clientHeight;
+      }
+    }
   }, [activeIndex, open]);
 
   const openMenu = (index = selectedIndex >= 0 ? selectedIndex : 0) => {
@@ -103,8 +138,8 @@ export function SelectMenu<T extends SelectValue>({
         <i className="custom-select-chevron" aria-hidden="true" />
       </button>
 
-      {open && (
-        <div className="custom-select-menu" role="listbox" id={listboxId} aria-label={ariaLabel} tabIndex={-1} onKeyDown={onListKeyDown}>
+      {open && createPortal(
+        <div className="custom-select-menu" role="listbox" id={listboxId} aria-label={ariaLabel} tabIndex={-1} onKeyDown={onListKeyDown} ref={menuRef} style={{visibility:"hidden"}}>
           {options.map((option, index) => (
             <button
               type="button"
@@ -119,7 +154,7 @@ export function SelectMenu<T extends SelectValue>({
               {option.value === value && <b aria-hidden="true">✓</b>}
             </button>
           ))}
-        </div>
+        </div>, document.body,
       )}
     </div>
   );

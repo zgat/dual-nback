@@ -1,5 +1,7 @@
 "use client";
 
+import { ResultPanel } from "./ResultPanel";
+
 import type { CSSProperties } from "react";
 import {
   CARD_FLIP_DURATION_MS,
@@ -138,45 +140,15 @@ export function NBackGame({
       {phase === "idle" ? (
         null
       ) : phase === "finished" ? (
-        <section className="result-panel" aria-label="训练结果">
-          <div className="score-ring" style={{ "--score": `${accuracy * 3.6}deg` } as CSSProperties}>
-            <div><strong>{accuracy}</strong><span>%</span><small>综合正确率</small></div>
-          </div>
-          <div className="result-copy">
-            <div className="result-config" aria-label="本轮训练设置">
-              {isCardMode ? (
-                <>
-                  <span><b>13</b> 个点数</span>
-                  <span><b>4</b> 种花色</span>
-                </>
-              ) : (
-                <>
-                  <span><b>{settings.cellCount}</b> 个格子</span>
-                  <span><b>{settings.colorCount}</b> 种颜色</span>
-                </>
-              )}
-            </div>
-            {settings.mode === "self-paced" && (
-              <div className="result-time">
-                <small>总用时</small>
-                <strong>{formatDuration(elapsedMs)}</strong>
-              </div>
-            )}
-            <div className="result-metrics">
-              {OPTIONS.map((option) => (
-                <span key={option.id}>
-                  <b>{stats.categoryHits[option.id]}/{stats.categoryTotals[option.id]}</b> {relationLabel(option.id, settings.trainingType)}
-                </span>
-              ))}
-            </div>
-            <p className="result-note">答错 {wrongAnswers} 次 · 未作答 {stats.misses} 次 · 最长连续正确 {stats.bestStreak} 轮</p>
-            <div className="result-actions">
-              <button className="secondary-button" onClick={beginCountdown}>{isChallengeSuccess ? "再次挑战" : "再练一轮"}</button>
-              <button className="primary-button" onClick={editSettings}>修改设置 <span>→</span></button>
-            </div>
-            <button type="button" className="result-leaderboard-link" onClick={onOpenLeaderboard}>查看历史最佳 <span>→</span></button>
-          </div>
-        </section>
+        <ResultPanel
+          label="训练结果" score={accuracy} scoreLabel="综合正确率"
+          config={isCardMode ? <><span><b>13</b> 个点数</span><span><b>4</b> 种花色</span></> : <><span><b>{settings.cellCount}</b> 个格子</span><span><b>{settings.colorCount}</b> 种颜色</span></>}
+          time={settings.mode === "self-paced" ? {label: "总用时", value: formatDuration(elapsedMs)} : undefined}
+          metrics={OPTIONS.map(option => <span key={option.id}><b>{stats.categoryHits[option.id]}/{stats.categoryTotals[option.id]}</b> {relationLabel(option.id, settings.trainingType)}</span>)}
+          note={<>答错 {wrongAnswers} 次 · 未作答 {stats.misses} 次 · 最长连续正确 {stats.bestStreak} 轮</>}
+          retryLabel={isChallengeSuccess ? "再次挑战" : "再练一轮"}
+          onRetry={beginCountdown} onEditSettings={editSettings} onOpenLeaderboard={onOpenLeaderboard}
+        />
       ) : (
         <>
           {isCardMode ? (

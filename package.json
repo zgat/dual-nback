@@ -1,6 +1,6 @@
 {
   "name": "site-creator-vinext-starter",
-  "version": "2.2.0",
+  "version": "2.2.1",
   "license": "SEE LICENSE IN LICENSE",
   "private": true,
   "engines": {
@@ -17,6 +17,7 @@
     "android:apk": "npm run version:bump:apk && npm run android:apk:no-bump",
     "test": "npm run build && node --test tests/*.test.mjs",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
+    "typecheck": "tsc --noEmit --incremental false",
     "db:generate": "drizzle-kit generate"
   },
   "dependencies": {
@@ -29,6 +30,7 @@
     "@capacitor/android": "8.5.0",
     "@capacitor/cli": "8.5.0",
     "@cloudflare/vite-plugin": "1.37.1",
+    "@cloudflare/workers-types": "4.20260702.1",
     "@eslint/js": "9.39.4",
     "@next/eslint-plugin-next": "16.2.6",
     "@openai/sites-vite-plugin": "0.1.0",
@@ -43,7 +45,9 @@
     "eslint-plugin-jsx-a11y": "6.10.2",
     "eslint-plugin-react": "7.37.5",
     "eslint-plugin-react-hooks": "7.1.1",
+    "fake-indexeddb": "6.2.5",
     "globals": "16.4.0",
+    "jsdom": "26.1.0",
     "react-server-dom-webpack": "19.2.6",
     "tailwindcss": "4.2.1",
     "typescript": "5.9.3",

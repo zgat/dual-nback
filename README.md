@@ -57,6 +57,7 @@ npm run dev
 
 ```bash
 npm run lint          # 代码检查
+npm run typecheck     # TypeScript 类型检查
 npm test              # 构建并运行测试
 npm run mobile:build  # 构建移动端静态资源
 ```
@@ -93,6 +94,7 @@ scripts/             版本管理脚本
 
 ```bash
 npm run lint
+npm run typecheck
 npm test
 npm run mobile:build
 ```
