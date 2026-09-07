@@ -14,6 +14,7 @@
 ```bash
 npm ci
 npm run lint
+npm run typecheck
 npm test
 npm run mobile:build
 git diff --check

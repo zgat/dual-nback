@@ -77,17 +77,18 @@ test("keeps game screens inside the dynamic viewport", async () => {
 });
 
 test("removes flip-memory instructions once play begins", async () => {
-  const [source, gameHome] = await Promise.all([
+  const [source, gameHome, hook] = await Promise.all([
     readFile(new URL("../app/game/FlipMemoryGame.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/game/GameHome.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/game/useFlipMemoryGame.ts", import.meta.url), "utf8"),
   ]);
 
   assert.doesNotMatch(source, /请依次点出|牌位正在移动|记住全部牌位/);
   assert.match(source, /flipPhase === "idle" \?/);
   assert.match(source, /<GameHome[\s\S]*description=\{timed \? "自己决定何时盖牌，全部找出后进入下一轮。" : "限时记牌，盖牌后不限时找完全部目标牌。"\}[\s\S]*onUpdateSettings=\{onUpdateSettings\}/);
   assert.match(gameHome, /<IdleSettings settings={settings} onChange={onUpdateSettings}/);
-  assert.match(source, /timers\.schedule\(`mistake-\$\{card\.id\}`,[\s\S]*}, 650\)/);
-  assert.match(source, /if \(paused\) \{[\s\S]*timers\.pauseAll\(\)/);
+  assert.match(hook, /timers\.schedule\(`mistake-\$\{card\.id\}`,[\s\S]*}, 650\)/);
+  assert.match(hook, /if \(paused\) \{[\s\S]*timers\.pauseAll\(\)/);
 });
 
 test("keeps result screens compact and free of evaluation copy", async () => {
@@ -101,8 +102,10 @@ test("keeps result screens compact and free of evaluation copy", async () => {
 
   assert.doesNotMatch(source, /本轮表现|先放慢节奏|判断稳定|表现不错|位置记得很稳|降低牌数|升到/);
   assert.match(sources[0], /<GameHome[\s\S]*onUpdateSettings={updateSettings}/);
-  assert.match(sources[0], />修改设置 <span>→<\/span>/);
-  assert.match(sources[1], />修改设置 <span>→<\/span>/);
+  assert.match(sources[0], /<ResultPanel[\s\S]*onEditSettings={editSettings}/);
+  assert.match(sources[1], /<ResultPanel[\s\S]*onEditSettings={onEditSettings}/);
+  const resultPanel = await readFile(new URL("../app/game/ResultPanel.tsx", import.meta.url), "utf8");
+  assert.match(resultPanel, />修改设置 <span>→<\/span>/);
   assert.match(page, /const editHomeSettings = \(\) => \{\s*goHome\(\);\s*setHomeSettingsOpen\(true\);\s*\}/s);
   assert.match(page, /onEditSettings={editHomeSettings}/);
   assert.match(page, /editSettings={editHomeSettings}/);
@@ -178,7 +181,7 @@ test("uses the requested compact home-setting layouts", async () => {
 test("balances three game sounds and avoids sticky touch hover feedback", async () => {
   const [controller, flipMemory, sound, storage] = await Promise.all([
     readFile(new URL("../app/game/useGameController.ts", import.meta.url), "utf8"),
-    readFile(new URL("../app/game/FlipMemoryGame.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/game/useFlipMemoryGame.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/game/sound.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/game/storage.ts", import.meta.url), "utf8"),
   ]);
@@ -266,9 +269,10 @@ test("adds donation switching and local history entry points for all games", asy
   assert.match(page, /<LeaderboardModal/);
   assert.match(controller, /onSessionFinishedRef\.current\?\.\(/);
   assert.match(gameHome, /leaderboard-entry[\s\S]*历史最佳/);
-  assert.match(nback, /result-leaderboard-link[\s\S]*历史最佳/);
-  assert.match(flip, /onSessionFinished\(\{/);
-  assert.match(flip, /result-leaderboard-link[\s\S]*历史最佳/);
+  assert.match(nback, /<ResultPanel[\s\S]*onOpenLeaderboard={onOpenLeaderboard}/);
+  const flipHook = await readFile(new URL("../app/game/useFlipMemoryGame.ts", import.meta.url), "utf8");
+  assert.match(flipHook, /onSessionFinished\(\{/);
+  assert.match(flip, /<ResultPanel[\s\S]*onOpenLeaderboard={onOpenLeaderboard}/);
   assert.match(leaderboardModal, /leaderboard-game-switch/);
   assert.match(leaderboardModal, /leaderboard-footer/);
   assert.match(leaderboardModal, /leaderboard-mode-switch/);
@@ -300,8 +304,8 @@ test("adds donation switching and local history entry points for all games", asy
   assert.match(nback, /isChallengeSuccess \? "挑战成功" : "训练完成"/);
   assert.match(nback, /isChallengeSuccess \? "再次挑战" : "再练一轮"/);
   assert.match(flip, /challengeSuccess \? "挑战成功" : "训练完成"/);
-  assert.match(flip, /settings\.flipMode === "self-paced"/);
-  assert.match(flip, /if \(!timed\) timers\.schedule\("main", finishPreview, previewMs\)/);
+  assert.match(flipHook, /settings\.flipMode === "self-paced"/);
+  assert.match(flipHook, /if \(!timed\) timers\.schedule\("main", finishPreview, previewMs\)/);
   assert.match(flip, /记住了，盖牌/);
   assert.match(flip, /记牌中 · \{flipConfig\.previewSeconds\} 秒/);
   assert.match(idleSettings, /flipMode: "self-paced"/);
@@ -333,13 +337,14 @@ test("adds a responsive reaction test and local top-ten history", async () => {
   assert.match(idleSettings, /测试轮数/);
   assert.match(page, /<ReactionGame/);
   assert.match(page, /recordReactionResult/);
-  assert.match(reaction, /MIN_WAIT_MS = 1400/);
-  assert.match(reaction, /targetShownAtRef\.current = performance\.now\(\)/);
+  const reactionHook = await readFile(new URL("../app/game/useReactionGame.ts", import.meta.url), "utf8");
+  assert.match(reactionHook, /MIN_WAIT_MS = 1400/);
+  assert.match(reactionHook, /targetCommittedAt\.current = performance\.now\(\)/);
   assert.match(reaction, /phase === "waiting"/);
   assert.match(reaction, /提前点击会记为误触/);
   assert.match(reaction, /onPointerDown={handlePointerDown}/);
   assert.match(reaction, /onClick={handleClick}/);
-  assert.match(reaction, /查看历史最佳/);
+  assert.match(reaction, /<ResultPanel[\s\S]*onOpenLeaderboard={onOpenLeaderboard}/);
   assert.match(leaderboard, /rankReactionEntries/);
   assert.match(leaderboard, /reaction:\s*rankReactionEntries/);
   assert.match(leaderboardModal, />反应力<\/button>/);

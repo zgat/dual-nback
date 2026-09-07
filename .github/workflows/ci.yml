@@ -33,5 +33,8 @@ jobs:
       - name: Test
         run: npm test
 
+      - name: Typecheck
+        run: npm run typecheck
+
       - name: Build mobile assets
         run: npm run mobile:build

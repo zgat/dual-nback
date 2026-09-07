@@ -14,7 +14,7 @@ export function usePausableTimers() {
   const pausedRef = useRef(false);
 
   const startEntry = useCallback((key: string, entry: TimerEntry) => {
-    entry.startedAt = Date.now();
+    entry.startedAt = performance.now();
     entry.id = window.setTimeout(() => {
       timersRef.current.delete(key);
       entry.id = null;
@@ -34,7 +34,7 @@ export function usePausableTimers() {
       callback,
       id: null,
       remainingMs: Math.max(0, delayMs),
-      startedAt: Date.now(),
+      startedAt: performance.now(),
     };
     timersRef.current.set(key, entry);
     if (!pausedRef.current) startEntry(key, entry);
@@ -43,7 +43,7 @@ export function usePausableTimers() {
   const pauseAll = useCallback(() => {
     if (pausedRef.current) return;
     pausedRef.current = true;
-    const now = Date.now();
+    const now = performance.now();
     timersRef.current.forEach((entry) => {
       if (entry.id === null) return;
       window.clearTimeout(entry.id);

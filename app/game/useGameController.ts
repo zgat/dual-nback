@@ -15,6 +15,8 @@ import { normalizeShortcutKey } from "./shortcuts";
 import type { ShortcutKeys } from "./shortcuts";
 import { playFeedbackSound } from "./sound";
 import { usePausableTimers } from "./usePausableTimers";
+import { useSessionClock } from "./useSessionClock";
+import { shouldIgnoreGameKey } from "./keyboard";
 
 type RunningPhase = "countdown" | "playing";
 
@@ -50,10 +52,7 @@ export function useGameController(
   const finalizeRef = useRef<() => void>(() => undefined);
   const countdownStepRef = useRef<() => void>(() => undefined);
   const countdownRemainingRef = useRef(3);
-  const sessionStartedAtRef = useRef(0);
-  const sessionEndedAtRef = useRef(0);
-  const pauseStartedAtRef = useRef(0);
-  const pausedDurationRef = useRef(0);
+  const clock = useSessionClock();
   const timers = usePausableTimers();
 
   useEffect(() => {
@@ -82,7 +81,6 @@ export function useGameController(
     if (!trial) return;
 
     roundRef.current = index;
-    sessionEndedAtRef.current = 0;
     responseRef.current = null;
     setRound(index);
     setCurrent(trial);
@@ -109,15 +107,14 @@ export function useGameController(
     phaseRef.current = "finished";
     setPhase("finished");
     setVisible(false);
-    const endedAt = sessionEndedAtRef.current || Date.now();
-    const elapsed = Math.max(0, endedAt - sessionStartedAtRef.current - pausedDurationRef.current);
+    const elapsed = clock.finish();
     setElapsedMs(elapsed);
     onSessionFinishedRef.current?.({
       settings: { ...settingsRef.current },
       stats: statsRef.current,
       elapsedMs: elapsed,
     });
-  }, [setVisible, timers]);
+  }, [clock, setVisible, timers]);
 
   const finalizeTrial = useCallback(() => {
     if (phaseRef.current !== "playing") return;
@@ -145,12 +142,9 @@ export function useGameController(
     setCountdownExiting(false);
     phaseRef.current = "playing";
     setPhase("playing");
-    sessionStartedAtRef.current = Date.now();
-    sessionEndedAtRef.current = 0;
-    pausedDurationRef.current = 0;
-    pauseStartedAtRef.current = 0;
+    clock.start();
     startTrial(0);
-  }, [startTrial, timers]);
+  }, [clock, startTrial, timers]);
 
   useEffect(() => {
     countdownStepRef.current = () => {
@@ -194,21 +188,18 @@ export function useGameController(
     phaseRef.current = "paused";
     setPhase("paused");
     if (phaseBeforePauseRef.current === "playing") setStimulusVisible(false);
-    pauseStartedAtRef.current = Date.now();
+    if (phaseBeforePauseRef.current === "playing") clock.pause();
     return true;
-  }, [timers]);
+  }, [clock, timers]);
 
   const resumeGame = useCallback(() => {
     if (phaseRef.current !== "paused") return;
-    if (pauseStartedAtRef.current && phaseBeforePauseRef.current === "playing") {
-      pausedDurationRef.current += Date.now() - pauseStartedAtRef.current;
-    }
-    pauseStartedAtRef.current = 0;
+    if (phaseBeforePauseRef.current === "playing") clock.resume();
     phaseRef.current = phaseBeforePauseRef.current;
     setPhase(phaseBeforePauseRef.current);
     if (phaseBeforePauseRef.current === "playing") setStimulusVisible(stimulusVisibleRef.current);
     timers.resumeAll();
-  }, [timers]);
+  }, [clock, timers]);
 
   const togglePause = useCallback(() => {
     if (phaseRef.current === "paused") resumeGame();
@@ -227,10 +218,10 @@ export function useGameController(
     setCorrectAnswer(expected);
     if (soundEnabledRef.current) playFeedbackSound(answer === expected ? "correct" : "wrong");
     if (settingsRef.current.mode === "self-paced") {
-      if (index >= settingsRef.current.total - 1) sessionEndedAtRef.current = Date.now();
+      if (index >= settingsRef.current.total - 1) clock.finish();
       timers.schedule("trial", () => finalizeRef.current(), 450);
     }
-  }, [timers]);
+  }, [clock, timers]);
 
   const advanceWarmup = useCallback(() => {
     if (
@@ -269,22 +260,31 @@ export function useGameController(
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.repeat || inputBlocked) return;
+      if (inputBlocked || shouldIgnoreGameKey(event)) return;
+      if (settingsRef.current.trainingType !== "grid" && settingsRef.current.trainingType !== "cards") return;
+      if (phaseRef.current === "idle" || phaseRef.current === "finished") return;
+      const key = event.key.toLowerCase();
+      if (key === "escape") {
+        event.preventDefault();
+        togglePause();
+        return;
+      }
       const pressedKey = normalizeShortcutKey(event.key);
       if (!pressedKey) return;
       const option = OPTIONS.find((item) => shortcutKeysRef.current[item.id] === pressedKey);
       if (option) {
+        if (phaseRef.current !== "playing" || roundRef.current < settingsRef.current.n) return;
         event.preventDefault();
         respond(option.id);
         return;
       }
-      const key = event.key.toLowerCase();
       if (pressedKey === shortcutKeysRef.current.advance && settingsRef.current.mode === "self-paced") {
+        if (phaseRef.current !== "playing" || roundRef.current >= settingsRef.current.n) return;
         event.preventDefault();
         advanceWarmup();
         return;
       }
-      if (key === "p" || key === "escape") togglePause();
+      if (key === "p") { event.preventDefault(); togglePause(); }
     };
 
     window.addEventListener("keydown", onKeyDown);
