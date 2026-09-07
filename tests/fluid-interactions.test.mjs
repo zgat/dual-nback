@@ -93,6 +93,16 @@ test("one home preserves selection, disclosure DOM and open height across all fo
     assert.equal(disclosure.getAttribute("aria-expanded"), "true");
     assert.equal(reveal.style.height, `${height}px`);
     assert.equal(home.querySelector(".training-switch-indicator").style.transform, `translateX(${index * 100}%)`);
+    const legend = home.querySelector(".home-legend-slot");
+    assert.ok(legend, "all games retain the shared legend slot");
+    if (index === 2 || index === 3) {
+      assert.equal(legend.textContent, "");
+      assert.equal(legend.childElementCount, 0);
+      assert.equal(legend.getAttribute("aria-hidden"), "true");
+      assert.ok(legend.classList.contains("is-empty"));
+    }
+    assert.equal(home.querySelector(".reaction-legend"), null);
+    assert.doesNotMatch(home.textContent, /按下即计时/);
   }
   // Rapid close/open retargets the same region rather than mounting another home.
   await h.run(() => disclosure.click()); assert.equal(reveal.style.height,"0px");
