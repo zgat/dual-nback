@@ -2,45 +2,27 @@
 
 import { ResultPanel } from "./ResultPanel";
 
-import type { GameSettings, TrainingType } from "./core";
-import { GameHome } from "./GameHome";
-import type { ReactionSessionResult } from "./leaderboard";
-import { useReactionGame } from "./useReactionGame";
+import type { GameSettings } from "./core";
+import { useState } from "react";
+import type { useReactionGame } from "./useReactionGame";
 
 type ReactionGameProps = {
   settings: GameSettings;
-  onSelectTrainingType: (trainingType: TrainingType) => void;
-  onUpdateSettings: (patch: Partial<GameSettings>) => void;
+  game: ReturnType<typeof useReactionGame>;
   onEditSettings: () => void;
-  onSessionActiveChange: (active: boolean) => void;
-  onSessionFinished: (result: ReactionSessionResult) => void;
   onOpenLeaderboard: () => void;
-  soundEnabled: boolean;
-  onToggleSound: () => void;
   paused: boolean;
-  homeSettingsOpen: boolean;
-  homeSettingsHeight: number;
-  onHomeSettingsOpenChange: (open: boolean) => void;
-  onHomeSettingsHeightChange: (height: number) => void;
 };
 
 export function ReactionGame({
   settings,
-  onSelectTrainingType,
-  onUpdateSettings,
+  game,
   onEditSettings,
-  onSessionActiveChange,
-  onSessionFinished,
   onOpenLeaderboard,
-  soundEnabled,
-  onToggleSound,
   paused,
-  homeSettingsOpen,
-  homeSettingsHeight,
-  onHomeSettingsOpenChange,
-  onHomeSettingsHeightChange,
 }: ReactionGameProps) {
-  const {phase, round, times, falseStarts, feedbackMs, averageMs, bestMs, status, beginTest, handlePointerDown, handleClick, padRef} = useReactionGame({settings, soundEnabled, paused, onSessionActiveChange, onSessionFinished});
+  const [restartTurns, setRestartTurns] = useState(0);
+  const {phase, round, times, falseStarts, feedbackMs, averageMs, bestMs, status, beginTest, handlePointerDown, handleClick, padRef} = game;
 
   if (phase === "finished") {
     return (
@@ -62,26 +44,7 @@ export function ReactionGame({
 
   return (
     <div className={`reaction-game reaction-phase-${phase}`}>
-      {phase === "idle" ? (
-        <GameHome
-          eyebrow={`反应力测试 · ${settings.reactionRounds} 轮`}
-          title="看到橙色立即点击"
-          description="等待目标变色后尽快点击，提前点击会记为误触。"
-          introVisual={<span className="reaction-legend" />}
-          settings={settings}
-          startLabel="开始测试"
-          onStart={beginTest}
-          onUpdateSettings={onUpdateSettings}
-          onSelectTrainingType={onSelectTrainingType}
-          soundEnabled={soundEnabled}
-          onToggleSound={onToggleSound}
-          onOpenLeaderboard={onOpenLeaderboard}
-          settingsOpen={homeSettingsOpen}
-          settingsHeight={homeSettingsHeight}
-          onSettingsOpenChange={onHomeSettingsOpenChange}
-          onSettingsHeightChange={onHomeSettingsHeightChange}
-        />
-      ) : (
+      {phase !== "idle" && (
         <>
           <div className="reaction-progress" aria-label={`第 ${round + 1} 轮，共 ${settings.reactionRounds} 轮`}>
             <span>第 {round + 1} / {settings.reactionRounds} 轮</span>
@@ -99,7 +62,7 @@ export function ReactionGame({
             <strong>{paused ? "已暂停" : status}</strong>
             <small>{phase === "waiting" ? "保持专注，不要预判" : phase === "target" ? "点击屏幕或按空格" : feedbackMs === null ? "本轮重新等待" : "准备下一轮"}</small>
           </button>
-          <button className="start-button pause-button flip-restart" onClick={beginTest}><span aria-hidden="true">↻</span> 重新开始</button>
+          <button className="start-button pause-button flip-restart" onClick={() => { setRestartTurns(turns => turns + 1); beginTest(); }}><span className="restart-icon" style={{transform: `rotate(${restartTurns * 360}deg)`}} aria-hidden="true">↻</span> 重新开始</button>
         </>
       )}
     </div>

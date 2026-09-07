@@ -2,7 +2,7 @@ import { JSDOM } from "jsdom";
 import { act, createElement } from "react";
 import { createRoot } from "react-dom/client";
 
-export async function mountHook(t, useHook) {
+export async function mountHook(t, useHook, setup = () => {}) {
   const dom = new JSDOM("<!doctype html><div id='root'></div>", {url:"http://localhost"});
   const originals = new Map();
   let now = 1000, timerId = 0, current;
@@ -20,6 +20,7 @@ export async function mountHook(t, useHook) {
   dom.window.clearTimeout = id => timers.delete(id);
   dom.window.requestAnimationFrame = callback => dom.window.setTimeout(()=>callback(now),16);
   dom.window.cancelAnimationFrame = dom.window.clearTimeout;
+  setup(dom.window);
   const root = createRoot(document.getElementById("root"));
   function Probe() { current = useHook(); return current?.view ?? null; }
   const render = async () => {await act(async()=>root.render(createElement(Probe)));};

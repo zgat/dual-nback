@@ -16,6 +16,7 @@ type SettingsModalProps = {
   onToggleSound: () => void;
   onUpdateShortcutKeys: (keys: ShortcutKeys) => void;
   onClose: () => void;
+  exiting?: boolean;
 };
 
 export function SettingsModal({
@@ -25,6 +26,7 @@ export function SettingsModal({
   onToggleSound,
   onUpdateShortcutKeys,
   onClose,
+  exiting,
 }: SettingsModalProps) {
   const [showDonation, setShowDonation] = useState(false);
   const showKeyboardShortcuts = !Capacitor.isNativePlatform()
@@ -32,11 +34,12 @@ export function SettingsModal({
 
   return (
     <ModalFrame
-      eyebrow={showDonation ? "DONATE" : "VERSION 2.2.2"}
+      eyebrow={showDonation ? "DONATE" : "VERSION 2.2.3"}
       title={showDonation ? "支持开发" : "偏好设置"}
       className={showDonation ? "donation-panel" : "preferences-panel"}
       closeLabel={showDonation ? "关闭捐赠页面" : "关闭偏好设置"}
       onClose={onClose}
+      exiting={exiting}
     >
       {showDonation ? (
         <DonationPanel onBack={() => setShowDonation(false)} />

@@ -4,6 +4,7 @@ import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { KeyboardEvent } from "react";
 import { placeSelectMenu } from "./menuPlacement";
+import { usePresence } from "./usePresence";
 
 type SelectValue = string | number;
 
@@ -34,6 +35,7 @@ export function SelectMenu<T extends SelectValue>({
   const optionRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const selectedIndex = options.findIndex((option) => option.value === value);
   const [open, setOpen] = useState(false);
+  const presence = usePresence(open, 120);
   const [activeIndex, setActiveIndex] = useState(Math.max(0, selectedIndex));
   const selectedOption = selectedIndex >= 0 ? options[selectedIndex] : null;
 
@@ -89,10 +91,11 @@ export function SelectMenu<T extends SelectValue>({
 
   const closeMenu = (restoreFocus = false) => {
     setOpen(false);
-    if (restoreFocus) window.requestAnimationFrame(() => triggerRef.current?.focus());
+    if (restoreFocus) triggerRef.current?.focus({preventScroll: true});
   };
 
   const choose = (option: SelectOption<T>) => {
+    if (!open) return;
     onChange(option.value);
     closeMenu(true);
   };
@@ -108,9 +111,10 @@ export function SelectMenu<T extends SelectValue>({
   const onListKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.key === "Escape") {
       event.preventDefault();
+      event.stopPropagation();
       closeMenu(true);
     } else if (event.key === "Tab") {
-      setOpen(false);
+      closeMenu(true);
     } else if (event.key === "ArrowDown" || event.key === "ArrowUp") {
       event.preventDefault();
       const direction = event.key === "ArrowDown" ? 1 : -1;
@@ -138,8 +142,8 @@ export function SelectMenu<T extends SelectValue>({
         <i className="custom-select-chevron" aria-hidden="true" />
       </button>
 
-      {open && createPortal(
-        <div className="custom-select-menu" role="listbox" id={listboxId} aria-label={ariaLabel} tabIndex={-1} onKeyDown={onListKeyDown} ref={menuRef} style={{visibility:"hidden"}}>
+      {presence.mounted && createPortal(
+        <div className="custom-select-menu" data-exiting={presence.exiting} inert={!open} aria-hidden={!open} role="listbox" id={listboxId} aria-label={ariaLabel} tabIndex={-1} onKeyDown={onListKeyDown} ref={menuRef} style={{visibility:"hidden"}}>
           {options.map((option, index) => (
             <button
               type="button"

@@ -8,11 +8,10 @@ import { playFeedbackSound } from "./sound";
 import { usePausableTimers } from "./usePausableTimers";
 import { useSessionClock } from "./useSessionClock";
 
-export function useFlipMemoryGame({settings, soundEnabled, paused, onSessionActiveChange, onSessionFinished}: {
+export function useFlipMemoryGame({settings, soundEnabled, paused, onSessionFinished}: {
   settings: GameSettings;
   soundEnabled: boolean;
   paused: boolean;
-  onSessionActiveChange: (active: boolean) => void;
   onSessionFinished: (result: FlipSessionResult) => void;
 }) {
   const timed = settings.flipMode === "self-paced";
@@ -24,7 +23,7 @@ export function useFlipMemoryGame({settings, soundEnabled, paused, onSessionActi
   const previewMs = flipConfig.previewSeconds * 1000;
   const [flipPhase, setFlipPhase] = useState<FlipPhase>("idle");
   const [round, setRound] = useState(0);
-  const [cards, setCards] = useState<FlipCard[]>(() => makeFlipCards(cardCount, targetCount, suitCount));
+  const [cards, setCards] = useState<FlipCard[]>([]);
   const [activeSwap, setActiveSwap] = useState<[number, number] | null>(null);
   const [shuffleProgress, setShuffleProgress] = useState({ current: 0, total: 0 });
   const [foundIds, setFoundIds] = useState<string[]>([]);
@@ -98,6 +97,13 @@ export function useFlipMemoryGame({settings, soundEnabled, paused, onSessionActi
     dealRound(0);
   }, [clock, dealRound, soundEnabled]);
 
+  const goHome = useCallback(() => {
+    timers.clearAll();
+    clock.finish();
+    setFlipPhase("idle");
+    setActiveSwap(null);
+  }, [clock, timers]);
+
   const finishGame = useCallback(() => {
     timers.clearAll();
     const duration = clock.finish();
@@ -150,11 +156,5 @@ export function useFlipMemoryGame({settings, soundEnabled, paused, onSessionActi
     }
   }, [clock, paused, timers]);
 
-  useEffect(() => {
-    onSessionActiveChange(flipPhase !== "idle");
-  }, [flipPhase, onSessionActiveChange]);
-
-  useEffect(() => () => onSessionActiveChange(false), [onSessionActiveChange]);
-
-  return { timed, moving, cardCount, suitCount, flipConfig, targetCount, previewMs, flipPhase, round, cards, activeSwap, shuffleProgress, foundIds, mistakeIds, stats, elapsedMs, score, challengeSuccess, finishPreview, beginGame, advanceRound, chooseCard };
+  return { timed, moving, cardCount, suitCount, flipConfig, targetCount, previewMs, flipPhase, round, cards, activeSwap, shuffleProgress, foundIds, mistakeIds, stats, elapsedMs, score, challengeSuccess, finishPreview, beginGame, advanceRound, chooseCard, goHome };
 }

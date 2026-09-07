@@ -3,11 +3,10 @@
 import { ResultPanel } from "./ResultPanel";
 
 import type { CSSProperties } from "react";
+import { useState } from "react";
 import { FLIP_CARD_GAP, FLIP_SWAP_DURATION_MS, formatDuration } from "./core";
-import type { FlipCard, GameSettings, TrainingType } from "./core";
-import { GameHome } from "./GameHome";
-import type { FlipSessionResult } from "./leaderboard";
-import { useFlipMemoryGame } from "./useFlipMemoryGame";
+import type { FlipCard, GameSettings } from "./core";
+import type { useFlipMemoryGame } from "./useFlipMemoryGame";
 
 function FlipCardFace({ card }: { card: FlipCard }) {
   return (
@@ -20,38 +19,22 @@ function FlipCardFace({ card }: { card: FlipCard }) {
 
 type FlipMemoryGameProps = {
   settings: GameSettings;
-  onSelectTrainingType: (trainingType: TrainingType) => void;
-  onUpdateSettings: (patch: Partial<GameSettings>) => void;
+  game: ReturnType<typeof useFlipMemoryGame>;
   onEditSettings: () => void;
-  onSessionActiveChange: (active: boolean) => void;
-  onSessionFinished: (result: FlipSessionResult) => void;
   onOpenLeaderboard: () => void;
-  soundEnabled: boolean;
-  onToggleSound: () => void;
   paused: boolean;
-  homeSettingsOpen: boolean;
-  homeSettingsHeight: number;
-  onHomeSettingsOpenChange: (open: boolean) => void;
-  onHomeSettingsHeightChange: (height: number) => void;
 };
 
 export function FlipMemoryGame({
   settings,
-  onSelectTrainingType,
-  onUpdateSettings,
+  game,
   onEditSettings,
-  onSessionActiveChange,
-  onSessionFinished,
   onOpenLeaderboard,
-  soundEnabled,
-  onToggleSound,
   paused,
-  homeSettingsOpen,
-  homeSettingsHeight,
-  onHomeSettingsOpenChange,
-  onHomeSettingsHeightChange,
 }: FlipMemoryGameProps) {
-  const { timed, moving, cardCount, suitCount, flipConfig, targetCount, previewMs, flipPhase, round, cards, activeSwap, shuffleProgress, foundIds, mistakeIds, stats, elapsedMs, score, challengeSuccess, finishPreview, beginGame, advanceRound, chooseCard } = useFlipMemoryGame({settings, soundEnabled, paused, onSessionActiveChange, onSessionFinished});
+  const [restartTurns, setRestartTurns] = useState(0);
+  const restart = () => { setRestartTurns(turns => turns + 1); beginGame(); };
+  const { timed, moving, cardCount, suitCount, flipConfig, targetCount, previewMs, flipPhase, round, cards, activeSwap, shuffleProgress, foundIds, mistakeIds, stats, elapsedMs, score, challengeSuccess, finishPreview, beginGame, advanceRound, chooseCard } = game;
 
   const showAllFaces = flipPhase === "preview" || flipPhase === "round-complete";
   const targets = cards.filter((card) => card.isTarget);
@@ -78,28 +61,9 @@ export function FlipMemoryGame({
 
   return (
     <div className={`flip-game flip-phase-${flipPhase} flip-count-${cardCount}`} data-paused={paused} style={{ "--swap-duration": `${FLIP_SWAP_DURATION_MS}ms` } as CSSProperties}>
-      {flipPhase === "idle" ? (
-        <GameHome
-          eyebrow={`翻牌记忆 · ${timed ? "计时模式" : "挑战模式"} · ${moving ? "移动" : "经典"}`}
-          title="看清每一张牌"
-          description={timed ? "自己决定何时盖牌，全部找出后进入下一轮。" : "限时记牌，盖牌后不限时找完全部目标牌。"}
-          settings={settings}
-          startLabel={timed ? "开始计时" : "开始挑战"}
-          onStart={beginGame}
-          onUpdateSettings={onUpdateSettings}
-          onSelectTrainingType={onSelectTrainingType}
-          soundEnabled={soundEnabled}
-          onToggleSound={onToggleSound}
-          onOpenLeaderboard={onOpenLeaderboard}
-          settingsOpen={homeSettingsOpen}
-          settingsHeight={homeSettingsHeight}
-          onSettingsOpenChange={onHomeSettingsOpenChange}
-          onSettingsHeightChange={onHomeSettingsHeightChange}
-        />
-      ) : (
+      {flipPhase !== "idle" && (
         <>
-          {targetPromptVisible && (
-            <div className="target-prompt" aria-label="本轮目标牌">
+            <div className="target-prompt" aria-label="本轮目标牌" aria-hidden={!targetPromptVisible} data-visible={targetPromptVisible}>
               <span>第 {round + 1} / {settings.flipRounds} 轮 · 剩余 {Math.max(0, targetCount - foundIds.length)}</span>
               {targets.map((card) => (
                 <span className={card.suit.color === "red" ? "is-red" : ""} key={card.id}>
@@ -108,7 +72,6 @@ export function FlipMemoryGame({
                 </span>
               ))}
             </div>
-          )}
 
           <div
             className={`flip-board ${cardCount >= 12 ? "is-dense" : ""} ${flipPhase === "shuffling" ? "is-shuffling" : ""}`}
@@ -140,7 +103,10 @@ export function FlipMemoryGame({
                   } as CSSProperties : undefined}
                   key={card.id}
                 >
-                  {faceUp ? <FlipCardFace card={card} /> : <span className="memory-card-back"><i>N²</i></span>}
+                  <span className="memory-card-inner" aria-hidden="true">
+                    <FlipCardFace card={card} />
+                    <span className="memory-card-back"><i>N²</i></span>
+                  </span>
                 </button>
               );
             })}
@@ -151,9 +117,7 @@ export function FlipMemoryGame({
             )}
           </div>
 
-          {flipPhase === "preview" && !timed && (
-            <div className="preview-timer" style={{ "--preview-duration": `${previewMs}ms`, "--flip-board-width": `${flipConfig.boardWidth}px` } as CSSProperties}><i /></div>
-          )}
+          <div className="preview-timer" data-visible={flipPhase === "preview" && !timed} aria-hidden="true" style={{ "--preview-duration": `${previewMs}ms`, "--flip-board-width": `${flipConfig.boardWidth}px` } as CSSProperties}><i key={round} /></div>
 
           {flipPhase === "preview" ? (
             timed ? (
@@ -164,7 +128,7 @@ export function FlipMemoryGame({
           ) : flipPhase === "round-complete" ? (
             <button className="start-button" onClick={advanceRound}>{round + 1 >= settings.flipRounds ? "查看结果" : "下一轮"} <span>→</span></button>
           ) : (
-            <button className="start-button pause-button flip-restart" onClick={beginGame}><span aria-hidden="true">↻</span> 重新开始</button>
+            <button className="start-button pause-button flip-restart" onClick={restart}><span className="restart-icon" style={{transform: `rotate(${restartTurns * 360}deg)`}} aria-hidden="true">↻</span> 重新开始</button>
           )}
         </>
       )}

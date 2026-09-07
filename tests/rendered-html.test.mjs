@@ -84,8 +84,9 @@ test("removes flip-memory instructions once play begins", async () => {
   ]);
 
   assert.doesNotMatch(source, /请依次点出|牌位正在移动|记住全部牌位/);
-  assert.match(source, /flipPhase === "idle" \?/);
-  assert.match(source, /<GameHome[\s\S]*description=\{timed \? "自己决定何时盖牌，全部找出后进入下一轮。" : "限时记牌，盖牌后不限时找完全部目标牌。"\}[\s\S]*onUpdateSettings=\{onUpdateSettings\}/);
+  assert.doesNotMatch(source, /<GameHome/);
+  assert.match(gameHome, /自己决定何时盖牌，全部找出后进入下一轮。/);
+  assert.match(gameHome, /限时记牌，盖牌后不限时找完全部目标牌。/);
   assert.match(gameHome, /<IdleSettings settings={settings} onChange={onUpdateSettings}/);
   assert.match(hook, /timers\.schedule\(`mistake-\$\{card\.id\}`,[\s\S]*}, 650\)/);
   assert.match(hook, /if \(paused\) \{[\s\S]*timers\.pauseAll\(\)/);
@@ -101,7 +102,7 @@ test("keeps result screens compact and free of evaluation copy", async () => {
   const source = sources.join("\n");
 
   assert.doesNotMatch(source, /本轮表现|先放慢节奏|判断稳定|表现不错|位置记得很稳|降低牌数|升到/);
-  assert.match(sources[0], /<GameHome[\s\S]*onUpdateSettings={updateSettings}/);
+  assert.match(page, /<GameHome[\s\S]*onUpdateSettings={updateSettings}/);
   assert.match(sources[0], /<ResultPanel[\s\S]*onEditSettings={editSettings}/);
   assert.match(sources[1], /<ResultPanel[\s\S]*onEditSettings={onEditSettings}/);
   const resultPanel = await readFile(new URL("../app/game/ResultPanel.tsx", import.meta.url), "utf8");
@@ -124,7 +125,8 @@ test("uses the requested compact home-setting layouts", async () => {
 
   assert.match(page, /const \[homeSettingsOpen, setHomeSettingsOpen\] = useState\(false\)/);
   assert.match(page, /const \[homeSettingsHeight, setHomeSettingsHeight\] = useState\(0\)/);
-  assert.equal((page.match(/homeSettingsOpen={homeSettingsOpen}/g) ?? []).length, 3);
+  assert.equal((page.match(/<GameHome\b/g) ?? []).length, 1);
+  assert.match(page, /settingsOpen={homeSettingsOpen}/);
   assert.doesNotMatch(gameHome, /const \[settingsOpen[^\n]*useState/);
   assert.match(gameHome, /new ResizeObserver\(measure\)/);
   assert.match(gameHome, /style=\{\{ height: settingsOpen \? `\$\{settingsHeight\}px` : 0 \}\}/);
@@ -166,7 +168,7 @@ test("uses the requested compact home-setting layouts", async () => {
   assert.doesNotMatch(css, /\.idle-switches\s*{\s*width:\s*100%/);
   assert.match(css, /\.settings-disclosure\s*{[^}]*width:\s*var\(--home-control-width\)[^}]*margin-inline:\s*auto/s);
   assert.match(css, /\.settings-reveal-inner\s*{[^}]*padding:\s*\.35rem 0 \.55rem/s);
-  assert.match(css, /\.settings-reveal\s*{[^}]*height:\s*0[^}]*overflow:\s*hidden[^}]*height \.22s cubic-bezier\(\.22, 1, \.36, 1\)/s);
+  assert.match(css, /\.settings-reveal\s*{[^}]*height:\s*0[^}]*overflow:\s*hidden[^}]*height var\(--motion-layout\) var\(--ease-fluid\)/s);
   assert.doesNotMatch(css, /\.settings-reveal\s*{[^}]*grid-template-rows/s);
   assert.match(css, /\.settings-disclosure\.is-open \.settings-disclosure-chevron\s*{[^}]*rotate\(225deg\)/s);
   assert.match(css, /\.settings-disclosure-toggle\s*{[^}]*gap:\s*1px[^}]*color:\s*#aaa092/s);
@@ -209,7 +211,7 @@ test("balances three game sounds and avoids sticky touch hover feedback", async 
   assert.doesNotMatch(css, /\n\.restart-button:hover/);
   assert.doesNotMatch(css, /\n\.start-button:not\(:disabled\):hover/);
   assert.match(css, /\.pause-button\s*{[^}]*min-height:\s*50px[^}]*transform:\s*translateY\(0\)/s);
-  assert.match(page, /setRestartTurns\(\(turns\) => turns \+ 1\)/);
+  assert.match(page, /setRestartTurns\(turns => turns \+ 1\)/);
   assert.match(page, /rotate\(\$\{restartTurns \* 360}deg\)/);
 });
 
@@ -235,8 +237,8 @@ test("supports persistent web-only custom N-Back keyboard mappings", async () =>
   assert.match(settingsModal, /showKeyboardShortcuts &&/);
   assert.match(shortcutSettings, /点击键位后按下新按键/);
   assert.match(shortcutSettings, /恢复默认/);
-  assert.match(page, /showSettings \|\| showLeaderboard/);
-  assert.match(page, /useGameController\([\s\S]*shortcutKeys,[\s\S]*showSettings \|\| showLeaderboard/);
+  assert.match(page, /settingsPresence.mounted \|\| leaderboardPresence.mounted/);
+  assert.match(page, /useGameController\([\s\S]*shortcutKeys, modalVisible/);
 });
 
 test("adds donation switching and local history entry points for all games", async () => {
@@ -271,7 +273,7 @@ test("adds donation switching and local history entry points for all games", asy
   assert.match(gameHome, /leaderboard-entry[\s\S]*历史最佳/);
   assert.match(nback, /<ResultPanel[\s\S]*onOpenLeaderboard={onOpenLeaderboard}/);
   // Completion timing and exactly-once saving are covered by real hook interaction tests.
-  assert.match(page, /onSessionFinished=\{leaderboard.recordFlipResult\}/);
+  assert.match(page, /onSessionFinished: leaderboard.recordFlipResult/);
   const flipHook = await readFile(new URL("../app/game/useFlipMemoryGame.ts", import.meta.url), "utf8");
   assert.match(flip, /<ResultPanel[\s\S]*onOpenLeaderboard={onOpenLeaderboard}/);
   assert.match(leaderboardModal, /leaderboard-game-switch/);
@@ -342,7 +344,8 @@ test("adds a responsive reaction test and local top-ten history", async () => {
   assert.match(reactionHook, /MIN_WAIT_MS = 1400/);
   assert.match(reactionHook, /targetCommittedAt\.current = performance\.now\(\)/);
   assert.match(reaction, /phase === "waiting"/);
-  assert.match(reaction, /提前点击会记为误触/);
+  const gameHome = await readFile(new URL("../app/game/GameHome.tsx", import.meta.url), "utf8");
+  assert.match(gameHome, /提前点击会记为误触/);
   assert.match(reaction, /onPointerDown={handlePointerDown}/);
   assert.match(reaction, /onClick={handleClick}/);
   assert.match(reaction, /<ResultPanel[\s\S]*onOpenLeaderboard={onOpenLeaderboard}/);

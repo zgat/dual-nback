@@ -14,6 +14,7 @@ type LeaderboardModalProps = {
   initialFlipMode: GameMode;
   initialFlipDifficulty: FlipDifficulty;
   onClose: () => void;
+  exiting?: boolean;
 };
 
 function HistoryDate({ createdAt }: { createdAt: number }) {
@@ -37,7 +38,7 @@ function ReactionTiming({ bestMs, createdAt }: { bestMs: number; createdAt: numb
   return <span className="rank-timing"><strong>最快 {bestMs} ms</strong><HistoryDate createdAt={createdAt} /></span>;
 }
 
-export function LeaderboardModal({ data, initialTrainingType, initialNBackMode, initialFlipMode, initialFlipDifficulty, onClose }: LeaderboardModalProps) {
+export function LeaderboardModal({ data, initialTrainingType, initialNBackMode, initialFlipMode, initialFlipDifficulty, onClose, exiting }: LeaderboardModalProps) {
   const [trainingType, setTrainingType] = useState(initialTrainingType);
   const [nBackMode, setNBackMode] = useState(initialNBackMode);
   const [flipMode, setFlipMode] = useState(initialFlipMode);
@@ -59,7 +60,7 @@ export function LeaderboardModal({ data, initialTrainingType, initialNBackMode, 
       : null;
 
   return (
-    <ModalFrame eyebrow="LOCAL TOP 10" title="历史最佳" className="leaderboard-panel" closeLabel="关闭历史最佳" onClose={onClose}>
+    <ModalFrame eyebrow="LOCAL TOP 10" title="历史最佳" className="leaderboard-panel" closeLabel="关闭历史最佳" onClose={onClose} exiting={exiting}>
       <div className={`segmented-slider leaderboard-game-switch is-${trainingType}`} role="tablist" aria-label="切换历史最佳游戏">
         <button type="button" role="tab" aria-selected={trainingType === "grid"} onClick={() => setTrainingType("grid")}>彩色方格</button>
         <button type="button" role="tab" aria-selected={trainingType === "cards"} onClick={() => setTrainingType("cards")}>扑克牌</button>
@@ -67,7 +68,7 @@ export function LeaderboardModal({ data, initialTrainingType, initialNBackMode, 
         <button type="button" role="tab" aria-selected={isReaction} onClick={() => setTrainingType("reaction")}>反应力</button>
       </div>
 
-      <div className="leaderboard-list" aria-live="polite">
+      <div className="leaderboard-list" key={`${trainingType}-${isFlip ? `${flipMode}-${flipDifficulty}` : nBackMode}`} aria-live="polite">
         {isReaction ? (
           reactionEntries.length > 0 ? (
             <ol className="timed-ranking reaction-ranking">
