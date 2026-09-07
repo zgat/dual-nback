@@ -5,7 +5,7 @@ import {renderToStaticMarkup} from "react-dom/server";
 import { loadGame } from "./helpers/load-game.mjs";
 import { mountHook } from "./helpers/react-harness.mjs";
 
-const {DEFAULT_SETTINGS, classify, FLIP_SWAP_DURATION_MS, CARD_FLIP_DURATION_MS} = loadGame("core");
+const {DEFAULT_SETTINGS, classify, FLIP_REVEAL_DURATION_MS, FLIP_SWAP_DURATION_MS, CARD_FLIP_DURATION_MS} = loadGame("core");
 const {DEFAULT_SHORTCUT_KEYS} = loadGame("shortcuts");
 const {useGameController} = loadGame("useGameController");
 const {useFlipMemoryGame} = loadGame("useFlipMemoryGame");
@@ -21,12 +21,13 @@ for(const trainingType of ["grid","cards"]) {
     for(let round=0;round<20;round++) {
       seen.push(h.value.current); await h.tick(1000);
       await h.run(g=>round<2 ? g.advanceWarmup() : g.respond(classify(seen[round],seen[round-2])));
+      if (round<2 && trainingType==="cards") await h.tick(CARD_FLIP_DURATION_MS);
       if(round===19) {
         await h.run(g=>g.pauseGame()); await h.tick(60000); await h.run(g=>g.resumeGame());
       }
       if(round>=2) await h.tick(450);
     }
-    assert.equal(saved.elapsedMs,27650);
+    assert.equal(saved.elapsedMs,27650 + (trainingType === "cards" ? 2 * CARD_FLIP_DURATION_MS : 0));
     assert.equal(saved.stats.correct,18);
   });
 }
@@ -99,13 +100,16 @@ for(const flipMode of ["self-paced","challenge"]) {
     const settings={...DEFAULT_SETTINGS,trainingType:"flip",flipMode,flipRounds:flipMode==="challenge"?8:5};
     const h=await mountHook(t,()=>useFlipMemoryGame({settings,soundEnabled:false,paused:false,onSessionActiveChange:noop,onSessionFinished:r=>saved.push(r)}));
     await h.run(g=>g.beginGame());
+    await h.tick(FLIP_REVEAL_DURATION_MS);
     for(let round=0;round<settings.flipRounds;round++) {
       await h.tick(flipMode==="challenge"?5000:1000);
       if(flipMode==="self-paced") await h.run(g=>g.finishPreview());
+      await h.tick(FLIP_REVEAL_DURATION_MS);
       const targets=h.value.cards.filter(c=>c.isTarget);
       for(const card of targets) {await h.tick(100);await h.run(g=>g.chooseCard(card));}
       if(round+1<settings.flipRounds) {
         assert.equal(saved.length,0);await h.run(g=>g.advanceRound());
+        await h.tick(2 * FLIP_REVEAL_DURATION_MS);
       } else {
         assert.equal(saved.length,1);
         assert.equal(saved[0].found,settings.flipRounds*2);
@@ -125,13 +129,15 @@ test("flip final target freezes elapsed time before waiting for results",async t
   let saved,paused=false;
   const h=await mountHook(t,()=>useFlipMemoryGame({settings:DEFAULT_SETTINGS,soundEnabled:false,paused,onSessionActiveChange:noop,onSessionFinished:result=>{saved=result;}}));
   await h.run(g=>g.beginGame());
+  await h.tick(FLIP_REVEAL_DURATION_MS);
   for(let round=0;round<5;round++) {
-    await h.tick(1000); await h.run(g=>g.finishPreview());
+    await h.tick(1000); await h.run(g=>g.finishPreview()); await h.tick(FLIP_REVEAL_DURATION_MS);
     for(const card of h.value.cards.filter(card=>card.isTarget)) {
       await h.tick(100); await h.run(g=>g.chooseCard(card));
     }
     if(round===4) {paused=true;await h.render();await h.tick(5000);paused=false;await h.render();await h.tick(10000);}
     await h.run(g=>g.advanceRound());
+    if (round < 4) await h.tick(2 * FLIP_REVEAL_DURATION_MS);
   }
   assert.equal(saved.elapsedMs,6000);
   assert.equal(saved.found,10);
@@ -140,7 +146,7 @@ test("flip final target freezes elapsed time before waiting for results",async t
 test("flip errors close after 650 active ms and swaps keep their remaining paused duration",async t=>{
   let paused=false;
   const h=await mountHook(t,()=>useFlipMemoryGame({settings:{...DEFAULT_SETTINGS,flipDifficulty:"moving"},soundEnabled:false,paused,onSessionActiveChange:noop,onSessionFinished:noop}));
-  await h.run(g=>g.beginGame()); await h.run(g=>g.finishPreview()); await h.tick(420);
+  await h.run(g=>g.beginGame()); await h.tick(FLIP_REVEAL_DURATION_MS); await h.run(g=>g.finishPreview()); await h.tick(420);
   assert.ok(h.value.activeSwap);
   const before=h.value.cards.map(c=>c.id);
   await h.tick(200); paused=true;await h.render();await h.tick(3000);

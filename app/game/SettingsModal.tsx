@@ -8,6 +8,7 @@ import { ModalFrame } from "./ModalFrame";
 import { ShortcutSettings } from "./ShortcutSettings";
 import type { ShortcutKeys } from "./shortcuts";
 import { SoundToggle } from "./SoundToggle";
+import { TransitionSurface } from "./TransitionSurface";
 
 type SettingsModalProps = {
   soundEnabled: boolean;
@@ -34,13 +35,14 @@ export function SettingsModal({
 
   return (
     <ModalFrame
-      eyebrow={showDonation ? "DONATE" : "VERSION 2.2.4"}
+      eyebrow={showDonation ? "DONATE" : "VERSION 2.2.5"}
       title={showDonation ? "支持开发" : "偏好设置"}
       className={showDonation ? "donation-panel" : "preferences-panel"}
       closeLabel={showDonation ? "关闭捐赠页面" : "关闭偏好设置"}
       onClose={onClose}
       exiting={exiting}
     >
+      <TransitionSurface viewKey={showDonation ? "donation" : "preferences"} sizing="content">
       {showDonation ? (
         <DonationPanel onBack={() => setShowDonation(false)} />
       ) : (
@@ -69,6 +71,7 @@ export function SettingsModal({
           <button className="start-button" onClick={onClose}>完成</button>
         </>
       )}
+      </TransitionSurface>
     </ModalFrame>
   );
 }

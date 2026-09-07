@@ -3,6 +3,7 @@
 import { FLIP_CARD_COUNTS, FLIP_CONFIG, FLIP_SUIT_COUNTS, PRESET_INTERVALS } from "./core";
 import type { GameSettings } from "./core";
 import { SelectMenu } from "./SelectMenu";
+import { AnimatedLabel } from "./AnimatedLabel";
 
 type IdleSettingsProps = {
   settings: GameSettings;
@@ -23,7 +24,7 @@ function QuickStepper({ label, value, min, max, onChange }: StepperProps) {
       <span className="quick-setting-label">{label}</span>
       <div className="quick-stepper">
         <button onClick={() => onChange(Math.max(min, value - 1))} disabled={value <= min} aria-label={`减少${label}`}>−</button>
-        <strong>{value}</strong>
+        <strong><AnimatedLabel text={String(value)} /></strong>
         <button onClick={() => onChange(Math.min(max, value + 1))} disabled={value >= max} aria-label={`增加${label}`}>＋</button>
       </div>
     </div>

@@ -6,6 +6,7 @@ import type { FlipDifficulty, GameMode } from "./core";
 import { rankFlipEntries, rankReactionEntries } from "./leaderboard";
 import type { HistoryGameType, LeaderboardData, NBackTrainingType } from "./leaderboard";
 import { ModalFrame } from "./ModalFrame";
+import { TransitionSurface } from "./TransitionSurface";
 
 type LeaderboardModalProps = {
   data: LeaderboardData;
@@ -68,7 +69,8 @@ export function LeaderboardModal({ data, initialTrainingType, initialNBackMode, 
         <button type="button" role="tab" aria-selected={isReaction} onClick={() => setTrainingType("reaction")}>反应力</button>
       </div>
 
-      <div className="leaderboard-list" key={`${trainingType}-${isFlip ? `${flipMode}-${flipDifficulty}` : nBackMode}`} aria-live="polite">
+      <div className="leaderboard-list" aria-live="polite">
+        <TransitionSurface viewKey={`${trainingType}-${isFlip ? `${flipMode}-${flipDifficulty}` : nBackMode}`}>
         {isReaction ? (
           reactionEntries.length > 0 ? (
             <ol className="timed-ranking reaction-ranking">
@@ -161,6 +163,7 @@ export function LeaderboardModal({ data, initialTrainingType, initialNBackMode, 
             ))}
           </ul>
         )}
+        </TransitionSurface>
       </div>
 
       <div className="leaderboard-footer">

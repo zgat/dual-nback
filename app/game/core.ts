@@ -5,7 +5,7 @@ export type TrainingType = "grid" | "cards" | "flip" | "reaction";
 export type FlipDifficulty = "classic" | "moving";
 export type FlipCardCount = 6 | 8 | 9 | 12 | 16;
 export type FlipSuitCount = 2 | 4;
-export type FlipPhase = "idle" | "preview" | "shuffling" | "selecting" | "round-complete" | "finished";
+export type FlipPhase = "idle" | "dealing" | "revealing" | "preview" | "covering" | "shuffling" | "selecting" | "round-complete" | "finished";
 export type ReactionPhase = "idle" | "waiting" | "target" | "feedback" | "finished";
 
 export type ColorToken = {
@@ -114,6 +114,7 @@ export const FLIP_CONFIG: Record<FlipCardCount, { columns: number; targets: numb
 };
 export const FLIP_CARD_GAP = 8;
 export const FLIP_SWAP_DURATION_MS = 680;
+export const FLIP_REVEAL_DURATION_MS = 180;
 export const CARD_FLIP_DURATION_MS = 240;
 
 export const DEFAULT_SETTINGS: GameSettings = {

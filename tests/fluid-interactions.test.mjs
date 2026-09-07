@@ -5,7 +5,7 @@ import {readFileSync} from "node:fs";
 import {loadGame, loadHome} from "./helpers/load-game.mjs";
 import {mountHook} from "./helpers/react-harness.mjs";
 
-const {DEFAULT_SETTINGS, FLIP_SWAP_DURATION_MS} = loadGame("core");
+const {DEFAULT_SETTINGS, FLIP_REVEAL_DURATION_MS, FLIP_SWAP_DURATION_MS} = loadGame("core");
 const {usePresence} = loadGame("usePresence");
 const {useFlipMemoryGame} = loadGame("useFlipMemoryGame");
 const {useReactionGame} = loadGame("useReactionGame");
@@ -157,6 +157,7 @@ test("flip layers and status rail persist through covering, shuffling, errors an
   const buttons = new Map([...board.querySelectorAll("button")].map((button,index) => [h.value.cards[index].id,button]));
   const faces = new Map([...buttons].map(([id,button]) => [id,button.querySelector(".flip-card-face")]));
   assert.equal(board.querySelectorAll(".memory-card-back").length, settings.flipCardCount);
+  await h.tick(FLIP_REVEAL_DURATION_MS);
   await h.run(g => g.finishPreview());
   for (let i=0; h.value.flipPhase === "shuffling" && i<20; i++) await h.tick(FLIP_SWAP_DURATION_MS);
   assert.equal(h.value.flipPhase,"selecting");

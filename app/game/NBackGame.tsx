@@ -1,6 +1,7 @@
 "use client";
 
 import { ResultPanel } from "./ResultPanel";
+import { AnimatedLabel } from "./AnimatedLabel";
 
 import type { CSSProperties } from "react";
 import {
@@ -29,12 +30,12 @@ export function NBackGame({
 }: NBackGameProps) {
   const {phase, round, current, stimulusVisible, countdown, countdownExiting,
     completeCountdown: onCountdownExitComplete, selected, stats, elapsedMs,
-    beginCountdown, togglePause, respond, advanceWarmup, optionClass} = game;
+    beginCountdown, togglePause, respond, advanceWarmup, optionClass, roundTransitioning} = game;
   const accuracy = scorePercent(stats);
   const isChallengeSuccess = settings.mode === "challenge" && accuracy === 100;
   const warmup = (phase === "playing" || phase === "paused") && round >= 0 && round < settings.n;
   const showWarmupPrompt = settings.mode === "self-paced" && warmup;
-  const responseDisabled = phase !== "playing" || warmup || selected !== null;
+  const responseDisabled = phase !== "playing" || warmup || selected !== null || roundTransitioning;
   const wrongAnswers = Math.max(0, stats.total - stats.correct - stats.misses);
   const gridColumns = settings.cellCount <= 4 ? 2 : settings.cellCount <= 9 ? 3 : 4;
   const modeLabel = settings.mode === "self-paced" ? "计时模式" : "挑战模式";
@@ -46,9 +47,11 @@ export function NBackGame({
     <div className={`board-overlay countdown-number ${countdownExiting ? "is-exiting" : ""}`}>
       <span
         className="countdown-value"
-        onAnimationEnd={countdownExiting ? onCountdownExitComplete : undefined}
+        onAnimationEnd={countdownExiting ? event => {
+          if (event.target === event.currentTarget) onCountdownExitComplete();
+        } : undefined}
       >
-        {countdown}
+        <span className="countdown-digit" key={countdown}>{countdown}</span>
       </span>
     </div>
   ) : null;
@@ -96,7 +99,7 @@ export function NBackGame({
                 {stimulusVisible && currentCard ? `${currentCard.suit.name}${currentCard.rank.name}` : ""}
               </span>
               {countdownOverlay}
-              {phase === "paused" && <div className="board-overlay"><span>已暂停</span><small>按 P 或下方按钮继续</small></div>}
+              <div className="board-overlay pause-overlay" data-open={phase === "paused"} aria-hidden={phase !== "paused"}><span>已暂停</span><small>点击下方按钮继续</small></div>
             </div>
           ) : (
             <div
@@ -110,13 +113,15 @@ export function NBackGame({
                   style={stimulusVisible && currentGrid?.position === index ? { "--stimulus-color": currentGrid.color.value } as CSSProperties : undefined}
                   key={index}
                   aria-hidden="true"
-                />
+                >
+                  {stimulusVisible && currentGrid?.position === index && <i className="grid-stimulus" key={round} />}
+                </div>
               ))}
               <span className="sr-only" aria-live="assertive">
                 {stimulusVisible && currentGrid ? `${currentGrid.color.name}色，位置 ${currentGrid.position + 1}` : ""}
               </span>
               {countdownOverlay}
-              {phase === "paused" && <div className="board-overlay"><span>已暂停</span><small>按 P 或下方按钮继续</small></div>}
+              <div className="board-overlay pause-overlay" data-open={phase === "paused"} aria-hidden={phase !== "paused"}><span>已暂停</span><small>点击下方按钮继续</small></div>
             </div>
           )}
 
@@ -124,7 +129,7 @@ export function NBackGame({
             <button
               className="warmup-next"
               onClick={advanceWarmup}
-              disabled={!showWarmupPrompt}
+              disabled={!showWarmupPrompt || phase !== "playing" || roundTransitioning}
               aria-hidden={!showWarmupPrompt}
             >
               记住了，下一轮
@@ -144,13 +149,10 @@ export function NBackGame({
             </div>
           </div>
 
-          {phase === "countdown" ? (
-            <button className="start-button is-muted" disabled>准备开始…</button>
-          ) : (
-            <button className="start-button pause-button" onClick={togglePause}>
-              {phase === "paused" ? "继续训练" : "暂停训练"} <span>{phase === "paused" ? "→" : "Ⅱ"}</span>
-            </button>
-          )}
+          <button className={`start-button pause-button ${phase === "countdown" ? "is-muted" : ""}`} disabled={phase === "countdown"} onClick={togglePause}>
+            <AnimatedLabel text={phase === "countdown" ? "准备开始…" : phase === "paused" ? "继续训练" : "暂停训练"} />
+            <span className="action-icon" aria-hidden="true">{phase === "countdown" ? "" : phase === "paused" ? "→" : "Ⅱ"}</span>
+          </button>
         </>
       )}
     </div>

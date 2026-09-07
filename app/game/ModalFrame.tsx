@@ -29,11 +29,15 @@ export function ModalFrame({ eyebrow, title, className = "", closeLabel, onClose
       if (event.key !== "Tab") return;
       const focusable = Array.from(dialogRef.current?.querySelectorAll<HTMLElement>(
         'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
-      ) ?? []);
+      ) ?? []).filter(element => !element.closest('[inert], [aria-hidden="true"]'));
       if (focusable.length === 0) return;
       const first = focusable[0];
       const last = focusable.at(-1)!;
-      if (event.shiftKey && document.activeElement === first) {
+      if (!focusable.includes(document.activeElement as HTMLElement)) {
+        // A pane switch can leave focus on its now-inert outgoing button.
+        event.preventDefault();
+        (event.shiftKey ? last : first).focus();
+      } else if (event.shiftKey && document.activeElement === first) {
         event.preventDefault();
         last.focus();
       } else if (!event.shiftKey && document.activeElement === last) {

@@ -7,6 +7,7 @@ import { LeaderboardModal } from "./game/LeaderboardModal";
 import { NBackGame } from "./game/NBackGame";
 import { ReactionGame } from "./game/ReactionGame";
 import { SettingsModal } from "./game/SettingsModal";
+import { TransitionSurface } from "./game/TransitionSurface";
 import { useFlipMemoryGame } from "./game/useFlipMemoryGame";
 import { useGameController } from "./game/useGameController";
 import { useLeaderboard } from "./game/useLeaderboard";
@@ -34,6 +35,8 @@ export default function Home() {
   const isFlipMode = settings.trainingType === "flip";
   const isReactionMode = settings.trainingType === "reaction";
   const isHome = isFlipMode ? flipGame.flipPhase === "idle" : isReactionMode ? reactionGame.phase === "idle" : phase === "idle";
+  const isFinished = isFlipMode ? flipGame.flipPhase === "finished" : isReactionMode ? reactionGame.phase === "finished" : phase === "finished";
+  const viewKey = isHome ? "home" : `${settings.trainingType}-${isFinished ? "result" : "game"}`;
   const progress = isHome || isFlipMode || isReactionMode || round < 0 ? 0 : (round + 1) / settings.total;
 
   const openSettings = () => { pauseGame(); setShowSettings(true); };
@@ -90,6 +93,7 @@ export default function Home() {
         <div className="top-progress" style={{ transform: `scaleX(${progress})` }} />
       </header>
       <section className="game-stage">
+        <TransitionSurface viewKey={viewKey} instant={!isHome && !isFinished}>
         {isHome ? (
           <GameHome
             settings={settings} onStart={startGame}
@@ -105,6 +109,7 @@ export default function Home() {
         ) : (
           <NBackGame settings={settings} game={game} editSettings={editHomeSettings} onOpenLeaderboard={openLeaderboard} />
         )}
+        </TransitionSurface>
       </section>
       {settingsPresence.mounted && (
         <SettingsModal
