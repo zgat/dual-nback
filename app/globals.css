@@ -342,14 +342,6 @@ button:disabled { cursor: not-allowed; }
 .reaction-pad.is-false-start .reaction-target { border-color: var(--red); background: rgba(166,61,47,.13); }
 .reaction-pad.is-paused { opacity: .7; }
 .reaction-game > .start-button { width: min(100%, 280px); margin: 0; }
-.reaction-legend {
-  display: block;
-  width: 12px;
-  aspect-ratio: 1;
-  border-radius: 50%;
-  background: var(--orange);
-  box-shadow: 0 0 0 4px rgba(233,101,45,.15);
-}
 .score-ring.reaction-score-ring { background: var(--orange); }
 .score-ring.reaction-score-ring strong { font-size: 2.45rem; letter-spacing: -.06em; }
 .score-ring.reaction-score-ring span { margin-left: .12rem; color: var(--orange-deep); font-size: .68rem; }

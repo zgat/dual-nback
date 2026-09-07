@@ -48,7 +48,7 @@ export function GameHome({
     : timed ? "不限时思考，作答后进入下一轮。"
     : isCards ? `牌面完整显示 ${(settings.interval / 1000).toFixed(1)} 秒，再翻回牌背。`
     : `比较当前色块与 ${settings.n} 轮前的位置和颜色。`;
-  const introVisual = isFlip ? null : isReaction ? <span className="reaction-legend"><i /> 按下即计时</span>
+  const introVisual = isFlip || isReaction ? null
     : isCards ? <div className="suit-legend">{CARD_SUITS.map(suit => <i key={suit.symbol} className={suit.color === "red" ? "is-red" : ""}>{suit.symbol}</i>)}</div>
     : <div className="color-legend">{COLORS.slice(0, settings.colorCount).map(color => <i key={color.name} style={{background: color.value}} />)}</div>;
   const startLabel = isReaction ? "开始测试" : timed ? "开始计时" : "开始挑战";
