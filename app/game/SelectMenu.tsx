@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import type { KeyboardEvent } from "react";
 import { placeSelectMenu } from "./menuPlacement";
 import { usePresence } from "./usePresence";
+import { AnimatedLabel } from "./AnimatedLabel";
 
 type SelectValue = string | number;
 
@@ -138,7 +139,7 @@ export function SelectMenu<T extends SelectValue>({
         onKeyDown={onTriggerKeyDown}
         ref={triggerRef}
       >
-        <span>{selectedOption?.label ?? placeholder}</span>
+        <AnimatedLabel text={selectedOption?.label ?? placeholder} />
         <i className="custom-select-chevron" aria-hidden="true" />
       </button>
 

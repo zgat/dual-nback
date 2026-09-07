@@ -1,6 +1,7 @@
 "use client";
 
 import { ResultPanel } from "./ResultPanel";
+import { AnimatedLabel } from "./AnimatedLabel";
 
 import type { GameSettings } from "./core";
 import { useState } from "react";
@@ -47,22 +48,22 @@ export function ReactionGame({
       {phase !== "idle" && (
         <>
           <div className="reaction-progress" aria-label={`第 ${round + 1} 轮，共 ${settings.reactionRounds} 轮`}>
-            <span>第 {round + 1} / {settings.reactionRounds} 轮</span>
-            <span>平均 {averageMs || "—"}{averageMs ? " ms" : ""}</span>
+            <AnimatedLabel text={`第 ${round + 1} / ${settings.reactionRounds} 轮`} />
+            <AnimatedLabel text={`平均 ${averageMs || "—"}${averageMs ? " ms" : ""}`} />
           </div>
           <button
             type="button"
-            className={`reaction-pad is-${phase} ${paused ? "is-paused" : ""}`}
+            className={`reaction-pad is-${phase} ${phase === "feedback" && feedbackMs === null ? "is-false-start" : ""} ${paused ? "is-paused" : ""}`}
             ref={padRef}
             onPointerDown={handlePointerDown}
             onClick={handleClick}
             aria-label={phase === "target" ? "目标已出现，立即点击" : phase === "waiting" ? "等待目标出现" : status}
           >
             <span className="reaction-target" aria-hidden="true" />
-            <strong>{paused ? "已暂停" : status}</strong>
+            <strong key={phase === "feedback" ? `feedback-${falseStarts}-${times.length}` : "status"}>{paused ? "已暂停" : status}</strong>
             <small>{phase === "waiting" ? "保持专注，不要预判" : phase === "target" ? "点击屏幕或按空格" : feedbackMs === null ? "本轮重新等待" : "准备下一轮"}</small>
           </button>
-          <button className="start-button pause-button flip-restart" onClick={() => { setRestartTurns(turns => turns + 1); beginTest(); }}><span className="restart-icon" style={{transform: `rotate(${restartTurns * 360}deg)`}} aria-hidden="true">↻</span> 重新开始</button>
+          <button className="start-button pause-button flip-restart" disabled={paused} onClick={() => { setRestartTurns(turns => turns + 1); beginTest(); }}><span className="restart-icon" style={{transform: `rotate(${restartTurns * 360}deg)`}} aria-hidden="true">↻</span> 重新开始</button>
         </>
       )}
     </div>

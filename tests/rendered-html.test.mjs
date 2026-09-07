@@ -310,7 +310,7 @@ test("adds donation switching and local history entry points for all games", asy
   assert.match(flipHook, /settings\.flipMode === "self-paced"/);
   assert.match(flipHook, /if \(!timed\) timers\.schedule\("main", finishPreview, previewMs\)/);
   assert.match(flip, /记住了，盖牌/);
-  assert.match(flip, /记牌中 · \{flipConfig\.previewSeconds\} 秒/);
+  assert.match(flip, /记牌中 · \$\{flipConfig\.previewSeconds\} 秒/);
   assert.match(idleSettings, /flipMode: "self-paced"/);
   assert.match(idleSettings, /flipMode: "challenge"/);
   assert.match(idleSettings, /花色数量/);
