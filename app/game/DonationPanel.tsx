@@ -4,7 +4,7 @@ import { useState } from "react";
 
 type PaymentMethod = "wechat" | "alipay";
 
-export function DonationPanel({ onBack }: { onBack: () => void }) {
+export function DonationPanel() {
   const [method, setMethod] = useState<PaymentMethod>("wechat");
   const isWechat = method === "wechat";
 
@@ -26,8 +26,6 @@ export function DonationPanel({ onBack }: { onBack: () => void }) {
           />
         ))}
       </div>
-
-      <button type="button" className="secondary-button donation-back" onClick={onBack}>← 返回偏好设置</button>
     </div>
   );
 }

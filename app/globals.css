@@ -1471,6 +1471,26 @@ h1 {
   overflow-y: auto;
 }
 
+/* Reserve the header and actions before shrinking the scrollable content.
+   The footer must never be inside the measured/clipped transition surface. */
+.settings-panel.has-footer {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  max-height: calc(100dvh - 2rem);
+  overflow: hidden;
+}
+.settings-panel.has-footer > .settings-header { flex: 0 0 auto; }
+.settings-body {
+  flex: 0 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+.settings-footer { flex: 0 0 auto; padding-top: 1rem; }
+.settings-footer > button { width: 100%; min-height: 50px; }
+
 .settings-header {
   display: flex;
   align-items: flex-start;
@@ -1496,7 +1516,6 @@ h1 {
 .preference-copy b { font-size: .88rem; }
 .preference-copy p { margin: .3rem 0 0; color: #756d63; font-size: .69rem; line-height: 1.55; }
 .sound-toggle-panel { min-width: 76px; padding-left: .55rem; }
-.preferences-panel .surface-view > .start-button { margin-top: 1rem; }
 
 .donation-entry {
   display: flex;
