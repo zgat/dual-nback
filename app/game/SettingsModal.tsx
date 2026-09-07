@@ -9,6 +9,7 @@ import { ShortcutSettings } from "./ShortcutSettings";
 import type { ShortcutKeys } from "./shortcuts";
 import { SoundToggle } from "./SoundToggle";
 import { TransitionSurface } from "./TransitionSurface";
+import { AnimatedLabel } from "./AnimatedLabel";
 
 type SettingsModalProps = {
   soundEnabled: boolean;
@@ -41,10 +42,19 @@ export function SettingsModal({
       closeLabel={showDonation ? "关闭捐赠页面" : "关闭偏好设置"}
       onClose={onClose}
       exiting={exiting}
+      footer={
+        <button
+          type="button"
+          className={showDonation ? "secondary-button donation-back" : "start-button preferences-done"}
+          onClick={showDonation ? () => setShowDonation(false) : onClose}
+        >
+          <AnimatedLabel text={showDonation ? "← 返回偏好设置" : "完成"} />
+        </button>
+      }
     >
       <TransitionSurface viewKey={showDonation ? "donation" : "preferences"} sizing="content">
       {showDonation ? (
-        <DonationPanel onBack={() => setShowDonation(false)} />
+        <DonationPanel />
       ) : (
         <>
           <div className="preference-card">
@@ -68,7 +78,6 @@ export function SettingsModal({
             <i aria-hidden="true">→</i>
           </button>
 
-          <button className="start-button" onClick={onClose}>完成</button>
         </>
       )}
       </TransitionSurface>

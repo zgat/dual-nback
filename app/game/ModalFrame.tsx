@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef } from "react";
+import { useEffect, useId, useLayoutEffect, useRef } from "react";
 import type { ReactNode } from "react";
 
 type ModalFrameProps = {
@@ -10,13 +10,20 @@ type ModalFrameProps = {
   closeLabel: string;
   onClose: () => void;
   children: ReactNode;
+  footer?: ReactNode;
   exiting?: boolean;
 };
 
-export function ModalFrame({ eyebrow, title, className = "", closeLabel, onClose, children, exiting = false }: ModalFrameProps) {
+export function ModalFrame({ eyebrow, title, className = "", closeLabel, onClose, children, footer, exiting = false }: ModalFrameProps) {
   const titleId = useId();
   const dialogRef = useRef<HTMLElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const bodyRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    // Open a new modal section at its beginning without moving the footer.
+    if (bodyRef.current) bodyRef.current.scrollTop = 0;
+  }, [title]);
 
   useEffect(() => {
     const previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
@@ -58,7 +65,7 @@ export function ModalFrame({ eyebrow, title, className = "", closeLabel, onClose
     <div className="modal-backdrop" data-exiting={exiting}>
       <button className="modal-dismiss" onClick={onClose} aria-label={closeLabel} tabIndex={-1} />
       <section
-        className={`settings-panel ${className}`}
+        className={`settings-panel ${className} ${footer ? "has-footer" : ""}`}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
@@ -70,7 +77,12 @@ export function ModalFrame({ eyebrow, title, className = "", closeLabel, onClose
           <div><span className="eyebrow">{eyebrow}</span><h2 id={titleId}>{title}</h2></div>
           <button className="close-button" onClick={onClose} aria-label={closeLabel} ref={closeButtonRef}>×</button>
         </div>
-        {children}
+        {footer ? (
+          <>
+            <div className="settings-body" ref={bodyRef}>{children}</div>
+            <div className="settings-footer">{footer}</div>
+          </>
+        ) : children}
       </section>
     </div>
   );

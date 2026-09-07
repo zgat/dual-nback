@@ -87,12 +87,49 @@ test("preferences and donation resize one modal and skip outgoing controls in th
   await h.key("Tab", {}, donation);
   assert.equal(document.activeElement, modal.querySelector(".close-button"));
   await h.key("Tab", {shiftKey:true}, document.activeElement);
-  assert.equal(document.activeElement, modal.querySelector(".is-current .donation-back"));
+  assert.equal(document.activeElement, modal.querySelector(".settings-footer .donation-back"));
   await h.run(() => document.activeElement.click());
   assert.equal(surface.style.height, "240px");
   await h.tick(180);
   assert.equal(surface.querySelector(".is-leaving"), null);
 });
+
+for (const trainingType of ["grid", "cards", "flip", "reaction"]) {
+  test(`${trainingType} preferences keep the done action outside scroll and animation clipping`, async t => {
+    const {SettingsModal} = loadGame("SettingsModal");
+    let closed = 0;
+    const h = await mountHook(t, () => ({view:createElement(SettingsModal, {
+      soundEnabled:false, shortcutKeys:DEFAULT_SHORTCUT_KEYS, trainingType,
+      onToggleSound:noop, onUpdateShortcutKeys:noop, onClose:() => closed++,
+    })}), window => mockResizeObserver(t, window, {preferences:900, donation:700}));
+    const modal = document.querySelector("[role=dialog]");
+    const body = modal.querySelector(".settings-body");
+    const surface = body.querySelector(".transition-surface");
+    const footer = modal.querySelector(".settings-footer");
+    const button = footer.querySelector("button");
+    assert.ok(modal.classList.contains("has-footer"));
+    assert.equal(footer.parentElement, modal);
+    assert.equal(body.contains(button), false);
+    assert.equal(surface.contains(button), false);
+    assert.equal(button.querySelector(".label-current").textContent, "完成");
+    assert.equal(Boolean(body.querySelector(".shortcut-card")), trainingType === "grid" || trainingType === "cards");
+    assert.equal(surface.style.height, "900px");
+    body.scrollTop = 500;
+    await h.run(() => body.querySelector(".donation-entry").click());
+    assert.equal(body.scrollTop, 0);
+    assert.equal(modal.querySelector(".settings-footer"), footer);
+    assert.equal(footer.querySelector("button"), button);
+    assert.equal(button.disabled, false);
+    assert.equal(button.querySelector(".label-current").textContent, "← 返回偏好设置");
+    body.scrollTop = 300;
+    await h.run(() => button.click());
+    assert.equal(body.scrollTop, 0);
+    assert.equal(closed, 0);
+    await h.tick(180);
+    await h.run(() => button.click());
+    assert.equal(closed, 1);
+  });
+}
 
 test("history game and mode switches retain the fixed list shell with inert old rows", async t => {
   const {LeaderboardModal} = loadGame("LeaderboardModal");

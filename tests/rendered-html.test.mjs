@@ -241,6 +241,14 @@ test("supports persistent web-only custom N-Back keyboard mappings", async () =>
   assert.match(page, /useGameController\([\s\S]*shortcutKeys, modalVisible/);
 });
 
+test("preference actions reserve viewport space while only the body scrolls", async () => {
+  const css = await readFile(new URL("../app/globals.css", import.meta.url), "utf8");
+  assert.match(css, /\.settings-panel\.has-footer\s*\{[^}]*display:\s*flex[^}]*flex-direction:\s*column[^}]*max-height:\s*calc\(100dvh - 2rem\)[^}]*overflow:\s*hidden/s);
+  assert.match(css, /\.settings-body\s*\{[^}]*flex:\s*0 1 auto[^}]*min-height:\s*0[^}]*overflow-y:\s*auto/s);
+  assert.match(css, /\.settings-footer\s*\{[^}]*flex:\s*0 0 auto[^}]*padding-top:\s*1rem/s);
+  assert.match(css, /\.settings-footer > button\s*\{[^}]*min-height:\s*50px/s);
+});
+
 test("adds donation switching and local history entry points for all games", async () => {
   const [page, settingsModal, donationPanel, leaderboardModal, controller, gameHome, nback, flip, idleSettings, css, wechat, alipay] = await Promise.all([
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
