@@ -23,4 +23,5 @@ test("game-critical movement remains readable and paused in reduced-motion mode"
   assert.match(css,/\.reaction-pad.is-target\s*\{\s*transition: none/);
   assert.doesNotMatch(css,/animation: reaction-target-in/);
   assert.match(css,/\.score-ring\.reaction-score-ring \{ background: var\(--orange\);/);
+  assert.match(css,/\.phase-paused \.playing-card-inner \{ transition: none; \}/);
 });

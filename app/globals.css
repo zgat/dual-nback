@@ -928,6 +928,8 @@ h1 {
   transition: transform var(--card-flip-duration, 240ms) cubic-bezier(.4,0,.2,1);
 }
 .playing-card.is-back .playing-card-inner { transform: rotateY(180deg); }
+/* Pausing conceals the card immediately; resuming always starts one complete opening flip. */
+.phase-paused .playing-card-inner { transition: none; }
 .playing-card-face, .playing-card-back-face {
   position: absolute;
   inset: 0;
@@ -1324,6 +1326,33 @@ h1 {
   background: rgba(37,34,31,.5);
   backdrop-filter: blur(6px);
   animation: fade-in .18s ease-out;
+}
+
+.history-storage-notice {
+  position: fixed;
+  z-index: 140;
+  top: max(1rem, env(safe-area-inset-top));
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(32rem, calc(100% - 2rem));
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: .75rem 1rem;
+  border: 1px solid var(--orange);
+  border-radius: .75rem;
+  background: var(--paper);
+  box-shadow: 0 4px 20px rgba(37,34,31,.18);
+  font-size: .875rem;
+}
+.history-storage-notice button {
+  flex: none;
+  padding: .5rem;
+  border: 0;
+  background: transparent;
+  color: var(--orange-deep);
+  font: inherit;
+  cursor: pointer;
 }
 
 .modal-dismiss {

@@ -60,6 +60,18 @@ export function usePausableTimers() {
     });
   }, [startEntry]);
 
+  const extend = useCallback((key: string, extraMs: number) => {
+    const entry = timersRef.current.get(key);
+    if (!entry) return;
+    if (entry.id !== null) {
+      window.clearTimeout(entry.id);
+      entry.remainingMs = Math.max(0, entry.remainingMs - (performance.now() - entry.startedAt));
+      entry.id = null;
+    }
+    entry.remainingMs += Math.max(0, extraMs);
+    if (!pausedRef.current) startEntry(key, entry);
+  }, [startEntry]);
+
   const clearAll = useCallback(() => {
     timersRef.current.forEach((entry) => {
       if (entry.id !== null) window.clearTimeout(entry.id);
@@ -71,7 +83,7 @@ export function usePausableTimers() {
   useEffect(() => clearAll, [clearAll]);
 
   return useMemo(
-    () => ({ schedule, clear, pauseAll, resumeAll, clearAll }),
-    [schedule, clear, pauseAll, resumeAll, clearAll],
+    () => ({ schedule, clear, pauseAll, resumeAll, clearAll, extend }),
+    [schedule, clear, pauseAll, resumeAll, clearAll, extend],
   );
 }

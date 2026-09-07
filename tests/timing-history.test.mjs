@@ -66,5 +66,67 @@ test("concurrent challenge successes are incremented atomically", async () => {
 test("disabled storage retains session history in memory", async () => {
   const store = createHistoryStore(() => undefined, createEmptyLeaderboard);
   await store.update(data => recordLeaderboardResult(data, result()));
-  assert.equal((await store.read()).data.timed.grid.length, 1);
+  const snapshot=await store.read();
+  assert.equal(snapshot.data.timed.grid.length, 1);
+  assert.equal(snapshot.storageAvailable,false);
+});
+
+test("one transient open failure is retried without hiding saved history",async()=>{
+  const db=new IDBFactory();
+  const seed=createHistoryStore(()=>db,createEmptyLeaderboard);
+  await seed.update(data=>recordLeaderboardResult(data,result(),1));
+  let calls=0;
+  const factory={open(...args) {
+    if(++calls>1) return db.open(...args);
+    const request={};
+    queueMicrotask(()=>{request.error=new DOMException("Temporary error","UnknownError");request.onerror();});
+    return request;
+  }};
+  const store=createHistoryStore(()=>factory,createEmptyLeaderboard);
+  const snapshot=await store.read();
+  assert.equal(snapshot.storageAvailable,true);
+  assert.equal(snapshot.data.timed.grid.length,1);
+  assert.equal(calls,2);
+});
+
+test("recovered writes merge pending scores with concurrent tab changes exactly once",async()=>{
+  const db=new IDBFactory();
+  let available=false;
+  const store=createHistoryStore(()=>available?db:undefined,createEmptyLeaderboard);
+  const other=createHistoryStore(()=>db,createEmptyLeaderboard);
+  const challenge=result({settings:{...DEFAULT_SETTINGS,mode:"challenge",total:30}});
+  await store.update(data=>recordLeaderboardResult(data,result({elapsedMs:10000}),1));
+  await store.update(data=>recordLeaderboardResult(data,challenge));
+  await store.update(data=>recordLeaderboardResult(data,challenge));
+  await other.update(data=>recordLeaderboardResult(data,result({elapsedMs:20000}),2));
+  await other.update(data=>recordLeaderboardResult(data,challenge));
+  available=true;
+  const recovered=await store.read();
+  assert.equal(recovered.storageAvailable,true);
+  assert.deepEqual(recovered.data.timed.grid.map(e=>e.elapsedMs),[10000,20000]);
+  assert.equal(recovered.data.challenge.grid[2400],3);
+  const reread=await store.read();
+  assert.equal(reread.data.challenge.grid[2400],3);
+  assert.equal(reread.revision,5);
+  assert.deepEqual((await other.read()).data,recovered.data);
+});
+
+test("an aborted write is retried without double counting challenge success",async()=>{
+  const db=new IDBFactory();
+  const store=createHistoryStore(()=>db,createEmptyLeaderboard);
+  const {IDBObjectStore}=await import("fake-indexeddb");
+  const originalPut=IDBObjectStore.prototype.put;
+  let fail=true;
+  IDBObjectStore.prototype.put=function(...args) {
+    const request=originalPut.apply(this,args);
+    if(fail) {fail=false;this.transaction.abort();}
+    return request;
+  };
+  try {
+    const challenge=result({settings:{...DEFAULT_SETTINGS,mode:"challenge",total:30}});
+    const saved=await store.update(data=>recordLeaderboardResult(data,challenge));
+    assert.equal(saved.storageAvailable,true);
+    assert.equal(saved.data.challenge.grid[2400],1);
+    assert.equal((await store.read()).data.challenge.grid[2400],1);
+  } finally { IDBObjectStore.prototype.put=originalPut; }
 });

@@ -270,8 +270,9 @@ test("adds donation switching and local history entry points for all games", asy
   assert.match(controller, /onSessionFinishedRef\.current\?\.\(/);
   assert.match(gameHome, /leaderboard-entry[\s\S]*历史最佳/);
   assert.match(nback, /<ResultPanel[\s\S]*onOpenLeaderboard={onOpenLeaderboard}/);
+  // Completion timing and exactly-once saving are covered by real hook interaction tests.
+  assert.match(page, /onSessionFinished=\{leaderboard.recordFlipResult\}/);
   const flipHook = await readFile(new URL("../app/game/useFlipMemoryGame.ts", import.meta.url), "utf8");
-  assert.match(flipHook, /onSessionFinished\(\{/);
   assert.match(flip, /<ResultPanel[\s\S]*onOpenLeaderboard={onOpenLeaderboard}/);
   assert.match(leaderboardModal, /leaderboard-game-switch/);
   assert.match(leaderboardModal, /leaderboard-footer/);

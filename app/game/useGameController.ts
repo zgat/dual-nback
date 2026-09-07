@@ -49,6 +49,8 @@ export function useGameController(
   const responseRef = useRef<MatchType | null>(null);
   const statsRef = useRef<Stats>(EMPTY_STATS);
   const stimulusVisibleRef = useRef(false);
+  const cardRevealStartedAtRef = useRef(0);
+  const cardResumeDelayRef = useRef(0);
   const finalizeRef = useRef<() => void>(() => undefined);
   const countdownStepRef = useRef<() => void>(() => undefined);
   const countdownRemainingRef = useRef(3);
@@ -87,6 +89,7 @@ export function useGameController(
     setSelected(null);
     setCorrectAnswer(null);
     setVisible(true);
+    cardRevealStartedAtRef.current = performance.now();
 
     if (settingsRef.current.mode !== "challenge") return;
     if (trial.type === "cards") {
@@ -184,6 +187,11 @@ export function useGameController(
   const pauseGame = useCallback(() => {
     if (phaseRef.current !== "playing" && phaseRef.current !== "countdown") return false;
     phaseBeforePauseRef.current = phaseRef.current;
+    // Replace only the opening animation already consumed, not the remaining thinking time.
+    cardResumeDelayRef.current = settingsRef.current.trainingType === "cards"
+      && settingsRef.current.mode === "challenge" && stimulusVisibleRef.current
+      ? Math.min(CARD_FLIP_DURATION_MS, Math.max(0, performance.now() - cardRevealStartedAtRef.current))
+      : 0;
     timers.pauseAll();
     phaseRef.current = "paused";
     setPhase("paused");
@@ -198,6 +206,8 @@ export function useGameController(
     phaseRef.current = phaseBeforePauseRef.current;
     setPhase(phaseBeforePauseRef.current);
     if (phaseBeforePauseRef.current === "playing") setStimulusVisible(stimulusVisibleRef.current);
+    timers.extend("stimulus", cardResumeDelayRef.current);
+    cardRevealStartedAtRef.current = performance.now();
     timers.resumeAll();
   }, [clock, timers]);
 
@@ -261,6 +271,9 @@ export function useGameController(
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (inputBlocked || shouldIgnoreGameKey(event)) return;
+      // Enter/Space activate the focused control; a global mapping must not steal that action.
+      if ((event.key === "Enter" || event.key === " ") && event.target instanceof Element
+        && event.target.closest("button, a[href], [role='button']")) return;
       if (settingsRef.current.trainingType !== "grid" && settingsRef.current.trainingType !== "cards") return;
       if (phaseRef.current === "idle" || phaseRef.current === "finished") return;
       const key = event.key.toLowerCase();

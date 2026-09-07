@@ -34,6 +34,7 @@ export function useFlipMemoryGame({settings, soundEnabled, paused, onSessionActi
   const clock = useSessionClock();
   const cardsRef = useRef(cards);
   const previewFinishedRef = useRef(false);
+  const completedResultRef = useRef<FlipSessionResult | null>(null);
   const timers = usePausableTimers();
   const score = stats.found === 0 ? 0 : Math.round((stats.found / (stats.found + stats.mistakes)) * 100);
   const challengeSuccess = !timed && stats.found > 0 && stats.mistakes === 0;
@@ -92,6 +93,7 @@ export function useFlipMemoryGame({settings, soundEnabled, paused, onSessionActi
     if (soundEnabled) playFeedbackSound("advance");
     setStats({ found: 0, mistakes: 0 });
     setElapsedMs(0);
+    completedResultRef.current = null;
     clock.start();
     dealRound(0);
   }, [clock, dealRound, soundEnabled]);
@@ -101,32 +103,32 @@ export function useFlipMemoryGame({settings, soundEnabled, paused, onSessionActi
     const duration = clock.finish();
     setElapsedMs(duration);
     setFlipPhase("finished");
-    onSessionFinished({
-      cardCount,
-      suitCount,
-      mode: settings.flipMode,
-      difficulty: settings.flipDifficulty,
-      rounds: settings.flipRounds,
-      found: stats.found,
-      mistakes: stats.mistakes,
-      elapsedMs: duration,
-    });
-  }, [cardCount, clock, onSessionFinished, settings.flipDifficulty, settings.flipMode, settings.flipRounds, stats.found, stats.mistakes, suitCount, timers]);
+  }, [clock, timers]);
 
   const advanceRound = () => {
+    if (paused || flipPhase !== "round-complete") return;
     if (round + 1 >= settings.flipRounds) finishGame();
     else dealRound(round + 1);
   };
 
   const chooseCard = (card: FlipCard) => {
-    if (paused || flipPhase !== "selecting" || foundIds.includes(card.id) || mistakeIds.includes(card.id)) return;
+    if (paused || completedResultRef.current || flipPhase !== "selecting" || foundIds.includes(card.id) || mistakeIds.includes(card.id)) return;
     if (soundEnabled) playFeedbackSound(card.isTarget ? "correct" : "wrong");
     if (card.isTarget) {
       const nextFound = [...foundIds, card.id];
       setFoundIds(nextFound);
       setStats((currentStats) => ({ ...currentStats, found: currentStats.found + 1 }));
       if (nextFound.length === targetCount) {
-        if (round + 1 >= settings.flipRounds) clock.finish();
+        if (round + 1 >= settings.flipRounds) {
+          const result: FlipSessionResult = {
+            cardCount, suitCount, mode: settings.flipMode, difficulty: settings.flipDifficulty,
+            rounds: settings.flipRounds, found: stats.found + 1, mistakes: stats.mistakes,
+            elapsedMs: clock.finish(),
+          };
+          completedResultRef.current = result;
+          setElapsedMs(result.elapsedMs);
+          onSessionFinished(result);
+        }
         setFlipPhase("round-complete");
       }
     } else {
